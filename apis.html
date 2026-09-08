@@ -1,0 +1,1127 @@
+
+
+<!--
+~   Copyright (c) WSO2 Inc. (http://wso2.com) All Rights Reserved.
+~
+~   Licensed under the Apache License, Version 2.0 (the "License");
+~   you may not use this file except in compliance with the License.
+~   You may obtain a copy of the License at
+~
+~        http://www.apache.org/licenses/LICENSE-2.0
+~
+~   Unless required by applicable law or agreed to in writing, software
+~   distributed under the License is distributed on an "AS IS" BASIS,
+~   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~   See the License for the specific language governing permissions and
+~   limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="">
+    <meta name="description" content=""/>
+
+    <title>API Store Listing</title>
+
+    <script>
+        var requestURL = 'https://apilib.prefeitura.sp.gov.br/store/';
+        var ssoEnabled = 'false';
+        var oidcEnabled = 'false';
+        var tenant = 'carbon.super';
+        var urlPrefix = 'tenant=carbon.super';
+        var siteContext = '/store';
+    </script>
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="https://apilib.prefeitura.sp.gov.br/store/site/themes/wso2/images/favicon-store.png">
+
+        <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/bootstrap_3.3.5/css/bootstrap.min.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/theme-wso2_1.0/css/theme-wso2.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/font-wso2_1.0.2/css/font-wso2.min.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/font-awesome/css/font-awesome.min.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/bootstrap-select/css/bootstrap-select.min.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/css/custom.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/bootstrap-rating/bootstrap-rating.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/data-tables_1.10.7/extensions/Bootstrap/css/dataTables.bootstrap.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/data-tables_1.10.7/extensions/Responsive/css/dataTables.responsive.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/enjoyhint-3.1.0/enjoyhint.css"/>
+    <link type="text/css" rel="stylesheet" href="/store/site/themes/wso2/libs/enjoyhint-3.1.0/src/jquery.enjoyhint.css"/>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/jquery_1.11.0/jquery-1.11.3.min.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/i18n/i18next-1.5.9.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/jquery-csrf/jquery-csrf.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/handlebars-v4.0.5.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/bootstrap-rating/bootstrap-rating.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/enjoyhint-3.1.0/enjoyhint.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/enjoyhint-3.1.0/js/cloud-enjoyhint-script-data.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/enjoyhint-3.1.0/js/cloud-enjoyhint-functions.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/templates/page/base/js/jagg.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/templates/page/base/js/base.js"></script>
+    <script type="text/javascript">jagg.site = {"context" : "/store", "registry" : "", "tenant" : "carbon.super"};</script>
+    <script type="text/javascript">jagg.loggedIn = false;</script>
+    <script type="text/javascript" src="/store/site/themes/wso2/templates/user/login/js/login.js"></script>
+
+    <script>
+        var siteRoot = 'https://apilib.prefeitura.sp.gov.br/store/site/themes/wso2';
+    </script>
+</head>
+<body class="sticky-footer">
+
+
+
+	
+
+
+
+<!-- header -->
+<header class="header header-default">
+    <div class="container-fluid">
+       <div class="pull-left brand float-remove-xs text-center-xs">
+          <a href="https://apilib.prefeitura.sp.gov.br/store/site/pages/index.jag" title="API Store">
+              <img src="https://apilib.prefeitura.sp.gov.br/store/site/themes/wso2/libs/theme-wso2_1.0/images/logo-inverse.svg" class="logo" alt="API Store Home"/>          
+		<div class="logo-title">
+	           <p class="logo-title-p"> </p>
+	           <p class="logo-subtitle"> </p>
+		</div>
+	  </a>
+       </div>
+       
+		<ul class="nav navbar-right float-remove-xs text-center-xs">
+				
+						<li class="visible-inline-block">
+			                <a title="Go to Public API Store" id="register-link" href="https://apilib.prefeitura.sp.gov.br/store/">
+			                  <span class="icon fw-stack fw-lg">
+			                  <i class="fw fw-circle-outline fw-stack-2x"></i>
+			                  <i class="fw fw-store fw-stack-1x"></i>
+			                  </span>
+			                    <span class="hidden-xs"> Go to Public API Store</span>
+			                </a>
+			            </li>
+				
+				
+			
+	            <li class="visible-inline-block">
+	                <a title="Sign-up" id="register-link1" href="/store/site/pages/sign-up.jag?tenant=carbon.super">
+	                  <span class="icon fw-stack fw-lg">
+	                  <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                  <i class="fw fw-register fw-stack-1x"></i>
+	                  </span>
+	                    <span class="hidden-xs"> Sign-up</span>
+	                </a>
+	            </li>
+	                 
+	            <li class="visible-inline-block">
+	                <a id="btn-login" class="need-login" href="/store/?tenant=carbon.super">
+	                  <span class="icon fw-stack fw-lg">
+	                  <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                  <i class="fw fw-sign-in fw-stack-1x"></i>
+	                  </span>
+	                    <span class="hidden-xs">Sign In</span>
+	                </a>
+	            </li>
+        </ul>      
+
+
+<!-- TODO: Check and include relevant -->
+
+<!--  -->
+    </div>
+</header>
+
+
+<!-- #page-content-wrapper -->
+<div class="page-content-wrapper">
+    <!-- media-->
+    <div class="media">
+        <!-- media left-->
+         <div class="media-left sidebar-wrapper sidebar-nav visible-side-pane" id="left-sidebar" data-spy="affix" data-offset-top="50" data-side="left" data-width="200">
+         
+            
+        <!-- Sidebar -->
+            
+            <nav class="navigation">
+                <ul>
+                	
+	                    <li class="purple active"><a title="APIs" href="/store/?tenant=carbon.super"><i class="fw fw-api icon"></i><span class="left-menu-item ">APIs</span></a></li>
+	                    <li class="green"><a title="Applications" href="/store/site/pages/applications.jag?tenant=carbon.super" class="link-myapplications need-login"><i class="fw fw-application icon"></i><span class="left-menu-item">Applications</span></a></li>
+	                    
+	                    <li class="yellow"><a title="Statistics" href="/store/site/pages/statistics.jag?stat=perAppAPICount&tenant=carbon.super" class="need-login"><i class="fw fw-statistics icon"></i><span class="left-menu-item">Analytics <i class="fw fw-down fw-stack-1x toggle-icon-up remove-float"></i></span></a>
+	                    	<ul class="sublevel-menu">
+	                            <li><a title="API Usage" href="/store/site/pages/statistics.jag?stat=perAppAPICount&tenant=carbon.super" class="need-login"><i class="fw fw-api icon"></i><span class="name">API Usage</span></a></li>
+	                            <li><a title="Top Users" href="/store/site/pages/statistics.jag?stat=topUsers&tenant=carbon.super" class="need-login"><i class="fw fw-api icon"></i><span class="name">Top Users</span></a></li>
+	                            <li><a title="Resource Usage" href="/store/site/pages/statistics.jag?stat=apiCallType&tenant=carbon.super" class="need-login"><i class="fw fw-api icon"></i><span class="name">Resource Usage</span></a></li>
+	                            <li><a title="Faulty Invocations" href="/store/site/pages/statistics.jag?stat=faultCount&tenant=carbon.super" class="need-login"><i class="fw fw-api icon"></i><span class="name">Faulty Invocations</span></a></li>
+	                        </ul>
+	                    </li>
+	                    <li class="blue"><a title="Manage Alerts" href="/store/site/pages/manage-alert-type.jag?tenant=carbon.super" class="need-login"><i class="fw fw-notification icon"></i><span class="left-menu-item">Manage Alerts</span></a></li>
+	                               
+                </ul>
+            </nav>
+
+            <!--
+   <div class="sidebar-wrapper sidebar-nav" id="left-sidebar"
+    data-side="left" data-width="300" data-fixed-offset-top="0" data-spy="affix" data-offset-top="50" style="width: 300px; left: 0px;">
+    <div class="nano">
+      <div class="nano-content">
+        <ul class="nav nav-pills  nav-stacked pages">
+        
+               <li >
+               <a title="Browse the latest versions of published APIs, make subscriptions, and generate API keys." href="https://apilib.prefeitura.sp.gov.br/store/?tenant=carbon.super" class="link-home">
+               <i class="fw fw-api fw-2x"></i>
+               APIs
+               </a>
+               </li>
+        
+               <li >
+               <a title="Browse and create applications. Applications are required to make API subscriptions and consume them." href="https://apilib.prefeitura.sp.gov.br/store/site/pages/applications.jag?tenant=carbon.super" class="link-myapplications need-login">
+               <i class="fw fw-application fw-2x"></i>
+               My Applications
+               </a>
+               </li>
+                 
+          <li><a title="title" href="#" id="left-bar-menu-toggle" data-toggle="collapse" data-target="#secondaryMenu"
+                               aria-expanded="false"><i class="fw fw-statistics fw-2x"></i> Analytics 
+                               <i class="icon fw fw-down fw-1x secondary-nav-toggle" title="Analytics"></i>
+                               </a>
+          <ul class="nav nav-pills secondary-nav collapse " id="secondaryMenu" role="menu" aria-labelledby="btn-1" >
+              <li ><a class="substats"
+                title="API Subscriptions" href="/publisher/site/pages/all-statistics.jag?page=api-subscriptions&stat=all-stat"
+                onclick="jagg.sessionAwareJS({redirect:'/publisher/site/pages/all-statistics.jag?page=api-subscriptions&stat=all-stat',e:event,ssoEnabled:false})">
+                <i class="icon fw fw-pie-chart"></i>
+                API Subscriptions</a></li>
+              <li ><a class="substats" title="API Usage"
+                href="/publisher/site/pages/all-statistics.jag?page=api-usage-user&stat=all-stat"
+                onclick="jagg.sessionAwareJS({redirect:'/publisher/site/pages/all-statistics.jag?page=api-usage-user&stat=all-stat',e:event,ssoEnabled:false})">
+                <i class="icon fw fw-bar-chart"></i>
+                API Usage</a></li>
+              <li ><a class="substats" title="API Response Times"
+                href="/publisher/site/pages/all-statistics.jag?page=api-response-times&stat=all-stat"
+                onclick="jagg.sessionAwareJS({redirect:'/publisher/site/pages/all-statistics.jag?page=api-response-times&stat=all-stat',e:event,ssoEnabled:false})">
+                <i class="icon fw fw-bar-chart"></i>
+                API Response Times</a></li>
+              <li ><a class="substats" title="API Last Access Times"
+                href="/publisher/site/pages/all-statistics.jag?page=api-last-access-times&stat=all-stat"
+                onclick="jagg.sessionAwareJS({redirect:'/publisher/site/pages/all-statistics.jag?page=api-last-access-times&stat=all-stat',e:event,ssoEnabled:false})">
+                <i class="icon fw fw-table"></i>
+                API Last Access Times</a></li>
+            </ul>
+
+</li>
+        </ul>
+      </div>
+    </div>
+</div> -->
+
+            
+                    
+                        
+
+<div class="tags-wrapper hidden-xs hidden-sm" id="tagcloud" style="display:none">
+  <div class="tag-title">Tags</div>
+  <div class="tag-content" id="tag-content" style="width:100%;">
+  </div>
+</div>
+
+<script type="text/javascript">
+    $(function(){
+        jagg.post( "/site/blocks/tag/tag-cloud/ajax/list.jag", {
+          
+            tenant: "carbon.super",
+           
+          action:"getAllTags"          
+        }, function (result) {
+           if (result.error == false) {
+              var path = "/store/site/pages/list-apis.jag?page=1&tenant=carbon.super";
+              var words = [];
+              if(result.tags.length == 0){
+                $("#tag-content").append('<span class="text-muted">No tags to display.</span>');
+              } else {
+            	  $('#tagcloud').show();
+              }
+              for (var i = result.tags.length - 1; i >= 0; i--) {
+                var tag_name = result.tags[i].name;
+                if (result.tags[i].name.split('-group').length > 1 && false == true) {
+                    continue;
+                }
+                $("#tag-content").append('<a title="'+tag_name+'" style = "text-transform: none;"  class="truncate" href="'+path + "&tag=" + result.tags[i].name+'" rel="'+result.tags[i].count+'" >'+tag_name+'</a> ');
+              };
+              $.fn.tagcloud.defaults = {
+                size: {start: 14, end: 18, unit: 'px'},
+                color: {start: '#064973', end: '#1a78d8'}
+              };
+
+              $(function () {
+                $('#tag-content a').tagcloud();
+              });
+           } else {
+               jagg.message({content:result.message,type:"error"});
+           }
+          }, "json"
+        );
+    });
+
+</script>
+
+        
+            <div class="logo-smit">
+                <a href="https://www.prefeitura.sp.gov.br/cidade/secretarias/inovacao/" target="_blank"><img class="img-responsive brand-spacer" alt="brasao_secretaria_inovacao_tecnologia" src="https://apilib.prefeitura.sp.gov.br/store/site/themes/wso2/images/logo-smit.png"></a>
+            </div>                   
+        </div>
+        <!-- media left-->
+
+        <!-- Page Content -->       
+           
+        
+        <!-- media body-->
+        <div class="media-body">
+            
+
+    <!-- navbar -->
+    <div class="navbar-wrapper navbar-search">
+        <nav class="navbar navbar-default" data-spy="affix" data-offset-top="50" data-offset-bottom="40">
+        	<a class="navbar-menu-toggle hidden-sm hidden-lg hidden-md" title="left-sidebar" data-toggle="sidebar" data-target="#left-sidebar" data-container=".page-content-wrapper" data-container-divide="true" aria-expanded="false" rel="leftmenu-sidebar">
+                        <span class="icon fw-stack">
+                            <i class="fw fw-menu fw-stack-1x toggle-icon-cancel"></i>
+                        </span>
+           </a>
+			                    
+                    	
+
+<form action="https://apilib.prefeitura.sp.gov.br/store/apis/list?" id="search_apis">
+  <div class="col-xs-10 col-sm-12 col-md-6 col-lg-5">
+  
+    <div class="input-group input-wrap search-wrap">
+      <div class="input-group-btn">
+          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Category">All <span class="caret"></span></button>
+          <ul class="dropdown-menu">
+            <li><a href="https://apilib.prefeitura.sp.gov.br/store/apis/list?tenant=carbon.super">All</a></li>
+            <li><a href="https://apilib.prefeitura.sp.gov.br/store/apis/list?type=production&tenant=carbon.super">Production</a></li>
+            <li><a href="https://apilib.prefeitura.sp.gov.br/store/apis/list?type=prototyped&tenant=carbon.super">Prototyped</a></li>
+          </ul>
+      </div>
+      <input type="text" class="form-control appm-content-search" title="apim_search" onkeydown="key_down(event)"  name="query" id="query" placeholder="Search...">
+      <div class="input-group-btn">
+        <button class="btn btn-default wrap-input-right" id="searchAPI" type="submit" title="Search">
+          <i class="fw fw-search" aria-hidden="true"></i>
+        </button> 
+      </div>
+      <div class="input-group-btn">
+        <a class="help_popup" title="Search Options" rel="popover" data-popover-content="#apiSearchTips" data-placement="bottom">
+          <span class="icon fw-lg  add-margin-bottom-1x add-margin-left-2x" style="font-size:16px;">
+            <i class="fw fw-info fw-inverse" title="Search Options"></i>
+          </span>            
+        </a>
+      </div>
+       <div id="apiSearchTips" class="hide help-popover-content" >
+            <ol>
+                <li>By API Name [Default]</li>
+                <li>By API Provider [ Syntax - provider:xxxx ]  or</li>
+                <li>By API Version [ Syntax - version:xxxx ]  or</li>
+                <li>By Context [ Syntax - context:xxxx ]  or</li>
+                <li>By Description [ Syntax - description:xxxx ] or</li>
+                <li>By Tags [ Syntax - tags:xxxx ] or</li>
+                <li>By Sub-Context [ Syntax - subcontext:xxxx ] or</li>
+                <li>By Documentation Content [ Syntax - doc:xxxx ]</li>
+                <li>By Microgateway Label [ Syntax - label:xxxx ]</li>
+                <li>By API Properties [Syntax - {property name}:{property value}]</li>
+            </ol>
+        </div>
+      
+        <input type="hidden" class="span5" name="tenant" value="carbon.super" />
+         
+    </div><!-- /input-group -->
+  </div>
+</form>
+<!-- div class="row">
+  <div class="col-md-6 api-search">
+    <form action="https://apilib.prefeitura.sp.gov.br/store/apis/list" id="search_apis">
+        <div class="input-group">
+          <input title="searchAPI" type="text" class="form-control" name="query" 
+                     placeholder="searchAPI" />
+          <span class="input-group-btn">
+            <button class="btn btn-primary search_apis" type="submit"><i class="fa fa-search"></i>Search</button>
+          </span>
+        </div>
+        <div id="apiSearchHelp" class="hide help-popover-content" >
+            <ol>
+                 <li>By API Name [Default]</li>
+                <li>By API Provider [ Syntax - provider:xxxx ]  or</li>
+                <li>By API Version [ Syntax - version:xxxx ]  or</li>
+                <li>By Context [ Syntax - context:xxxx ]  or</li>
+                <li>By Description [ Syntax - description:xxxx ] or</li>
+                <li>By Sub-Context [ Syntax - subcontext:xxxx ] or</li>
+                <li>By Documentation Content [ Syntax - doc:xxxx ]</li>
+            </ol>
+        </div>
+        
+        <input type="hidden" class="span5" name="tenant" value="carbon.super" />
+                
+    </form>
+  </div>
+  <div class="col-md-6 api-search "><a href="#" title="Search Options" class="help-text" data-placement="bottom" rel="popover" data-popover-content="#apiSearchHelp"><i class="fa fa-question-circle"></i> Search Options</a>
+</div>
+</div -->
+
+<script>
+	function key_down(e) {
+		if(e.key == "Enter"){
+			$("#searchAPI")[0].click();
+		}
+  	}
+</script>
+
+
+
+                       
+        </nav>
+    </div>
+
+
+            <div class="container-fluid">      
+            	<div class="body-wrapper">
+                	
+
+
+
+ 
+ <!-- Recently Added APIs -->
+ 
+	
+
+
+<div class="page-header">
+    <h2>Recently Added APIs</h2>
+</div>
+
+<div  class="page-content">
+    <div id="recently-added" class="row">
+    <script id="recently-added-template" type="text/x-handlebars-template">
+    {{#each apis}}
+
+<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                                <div class="thumbnail icon">
+									{{#if thumbnailurl}}
+										<div class="square-element">
+                                    		<img class="" src="{{ thumbnailurl }}" alt="API Thumbnail">
+                                    	</div>										                               		
+									{{else}}     
+                                    	<div class="square-element setbgcolor">
+											<div class="api-name-icon"></div>
+											<div style="display: none">
+												<a title="Name" href="" class="api-name">{{ name }}</a>
+											</div>
+										</div> 
+									{{/if}}
+									<a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name={{ name }}&version={{ version }}&provider={{ provider }}&tenant=carbon.super" title="Browse APIs">
+                                    	<div class="after">                                        
+                                    		<span class="fw-stack fw-lg">
+                                    			<i class="fw fw-circle-outline fw-stack-2x"></i>
+                                    			<i class="fw fw-view fw-stack-1x"></i>
+                                    		</span>                                        
+                                    	</div>
+									</a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a title="API Browse" href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name={{ name }}&version={{ version }}&provider={{ provider }}&tenant=carbon.super">{{ name }}-{{ version }}</a></h4>
+                                    <h5 class="truncate" title="{{ displayOwner }}" data-toggle="tooltip" data-placement="bottom">{{ displayOwner }}</h5>
+									<input type="hidden" class="rating recent_rating" disabled="disabled" value="{{ rates }}" />
+                                </div>
+                            </div>
+                        </div>
+    {{/each}}   
+  </script>  
+    </div>
+</div>
+
+
+
+<script type="text/javascript">
+  $(function(){
+    jagg.post("/site/blocks/api/recently-added/ajax/list.jag", {
+      action:"getRecentlyAddedAPIs",
+      limit:5 
+    }, function (result) {
+         if (result.error == false) {
+          for(var i = 0; i < result.apis.length;i++){
+            if(/^images\//.test(result.apis[i].thumbnailurl)){
+              result.apis[i].thumbnailurl = null;
+            }
+            else{
+              result.apis[i].thumbnailurl = ""+result.apis[i].thumbnailurl;
+            }
+            if(result.apis[i].isAdvertiseOnly != null && result.apis[i].isAdvertiseOnly){
+              result.apis[i].displayOwner = result.apis[i].owner;
+            }
+            else if(result.apis[i].businessOwner != null && result.apis[i].businessOwner.trim() != "") {
+              result.apis[i].displayOwner = result.apis[i].businessOwner;
+            }
+            else{
+              result.apis[i].displayOwner = result.apis[i].provider;
+            }
+          } 
+          var source   = $("#recently-added-template").html();
+          var template = Handlebars.compile(source);
+          $("#recently-added").html(template(result));
+          $(".recent_rating").rating();
+          $(".setbgcolor").generateBgcolor({
+              definite:true
+          });
+
+          $(".api-name-icon").each(function() {
+              var elem = $(this).next().children(".api-name");
+              $(this).nametoChar({
+                  nameElement: elem
+              });
+          });
+
+         } else {
+             jagg.message({content:result.message,type:"error"});
+         }
+    }, "json");
+  });
+
+</script>
+
+ 
+  <!-- Recently Added APIs -->
+
+<script>
+// Check about the blackListedTenant Domains for this tutorial
+if (false) {
+    var enjoyHintApplicationMenuInstance = null;
+    // start tutorial from the button
+    if (null) {
+        removeLocalStorageVariablesForNewUser();
+    }
+
+    var isNewUserInteractiveTutorialStarted = localStorage.getItem("isNewUserInteractiveTutorialStarted");
+    var isFirstTimeTutorialViewed = localStorage.getItem("isFirstTimeTutorialViewed");
+    var isApplicationSelectedForSubscribe = localStorage.getItem("isApplicationSelectedForSubscribe");
+    if (!isFirstTimeTutorialViewed && !isNewUserInteractiveTutorialStarted && !isApplicationSelectedForSubscribe) {
+        if (null) {
+            launchInteractiveTutorial();
+        }
+        else {
+            // auto launch the tutorial for the new users
+            if (false) {
+                launchInteractiveTutorial();
+            }
+        }
+    }
+  }
+ 
+  function launchInteractiveTutorial() {
+      localStorage.setItem("isNewUserInteractiveTutorialStarted", true);
+      runEnjoyHintScript(enjoyHintApplicationMenuInstance, api_store_select_one_api);
+  }
+</script> 
+
+<div class="page-header">
+     
+    			<h2>APIs</h2>
+   			 
+   			 </div>
+
+
+<div class="page-content">
+    <div class="row">
+        
+                <div class="col-sm-12 api-count-display"><span>0 - 12</span> of <span>13</span> APIs</div>
+            
+
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/CensoDemografico/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=CensoDemografico&version=v1&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=CensoDemografico&version=v1&provider=admin&tenant=carbon.super" title="API Name: CensoDemografico">CensoDemografico</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=CensoDemografico&version=v1&provider=admin&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">Controladoria Geral do Município / COPI</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="0.0" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/Diario_Oficial/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=Diario_Oficial&version=v1&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=Diario_Oficial&version=v1&provider=admin&tenant=carbon.super" title="API Name: Diario_Oficial">Diario_Oficial</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=Diario_Oficial&version=v1&provider=admin&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">Secretaria Municipal de Gestão ((11) 3396-7079)</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="2.2308" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/eSIC/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=eSIC&version=v1&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=eSIC&version=v1&provider=admin&tenant=carbon.super" title="API Name: eSIC">eSIC</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=eSIC&version=v1&provider=admin&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">Controladoria Geral do Município / COPI</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="4.0" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/IDHM/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=IDHM&version=v1&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=IDHM&version=v1&provider=admin&tenant=carbon.super" title="API Name: IDHM">IDHM</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=IDHM&version=v1&provider=admin&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">Controladoria Geral do Município / COPI</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="0.0" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/LentidaoTransito/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=LentidaoTransito&version=v1&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=LentidaoTransito&version=v1&provider=admin&tenant=carbon.super" title="API Name: LentidaoTransito">LentidaoTransito</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=LentidaoTransito&version=v1&provider=admin&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">Controladoria Geral do Município / COPI</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="5.0" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/Licitacoes/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=Licitacoes&version=v1&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=Licitacoes&version=v1&provider=admin&tenant=carbon.super" title="API Name: Licitacoes">Licitacoes</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=Licitacoes&version=v1&provider=admin&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">Controladoria Geral do Município / COPI</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="4.6" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/OlhoVivo/v2.1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=OlhoVivo&version=v2.1&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=OlhoVivo&version=v2.1&provider=admin&tenant=carbon.super" title="API Name: OlhoVivo">OlhoVivo</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=OlhoVivo&version=v2.1&provider=admin&tenant=carbon.super" title="Version">v2.1</a></h5>
+                                    
+                                    	<p class="truncate">admin</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="0.0" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/PratoAberto/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=PratoAberto&version=v1&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=PratoAberto&version=v1&provider=admin&tenant=carbon.super" title="API Name: PratoAberto">PratoAberto</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=PratoAberto&version=v1&provider=admin&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">Secretaria Municipal de Educação</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="5.0" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/PROCON/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=PROCON&version=v1&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=PROCON&version=v1&provider=admin&tenant=carbon.super" title="API Name: PROCON">PROCON</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=PROCON&version=v1&provider=admin&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">Controladoria Geral do Município / COPI</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="3.0" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin/SOF/v4/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=SOF&version=v4&provider=admin&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=SOF&version=v4&provider=admin&tenant=carbon.super" title="API Name: SOF">SOF</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=SOF&version=v4&provider=admin&tenant=carbon.super" title="Version">v4</a></h5>
+                                    
+                                    	<p class="truncate">Secretaria Municipal da Fazenda</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="3.5263" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin_sme/EscolaAberta/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=EscolaAberta&version=v1&provider=admin_sme&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=EscolaAberta&version=v1&provider=admin_sme&tenant=carbon.super" title="API Name: EscolaAberta">EscolaAberta</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=EscolaAberta&version=v1&provider=admin_sme&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">Secretaria Municipal de Educação</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="5.0" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+               
+                
+                	<div class="col-xs-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="white-wrapper add-margin-bottom-4x">
+                            	
+                                <div class="thumbnail icon">
+                                	
+                                    	<div class="square-element">
+                                    		<img class="" src="/registry/resource/_system/governance/apimgt/applicationdata/icons/admin_SMS/DeOlhoNaFila-API/v1/icon" alt="API Thumbnail">
+                                    		
+                                    	</div>
+                                    
+                                     <a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=DeOlhoNaFila-API&version=v1&provider=admin_SMS&tenant=carbon.super" title="Browse APIs">
+	                                    <div class="after">                                       
+	                                    <span class="fw-stack fw-lg">
+	                                    <i class="fw fw-circle-outline fw-stack-2x"></i>
+	                                    <i class="fw fw-view fw-stack-1x"></i>
+	                                    </span>          
+	                                    </div>
+	                                   </a>
+                                </div>
+                                <div class="add-padding-2x app-data ">
+                                    <h4 class="truncate"><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=DeOlhoNaFila-API&version=v1&provider=admin_SMS&tenant=carbon.super" title="API Name: DeOlhoNaFila-API">DeOlhoNaFila-API</a></h4>
+                                    <h5><a href="https://apilib.prefeitura.sp.gov.br/store/apis/info?name=DeOlhoNaFila-API&version=v1&provider=admin_SMS&tenant=carbon.super" title="Version">v1</a></h5>
+                                    
+                                    	<p class="truncate">admin_SMS</p>
+                                    
+                                    
+                                        <input type="hidden" class="rating" disabled="disabled" value="0.0" />
+                                    
+                                </div>
+                            </div>
+                        </div>
+                
+                
+
+            
+            
+            <!-- Pagination Start -->
+            
+            
+                <div class="col-sm-12">
+                <ul class="pagination ">
+                    <li  class="disabled" >
+                        <a title="pagination"
+                                
+
+                                >&lt;&lt;</a></li>
+
+                    <!-- Displaying differently for lengthy pagination -->
+                    
+                    <li  class="active" ><a title="pagination"
+                    href="?page=1&tenant=carbon.super">1</a></li>
+                    
+                    <li ><a title="pagination"
+                    href="?page=2&tenant=carbon.super">2</a></li>
+                    
+
+                    <li ><a title="Pagination" href="?page=2&tenant=carbon.super">&gt;&gt;</a></li>
+
+                </ul>
+                </div>
+            
+			<!-- Pagination End -->
+
+            
+        </div>
+    </div>
+<style>
+	
+    .api-count-display{
+        color:#747474;
+        font-size:15px;
+        padding:10px 20px 5px;
+    }
+
+    .api-count-display span{
+        font-size:16px;
+        font-weight:bold;
+    }
+</style>
+
+<script>
+$(window).load(function(){
+	
+    $(".setbgcolor").generateBgcolor({
+        definite:true
+    });
+
+    $(".api-name-icon").each(function() {
+        var elem = $(this).next().children(".api-name");
+        $(this).nametoChar({
+            nameElement: elem
+        });
+    });
+
+function catchTheFirstAPINameForTutorial() {
+    var isNewUserInteractiveTutorialStarted = localStorage.getItem("isNewUserInteractiveTutorialStarted");
+    if (isNewUserInteractiveTutorialStarted) {
+      var apiName = $('.page-content').parent().find('.white-wrapper').children().find('.truncate')[0].textContent;
+      if (apiName == 'undefined') {
+          apiName = $('.page-content').parent().find('.white-wrapper').children().find('.apiNameWrap')[0].textContent;
+          
+      }
+      localStorage.setItem("selectedAPIName", apiName);
+    }
+}
+catchTheFirstAPINameForTutorial();
+
+});
+
+
+
+</script>
+
+
+
+                </div>          
+            </div> 
+        </div><!-- /#media body-->               
+    </div><!-- /#media-->
+</div><!-- /#page-content-wrapper -->
+
+
+
+
+<script type="text/javascript">
+        var isSecure = true;
+        var showLogin = null;
+        var redirectToHTTPS = 'null';
+
+    </script>
+ 
+
+<div class="modal fade" id="messageModal"></div>
+
+<!-- Login model -->
+<div id="login-data" class="hide">
+
+
+
+</div>
+</div>
+
+
+<div id="codnfirmation-data" style="display:none;">
+    <div class="modal-header">
+        <button class="close" data-dismiss="modal">x</button>
+        <h3 class="modal-title">Modal header</h3>
+    </div>
+    <div class="modal-body">
+        <p>One fine body…</p>
+    </div>
+    <div class="modal-footer">
+        <a href="#" class="btn btn-primary" title="Save">Save changes</a>
+        <a href="#" class="btn btn-other" data-dismiss="modal" title="Close">Close</a>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade hide" id="confirmation-data" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i class="fw fw-cancel"></i></span></button>
+        <h3 class="modal-title" id="myModalLabel">Modal title</h3>
+      </div>
+      <div class="modal-body">
+        ...
+      </div>
+      <div class="modal-footer">
+        <a href="#" id="btn-primary" class="btn btn-primary">Save changes</a>
+        <a href="#" class="btn btn-other" data-dismiss="modal">Close</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+    <!-- footer -->
+    <footer class="footer">
+      <div class="container-fluid">
+        Secretaria Municipal de Inovação e Tecnologia da Prefeitura de São Paulo <script>document.write(new Date().getFullYear());</script>       <div id="footer-woso2-credits">Powered by <a title="WSO2" href="http://wso2.com/" target="_blank"><i class="icon fw fw-wso2"></i> Inc</a>.</div>
+
+      </div>
+    </footer>
+    
+    <script type="text/javascript" src="/store/site/themes/wso2/js/main.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/bootstrap_3.3.5/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/theme-wso2_1.0/js/theme-wso2.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/bootstrap-select/js/bootstrap-select.min.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/bootstrap-select/js/i18n/defaults-pt_BR.min.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/js/left-navigation.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/js/script.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/jquery-validate/jquery.validate.min.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/jquery-validate-password/jquery.validate.password.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/jquery-cookie/jquery.cookie.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/data-tables_1.10.7/media/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/data-tables_1.10.7/extensions/Bootstrap/js/dataTables.bootstrap.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/data-tables_1.10.7/extensions/Responsive/js/dataTables.responsive.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/jquery.buttonLoader.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/libs/jquery.tagcloud.js"></script>
+    <script type="text/javascript" src="/store/site/themes/wso2/js/common.js"></script>
+
+</body>
+</html>
