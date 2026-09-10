@@ -385,19 +385,42 @@ Mais `gitleaks` no pre-commit e Secret Scanning no repositório: chave vazada em
 
 ---
 
-## 14. Decisões pendentes (só o dono do projeto responde)
+## 14. Decisões do dono do projeto (registradas em 10/09/2026)
 
-Estas decisões não foram tomadas neste documento. Cada uma afeta escopo, cronograma ou modelo de dados e precisa de resposta antes do plano de implementação.
+| # | Decisão | Resposta | Efeito no projeto |
+|---|---|---|---|
+| 1 | Área piloto | **Vila Mariana + Lapa**, com o entorno da **FATEC Ipiranga** (Alto do Ipiranga / Rua Vergueiro) como terceiro recorte | Três distritos, dentro do dimensionamento de 500 MB. Cobertura medida em 10/09/2026 na tabela abaixo. O Ipiranga tem cobertura OSM menor e cumpre o papel de "distrito que expõe o viés"; sua vantagem é a verificação em campo pela equipe |
+| 2 | Equipe | **5 pessoas**, todas com Python e React | Cronograma de 16 semanas com duas trilhas paralelas mantido sem corte |
+| 3 | Usuário real para teste | Talvez, mais para frente | Fica como item da semana 15; planejar contato com SMPED, associações ou núcleo de acessibilidade da FATEC a partir da semana 10 |
+| 4 | Dispositivos | Há iPhone, não há Mac | Matriz de teste manual: NVDA+Firefox, NVDA+Chrome, TalkBack+Chrome, **VoiceOver+Safari iOS**, só-teclado, zoom 400%. VoiceOver no macOS declarado como limitação |
+| 5 | Licença dos dados colaborativos | Em aberto | Padrão adotado até decisão contrária: **ODbL**, a mesma do OSM, o que mantém aberta a devolução futura das barreiras ao OpenStreetMap. Registrar em `DATA-LICENSES.md` |
+| 6 | Conta SPTrans | O dono do projeto vai solicitar | Passo a passo na seção 15. Enquanto não chega, desenvolver contra fixtures |
+| 7 | Token Direto dos Trens | O dono do projeto vai solicitar | Status de Metrô/CPTM tratado como bônus, não requisito |
+| 8 | IA generativa | **Eliminada do sistema. Regra dura: a aplicação é 100% determinística.** IA só como ferramenta de desenvolvimento | Remove qualquer chamada a LLM do backend e do frontend, remove a categoria de risco de cota de IA, simplifica a LGPD (nenhum dado de usuário sai para provedor de IA). Deve constar como requisito não funcional numerado |
+| 9 | LGPD | **Sem histórico de trajetos por usuário** | Não existe tabela de rotas por usuário; `rota_cache` é anônimo, chaveado por hash de origem/destino/perfil. Sem "rotas favoritas" no MVP |
+| 10 | Formato de entrega da disciplina | Vai perguntar ao professor | Reservar tempo nas semanas 15 e 16 para artefatos formais (casos de uso, diagrama de classes, requisitos numerados) se exigidos |
+| 11 | Repositório | **Público**, no GitHub | GitHub Actions ilimitado. Obriga gitleaks no pre-commit e Secret Scanning desde o primeiro commit. Dados colaborativos serão públicos |
+| 12 | Correção da proposta original | Aguardando entendimento (ver seção 15) | — |
 
-1. ÁREA PILOTO: qual recorte vocês adotam? Recomendo Lapa + Vila Mariana (melhor cobertura do OSM, por causa do projeto municipal de 2021) MAIS um distrito periférico para expor o viés honestamente. Alternativa defensável: o entorno da FATEC, que facilita a verificação em campo dos casos de referência. Essa decisão precisa sair na semana 1 — ela dimensiona o banco e todo o ETL.
-2. TAMANHO E COMPOSIÇÃO DA EQUIPE: quantas pessoas, e alguém já domina Spring Boot ou ASP.NET Core? O cronograma de 16 semanas assume 4–5 alunos com duas trilhas paralelas (dados/backend e frontend/acessibilidade). Se forem 2 ou 3, é preciso cortar escopo já na semana 1, começando pela SPTrans.
-3. ACESSO A USUÁRIO REAL PARA TESTE: vocês conseguem uma sessão com pelo menos uma pessoa cadeirante ou usuária de leitor de tela? É o item de maior valor na banca e o único que a automação não substitui. Se não houver, precisamos planejar uma alternativa (contato com a SMPED, associações, ou o núcleo de acessibilidade da FATEC).
-4. DISPOSITIVOS DISPONÍVEIS PARA A MATRIZ DE TESTE: alguém do grupo tem Mac ou iPhone? Sem isso, a combinação VoiceOver+Safari fica de fora e a matriz precisa ser declarada como limitação (NVDA+Windows e TalkBack+Android são gratuitos e cobrem o essencial).
-5. LICENÇA DOS DADOS COLABORATIVOS: sob qual licença o grupo publica as barreiras cadastradas pelos usuários? Isso precisa estar no DATA-LICENSES.md e nos termos de uso, e afeta diretamente a decisão futura de devolver ou não os dados ao OpenStreetMap (os Contributor Terms exigem uma cessão específica).
-6. CONTA DA SPTRANS: o cadastro de desenvolvedor foi aprovado? Ele depende de validação humana e pode levar dias. Se demorar, a camada de ônibus escorrega — e como ela é a primeira da ordem de corte, isso não bloqueia o projeto, mas precisa ser sabido cedo.
-7. TOKEN DO DIRETO DOS TRENS: vocês querem incluir status de Metrô/CPTM no MVP? O token é obtido por e-mail ao desenvolvedor, o uso acadêmico é explicitamente encorajado, mas depende de resposta de um terceiro. Minha recomendação: pedir agora e tratar como bônus, não como requisito.
-8. IA GENERATIVA NO ESCOPO: a proposta menciona monitorar chaves como a do Gemini. Vocês querem manter alguma funcionalidade de IA (por exemplo, reescrever a rota em linguagem simples) ou eliminar do escopo? Recomendo eliminar do caminho crítico: as cotas gratuitas são pequenas e voláteis, e no tier gratuito o conteúdo enviado é usado pelo fornecedor para desenvolver produtos, o que é problema de LGPD com fotos de via pública.
-9. POSTURA SOBRE LGPD: o grupo aceita a recomendação de NÃO persistir histórico de trajetos por usuário? É a posição mais segura (condição de saúde é dado sensível pelo art. 11), mas elimina funcionalidades como 'minhas rotas favoritas'. Se quiserem manter, é preciso escrever base legal, consentimento granular e política de retenção.
-10. PROFESSOR E FORMATO DE ENTREGA: a disciplina exige documentação em algum padrão específico (casos de uso UML, diagramas de classe, requisitos funcionais numerados)? Este documento foi estruturado como design de arquitetura; pode ser necessário produzir artefatos formais adicionais, e isso consome cronograma.
-11. REPOSITÓRIO PÚBLICO OU PRIVADO: recomendo público — GitHub Actions é ilimitado em repositórios públicos, o que viabiliza toda a estratégia de CI proposta. Mas isso exige Secret Scanning e gitleaks desde o primeiro commit, e implica publicar os dados colaborativos.
-12. CORREÇÃO DA PROPOSTA ORIGINAL: vocês têm autorização do professor para ajustar o texto entregue? Duas premissas precisam ser corrigidas antes da entrega final — o GTFS da SPTrans não tem campos de acessibilidade, e o campo 'a' da Olho Vivo descreve o veículo, não o ponto nem o trajeto. Manter a promessa original seria prometer o que a fonte de dados não sustenta.
+### Cobertura OSM dos três recortes (medição própria, overpass-api.de, 10/09/2026)
+
+| Recorte (bbox aproximado) | Travessias | com `kerb=*` | Escadas | `wheelchair=*` | Vias de pedestre | Calçadas como geometria |
+|---|---|---|---|---|---|---|
+| Vila Mariana (-23.610,-46.660,-23.570,-46.615) | 2.808 | 101 (3,6%) | 70 | 1.079 | 3.351 | 781 |
+| Lapa (-23.545,-46.720,-23.510,-46.680) | 1.643 | 10 (0,6%) | 77 | 706 | 1.228 | 128 |
+| Ipiranga / FATEC (-23.605,-46.625,-23.575,-46.590) | 1.157 | 12 (1,0%) | 21 | 174 | 736 | 105 |
+
+Leitura: Vila Mariana é o recorte mais rico e deve ser o primeiro a entrar no ETL. Lapa e Ipiranga têm cobertura semelhante entre si e ambos dependem mais do GeoSampa e da camada colaborativa. O Ipiranga entra por ser verificável a pé pela equipe, e sua cobertura baixa deve ser declarada no relatório como parte da fundamentação.
+
+## 15. Pendências externas e como destravar
+
+**Conta de desenvolvedor SPTrans (decisão 6).**
+1. Criar conta em `https://www.sptrans.com.br/desenvolvedores/cadastro-desenvolvedores/`.
+2. Aguardar o e-mail de validação do cadastro (validação humana, pode levar dias).
+3. Entrar em "Meus Aplicativos" e registrar um aplicativo; cada aplicativo recebe uma chave de acesso.
+4. Repetir para cada integrante que for desenvolver o cliente SPTrans, para não compartilhar a mesma chave.
+5. A chave vai em variável de ambiente no backend, nunca no repositório nem no React.
+
+**Token do Direto dos Trens (decisão 7).** Pedir por e-mail ao desenvolvedor, informando propósito acadêmico, nome da instituição e disciplina. Contato e termos estão na especificação OpenAPI em `https://static.diretodostrens.com.br/swagger/api.json`. Uso acadêmico é explicitamente encorajado; uso comercial exige autorização.
+
+**Correção da proposta original (decisão 12).** A proposta entregue ao professor diz que a SPTrans "fornece dados sobre ônibus acessíveis em circulação em tempo real". Isso é verdade, mas o campo descreve o veículo, não a parada, a calçada nem o trajeto, e o GTFS não tem campos de acessibilidade. Se o texto oficial do projeto prometer roteamento por transporte público acessível, a banca cobrará algo que a fonte de dados não sustenta. A pergunta é: o grupo pode ajustar o texto da proposta para posicionar a SPTrans como enriquecimento ("o próximo ônibus neste ponto é acessível") e não como núcleo?
