@@ -394,13 +394,13 @@ Mais `gitleaks` no pre-commit e Secret Scanning no repositório: chave vazada em
 | 3 | Usuário real para teste | Talvez, mais para frente | Fica como item da semana 15; planejar contato com SMPED, associações ou núcleo de acessibilidade da FATEC a partir da semana 10 |
 | 4 | Dispositivos | Há iPhone, não há Mac | Matriz de teste manual: NVDA+Firefox, NVDA+Chrome, TalkBack+Chrome, **VoiceOver+Safari iOS**, só-teclado, zoom 400%. VoiceOver no macOS declarado como limitação |
 | 5 | Licença dos dados colaborativos | Em aberto | Padrão adotado até decisão contrária: **ODbL**, a mesma do OSM, o que mantém aberta a devolução futura das barreiras ao OpenStreetMap. Registrar em `DATA-LICENSES.md` |
-| 6 | Conta SPTrans | O dono do projeto vai solicitar | Passo a passo na seção 15. Enquanto não chega, desenvolver contra fixtures |
+| 6 | Conta SPTrans | **Conta criada em 10/09/2026** (usuário caiorosadev) | Falta registrar o aplicativo em "Meus Aplicativos" para obter a chave. GTFS já baixável pelo mesmo perfil |
 | 7 | Token Direto dos Trens | O dono do projeto vai solicitar | Status de Metrô/CPTM tratado como bônus, não requisito |
 | 8 | IA generativa | **Eliminada do sistema. Regra dura: a aplicação é 100% determinística.** IA só como ferramenta de desenvolvimento | Remove qualquer chamada a LLM do backend e do frontend, remove a categoria de risco de cota de IA, simplifica a LGPD (nenhum dado de usuário sai para provedor de IA). Deve constar como requisito não funcional numerado |
 | 9 | LGPD | **Sem histórico de trajetos por usuário** | Não existe tabela de rotas por usuário; `rota_cache` é anônimo, chaveado por hash de origem/destino/perfil. Sem "rotas favoritas" no MVP |
 | 10 | Formato de entrega da disciplina | Vai perguntar ao professor | Reservar tempo nas semanas 15 e 16 para artefatos formais (casos de uso, diagrama de classes, requisitos numerados) se exigidos |
 | 11 | Repositório | **Público**, no GitHub | GitHub Actions ilimitado. Obriga gitleaks no pre-commit e Secret Scanning desde o primeiro commit. Dados colaborativos serão públicos |
-| 12 | Correção da proposta original | Aguardando entendimento (ver seção 15) | — |
+| 12 | Correção da proposta original | **Sim, o grupo pode reescrever** | A proposta passa a posicionar a SPTrans como enriquecimento ("o próximo ônibus neste ponto é acessível"), não como núcleo do roteamento. Reescrever antes da entrega final |
 
 ### Cobertura OSM dos três recortes (medição própria, overpass-api.de, 10/09/2026)
 
