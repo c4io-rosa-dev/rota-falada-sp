@@ -17,6 +17,7 @@ etl/
     ├── download.py          baixar(url, destino, max_idade_dias=7) com cache e validação de tamanho
     ├── geo.py                bbox_para_poligono(), PROJ_31983, comprimento_m()
     ├── osm_regras.py         classificar_kerb(), esquema_calcada(), fator_custo(), eh_via_de_pedestre() — puro, sem I/O
+    ├── osm.py                executar(engine): osmium (recorte+filtro) + osmnx (topologia) → no_pedestre/via_pedestre
     └── cli.py                python -m etl.cli osm|geosampa|sp156|gtfs|tudo
 ```
 
@@ -50,7 +51,7 @@ python -m pytest tests -q
 
 ## Armadilhas conhecidas (detalhadas por fonte nas próprias tasks)
 
-- **OSM:** `osm2pgsql` não divide vias nos cruzamentos (sem `source`/`target` por nó); por isso o grafo é montado com `osmium` + `osmnx`, não `osm2pgsql` (ADR 002). `kerb=yes` é "guia de altura indeterminada" e nunca vira acessível.
+- **OSM:** `osm2pgsql` não divide vias nos cruzamentos (sem `source`/`target` por nó); por isso o grafo é montado com `osmium` + `osmnx`, não `osm2pgsql` (ADR 002). `kerb=yes` é "guia de altura indeterminada" e nunca vira acessível. `GeoDataFrame.to_postgis` escreve por padrão numa coluna chamada `geometry`; como `no_pedestre`/`via_pedestre` usam `geom`, é preciso `gdf.rename_geometry("geom")` antes de gravar — sem isso o Postgres falha com `find_srid(): could not find the corresponding SRID` (a coluna `geometry` não existe na tabela).
 - **GeoSampa:** o WFS trunca resultado em silêncio (HTTP 200) se a paginação não verificar `numberReturned` contra `numberMatched`; a paginação exige `sortBy` explícito (WFS 2.0). Zero em largura/declividade é ausência de medição, não medição real — por isso as colunas geradas `largura_medida`/`declividade_medida`.
 - **SP156:** o CSV é `cp1252`, não UTF-8/latin-1 estrito (o campo `Serviço` mistura hífen e travessão, byte `0x96`).
 - **GTFS:** o feed **não** tem `wheelchair_boarding`, `wheelchair_accessible`, `pathways.txt`, `levels.txt` nem `calendar_dates.txt` (confirmado em 08/09/2026); serve só como seed de paradas e linhas.
@@ -59,7 +60,12 @@ python -m pytest tests -q
 
 Preenchido conforme cada fonte é implementada (Tasks 3–6):
 
-- **OSM:** _pendente (Task 3)._
+- **OSM** (medido em 14/09/2026, `docker compose --profile etl run --rm etl osm`, rede residencial):
+  - Download do Geofabrik (`sudeste-latest.osm.pbf`, sudeste do Brasil inteiro): **857.760.454 bytes (~858 MB)**, cerca de **1min50s**; reaproveitado por até 7 dias (`max_idade_dias` padrão de `baixar()`), então corridas seguintes pulam o download.
+  - `osmium extract` (bbox união dos 3 recortes, `-s smart`) + `tags-filter w/highway` + `cat` (XML) + `osmnx.graph_from_xml` + filtro de acessibilidade + `simplify_graph` + recorte final pelos 3 polígonos `area_piloto` + carga no Postgres: **~1min30s** (com o PBF já em cache).
+  - Tempo total de ponta a ponta (download + processamento): **~3min20s** na primeira corrida; **~1min30s** nas seguintes (cache).
+  - Resultado carregado: **18.333 `no_pedestre`** e **25.040 `via_pedestre`** (mínimo exigido pelos testes de qualidade: 5.000); **174 escadas** (`highway='steps'`, todas bloqueadas com `custo_acessivel >= 1.000.000`); **3.838 nós com `kerb` preenchido**; **0 ocorrências de `kerb='yes'` com `kerb_transponivel` diferente de `NULL`** (a regra de negócio se sustenta com dados reais); `esquema_calcada`: 3.088 `geometria_propria`, 3.342 `atributo_via`, 18.610 `via_generica`.
+  - `pytest etl/tests -q` (31 unitários de `osm_regras` + 7 de qualidade de `via_pedestre`/`no_pedestre`, com o banco local no ar): **38 passed**.
 - **GeoSampa:** _pendente (Task 4)._
 - **SP156:** _pendente (Task 5)._
 - **GTFS:** _pendente (Task 6)._
