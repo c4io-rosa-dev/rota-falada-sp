@@ -1,5 +1,6 @@
 import json
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +12,16 @@ def parsear_origens(valor: str) -> list[str]:
     if texto.startswith("["):
         return [str(item).strip() for item in json.loads(texto) if str(item).strip()]
     return [parte.strip() for parte in texto.split(",") if parte.strip()]
+
+
+def normalizar_url_banco(valor: str) -> str:
+    """Força o driver psycopg 3: painéis como Supabase e Render entregam 'postgresql://'
+    ou 'postgres://', que fariam o SQLAlchemy procurar o psycopg2 (não instalado)."""
+    texto = valor.strip()
+    for prefixo in ("postgresql://", "postgres://"):
+        if texto.startswith(prefixo):
+            return "postgresql+psycopg://" + texto[len(prefixo) :]
+    return texto
 
 
 class Settings(BaseSettings):
@@ -27,6 +38,11 @@ class Settings(BaseSettings):
     ors_api_key: str | None = None
     ors_base_url: str = "https://api.openrouteservice.org"
     ors_timeout_s: float = 15.0
+
+    @field_validator("database_url")
+    @classmethod
+    def _driver_psycopg(cls, valor: str) -> str:
+        return normalizar_url_banco(valor)
 
     @property
     def cors_origins_lista(self) -> list[str]:
