@@ -1,6 +1,7 @@
 import { Link, NavLink, Route, Routes } from 'react-router'
 import { SkipLink } from './a11y/SkipLink'
 import { Inicio } from './pages/Inicio'
+import { Fontes } from './pages/Fontes'
 
 export default function App() {
   return (
@@ -30,7 +31,7 @@ export default function App() {
       <main id="conteudo" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<Inicio />} />
-          <Route path="/fontes" element={<Inicio />} />
+          <Route path="/fontes" element={<Fontes />} />
           <Route path="/acessibilidade" element={<Inicio />} />
         </Routes>
       </main>
