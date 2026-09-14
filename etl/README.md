@@ -20,6 +20,7 @@ etl/
     ├── osm.py                executar(engine): osmium (recorte+filtro) + osmnx (topologia) → no_pedestre/via_pedestre
     ├── geosampa.py           executar(engine): WFS paginado (verificação numberReturned==numberMatched) → calcada_sp
     ├── sp156.py              executar(engine): CSV cp1252 do CKAN → barreira_oficial
+    ├── gtfs.py                executar(engine): zip GTFS da SPTrans (http, anônimo) → parada/linha
     └── cli.py                python -m etl.cli osm|geosampa|sp156|gtfs|tudo
 ```
 
@@ -80,4 +81,10 @@ Preenchido conforme cada fonte é implementada (Tasks 3–6):
   - Por categoria (dentro do piloto): **1.223 `buraco`**, **242 `guia_danificada`**, **220 `calcada_danificada`**, **109 `obstaculo_calcada`**, **50 `travessia`**, **21 `guia_sem_rebaixamento`** (mínimo exigido pelos testes de qualidade: 100 no total). `raiz_de_arvore` não apareceu neste trimestre — o texto exato do plano ("Árvore - Solicitar avaliação em calçadas e praças") não bate com o serviço real da PMSP para esse trimestre ("Árvore – Solicitar avaliação em calçadas e praças **para fins de poda ou remoção**"); não é um bug de normalização (verificado com o CSV real: a comparação é exata após normalizar traço/acento/caixa, e o serviço real citado tem palavras a mais no fim, não só o separador diferente).
   - `data_finalizacao < data_abertura` (quando ambas existem, 398.670 linhas no CSV inteiro): **0 ocorrências** — a regra de coerência de datas se sustenta com dados reais.
   - `pytest etl/tests -q` (com o banco local no ar, OSM + GeoSampa + SP156 carregados): **55 passed** (31 unitários de `osm_regras` + 2 unitários de paginação do GeoSampa + 5 unitários de leitura/descoberta de URL do SP156 + 7 de qualidade OSM + 5 de qualidade GeoSampa + 5 de qualidade SP156).
-- **GTFS:** _pendente (Task 6)._
+- **GTFS** (medido em 14/09/2026, `python -m etl.cli gtfs` no host, rede residencial):
+  - Download anônimo (sem autenticação), URL **http** (não https), de `http://www.sptrans.com.br/umbraco/Surface/PerfilDesenvolvedor/BaixarGTFS`: **14.293.480 bytes (~14 MB)** em menos de 1s; reaproveitado por até 7 dias como os demais downloads.
+  - Verificação de campos de acessibilidade (`_verificar_sem_campos_de_acessibilidade`, roda antes de qualquer carga): feed confirmado **sem** `pathways.txt`, `levels.txt`, `calendar_dates.txt`, `wheelchair_boarding` (`stops.txt`) e `wheelchair_accessible` (`routes.txt`).
+  - `stops.txt` inteiro: **22.266** paradas, nenhum `stop_id` duplicado, nenhum `stop_name` nulo; **1.142** caem dentro da união das três `area_piloto` (mínimo exigido pelos testes de qualidade: 200) e foram carregadas em `parada`.
+  - `routes.txt` inteiro: **1.362** linhas, nenhum `route_id` duplicado, nenhum `route_short_name`/`route_long_name` nulo — todas carregadas em `linha` (mínimo exigido: 1.000).
+  - Tempo de ponta a ponta com o zip já em cache: **~2,1s**.
+  - `pytest etl/tests -q` (com o banco local no ar, OSM + GeoSampa + SP156 + GTFS carregados): **59 passed** (31 unitários de `osm_regras` + 2 unitários de paginação do GeoSampa + 5 unitários de leitura/descoberta de URL do SP156 + 7 de qualidade OSM + 5 de qualidade GeoSampa + 5 de qualidade SP156 + 4 de qualidade GTFS).

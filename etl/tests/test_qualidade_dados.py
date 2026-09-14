@@ -3,9 +3,12 @@ dados carregados violarem as garantias do projeto (licenças, proveniência,
 regras de acessibilidade). Cada task do Plano 2 acrescenta sua parte aqui.
 """
 
+import zipfile
+
 import pytest
-from etl.config import DATABASE_URL
 from sqlalchemy import create_engine, text
+
+from etl.config import DATABASE_URL, DIR_DADOS
 
 pytestmark = pytest.mark.integration
 
@@ -203,3 +206,47 @@ def test_proveniencia_completa_barreira(engine):
     with engine.connect() as conexao:
         sem_fonte = conexao.execute(text(consulta)).scalar_one()
     assert sem_fonte == 0
+
+
+# --- GTFS: parada / linha (Task 6) --------------------------------------------
+
+
+def test_parada_populada(engine):
+    with engine.connect() as conexao:
+        total = conexao.execute(text("SELECT count(*) FROM parada")).scalar_one()
+    assert total >= 200
+
+
+def test_parada_dentro_da_area_piloto(engine):
+    consulta = """
+        SELECT count(*) FROM parada p
+        WHERE NOT EXISTS (SELECT 1 FROM area_piloto a WHERE ST_Within(p.geom, a.geom))
+    """
+    with engine.connect() as conexao:
+        fora = conexao.execute(text(consulta)).scalar_one()
+    assert fora == 0
+
+
+def test_linha_populada(engine):
+    with engine.connect() as conexao:
+        total = conexao.execute(text("SELECT count(*) FROM linha")).scalar_one()
+    assert total >= 1000
+
+
+def test_gtfs_sem_campos_de_acessibilidade():
+    """Canário sobre o zip cacheado (não sobre o banco): se o feed da SPTrans
+    um dia passar a trazer `wheelchair_boarding`/`wheelchair_accessible` ou os
+    arquivos `pathways.txt`/`levels.txt`/`calendar_dates.txt`, o escopo do
+    projeto precisa ser revisto (ver `etl/README.md`)."""
+    caminho_zip = DIR_DADOS / "gtfs-sptrans.zip"
+    if not caminho_zip.exists():
+        pytest.skip("gtfs-sptrans.zip não está em cache; rode 'python -m etl.cli gtfs'")
+    with zipfile.ZipFile(caminho_zip) as zf:
+        nomes = set(zf.namelist())
+        assert not ({"pathways.txt", "levels.txt", "calendar_dates.txt"} & nomes)
+        with zf.open("stops.txt") as arquivo:
+            cabecalho_stops = arquivo.readline().decode("utf-8-sig")
+        with zf.open("routes.txt") as arquivo:
+            cabecalho_routes = arquivo.readline().decode("utf-8-sig")
+    assert "wheelchair_boarding" not in cabecalho_stops
+    assert "wheelchair_accessible" not in cabecalho_routes
