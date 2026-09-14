@@ -1,0 +1,108 @@
+{
+  "type": "FeatureCollection",
+  "bbox": [-46.63890, -23.58930, -46.63810, -23.58878],
+  "features": [
+    {
+      "bbox": [-46.63890, -23.58930, -46.63810, -23.58878],
+      "type": "Feature",
+      "properties": {
+        "segments": [
+          {
+            "distance": 160.0,
+            "duration": 192.0,
+            "steps": [
+              {
+                "distance": 45.0,
+                "duration": 54.0,
+                "type": 11,
+                "instruction": "Siga para noroeste pela Rua Domingos de Morais",
+                "name": "Rua Domingos de Morais",
+                "way_points": [0, 1]
+              },
+              {
+                "distance": 60.0,
+                "duration": 72.0,
+                "type": 1,
+                "instruction": "Vire à direita e continue na Rua Vergueiro",
+                "name": "Rua Vergueiro",
+                "way_points": [1, 2]
+              },
+              {
+                "distance": 55.0,
+                "duration": 66.0,
+                "type": 0,
+                "instruction": "Vire à esquerda e continue na Rua Vergueiro",
+                "name": "Rua Vergueiro",
+                "way_points": [2, 3]
+              },
+              {
+                "distance": 0.0,
+                "duration": 0.0,
+                "type": 10,
+                "instruction": "Chegou ao destino",
+                "name": "-",
+                "way_points": [3, 3]
+              }
+            ]
+          }
+        ],
+        "way_points": [0, 3],
+        "summary": {
+          "distance": 160.0,
+          "duration": 192.0,
+          "ascent": 1.3,
+          "descent": 0.4
+        },
+        "extras": {
+          "steepness": {
+            "values": [
+              [0, 1, 0],
+              [1, 2, 1],
+              [2, 3, 0]
+            ],
+            "summary": [
+              { "value": 0, "distance": 100.0, "amount": 62.5 },
+              { "value": 1, "distance": 60.0, "amount": 37.5 }
+            ]
+          },
+          "surface": {
+            "values": [[0, 3, 6]],
+            "summary": [{ "value": 6, "distance": 160.0, "amount": 100.0 }]
+          },
+          "waytype": {
+            "values": [[0, 3, 1]],
+            "summary": [{ "value": 1, "distance": 160.0, "amount": 100.0 }]
+          }
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-46.63890, -23.58930, 745.2],
+          [-46.63870, -23.58915, 745.6],
+          [-46.63840, -23.58895, 746.1],
+          [-46.63810, -23.58878, 746.5]
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "attribution": "openrouteservice.org | OpenStreetMap contributors",
+    "service": "routing",
+    "timestamp": 1757800000,
+    "query": {
+      "coordinates": [
+        [-46.63890, -23.58930],
+        [-46.63810, -23.58878]
+      ],
+      "profile": "wheelchair",
+      "profileName": "wheelchair",
+      "format": "geojson"
+    },
+    "engine": {
+      "version": "9.0.0",
+      "build_date": "2026-01-01T00:00:00Z",
+      "graph_date": "2026-01-01T00:00:00Z"
+    }
+  }
+}

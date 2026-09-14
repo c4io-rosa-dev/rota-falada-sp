@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     use_fixtures: bool = False
     sptrans_token: str | None = None
     ors_api_key: str | None = None
+    ors_base_url: str = "https://api.openrouteservice.org"
+    ors_timeout_s: float = 15.0
 
 
 settings = Settings()
