@@ -1,6 +1,26 @@
-node_modules/
+# segredos
+.env
+.env.*
+!.env.example
+
+# python
 .venv/
 __pycache__/
-.env
-*.pbf
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# node
+node_modules/
 dist/
+frontend/coverage/
+
+# dados brutos (nunca versionar)
+*.pbf
+*.zip
+etl/dados/
+
+# sistema
+.DS_Store
+Thumbs.db
