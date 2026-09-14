@@ -2,6 +2,7 @@ import { Link, NavLink, Route, Routes } from 'react-router'
 import { SkipLink } from './a11y/SkipLink'
 import { Inicio } from './pages/Inicio'
 import { Fontes } from './pages/Fontes'
+import { Acessibilidade } from './pages/Acessibilidade'
 
 export default function App() {
   return (
@@ -32,7 +33,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/fontes" element={<Fontes />} />
-          <Route path="/acessibilidade" element={<Inicio />} />
+          <Route path="/acessibilidade" element={<Acessibilidade />} />
         </Routes>
       </main>
       <footer>
