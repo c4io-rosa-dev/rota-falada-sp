@@ -1,0 +1,107 @@
+[
+  {
+    "nome": "vila_mariana_curta_1",
+    "origem": {"lat": -23.6005327, "lng": -46.6245266},
+    "destino": {"lat": -23.6029197, "lng": -46.6260724},
+    "recorte": "Vila Mariana",
+    "espera": {"sem_degraus": true, "distancia_max_m": 400, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "vila_mariana_curta_2",
+    "origem": {"lat": -23.5713135, "lng": -46.639836},
+    "destino": {"lat": -23.5759578, "lng": -46.6379337},
+    "recorte": "Vila Mariana",
+    "espera": {"sem_degraus": true, "distancia_max_m": 750, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "vila_mariana_media_1",
+    "origem": {"lat": -23.5973692, "lng": -46.6399071},
+    "destino": {"lat": -23.5840674, "lng": -46.6406114},
+    "recorte": "Vila Mariana",
+    "espera": {"sem_degraus": true, "distancia_max_m": 1800, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "vila_mariana_media_2",
+    "origem": {"lat": -23.5903933, "lng": -46.6433726},
+    "destino": {"lat": -23.602749, "lng": -46.6446479},
+    "recorte": "Vila Mariana",
+    "espera": {"sem_degraus": true, "distancia_max_m": 1700, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "lapa_curta_1",
+    "origem": {"lat": -23.5267135, "lng": -46.6908028},
+    "destino": {"lat": -23.5307763, "lng": -46.6867892},
+    "recorte": "Lapa",
+    "espera": {"sem_degraus": true, "distancia_max_m": 780, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "lapa_curta_2",
+    "origem": {"lat": -23.5178684, "lng": -46.7041468},
+    "destino": {"lat": -23.522665, "lng": -46.7041654},
+    "recorte": "Lapa",
+    "espera": {"sem_degraus": true, "distancia_max_m": 780, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "lapa_media_1",
+    "origem": {"lat": -23.5227466, "lng": -46.7028438},
+    "destino": {"lat": -23.5267135, "lng": -46.6908028},
+    "recorte": "Lapa",
+    "espera": {"sem_degraus": true, "distancia_max_m": 1720, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "lapa_media_2",
+    "origem": {"lat": -23.5340812, "lng": -46.6933252},
+    "destino": {"lat": -23.5237499, "lng": -46.6851992},
+    "recorte": "Lapa",
+    "espera": {"sem_degraus": true, "distancia_max_m": 1650, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "ipiranga_curta_1",
+    "origem": {"lat": -23.5879979, "lng": -46.6027214},
+    "destino": {"lat": -23.5828314, "lng": -46.6008149},
+    "recorte": "Ipiranga",
+    "espera": {"sem_degraus": true, "distancia_max_m": 800, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "ipiranga_curta_2",
+    "origem": {"lat": -23.6038197, "lng": -46.6092539},
+    "destino": {"lat": -23.5989277, "lng": -46.6077898},
+    "recorte": "Ipiranga",
+    "espera": {"sem_degraus": true, "distancia_max_m": 780, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "ipiranga_media_1",
+    "origem": {"lat": -23.5858822, "lng": -46.6131824},
+    "destino": {"lat": -23.5867155, "lng": -46.6041731},
+    "recorte": "Ipiranga",
+    "espera": {"sem_degraus": true, "distancia_max_m": 1450, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "ipiranga_media_2",
+    "origem": {"lat": -23.5900206, "lng": -46.5989446},
+    "destino": {"lat": -23.5864204, "lng": -46.6030652},
+    "recorte": "Ipiranga",
+    "espera": {"sem_degraus": true, "distancia_max_m": 880, "evita_barreira_id": null},
+    "verificado_streetview": false
+  },
+  {
+    "nome": "vila_mariana_regressao_poi_wheelchair_no",
+    "origem": {"lat": -23.6040614, "lng": -46.6408116},
+    "destino": {"lat": -23.6040364, "lng": -46.6446546},
+    "recorte": "Vila Mariana",
+    "espera": {"sem_degraus": true, "distancia_max_m": 450, "evita_barreira_id": null},
+    "verificado_streetview": false,
+    "observacao": "Regressão do spec (seção 6, severidade 'informativo'): um POI OSM wheelchair=no a poucos metros da calçada NÃO pode bloquear a rota nem virar aviso de barreira — só teria efeito se fosse cadastrado como 'dificulta' ou 'intransponivel'. Testado em test_rota.py inserindo uma barreira_colaborativa severidade='informativo' a ~5 m do trajeto."
+  }
+]
