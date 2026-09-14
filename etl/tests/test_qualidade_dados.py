@@ -149,3 +149,57 @@ def test_proveniencia_completa_calcada(engine):
     with engine.connect() as conexao:
         sem_fonte = conexao.execute(text(consulta)).scalar_one()
     assert sem_fonte == 0
+
+
+# --- SP156: barreira_oficial (Task 5) -----------------------------------------
+
+
+def test_barreira_oficial_populada(engine):
+    with engine.connect() as conexao:
+        total = conexao.execute(
+            text("SELECT count(*) FROM barreira_oficial")
+        ).scalar_one()
+    assert total >= 100
+
+
+def test_barreira_categoria_valida(engine):
+    from etl.sp156 import CATEGORIAS
+
+    with engine.connect() as conexao:
+        categorias = (
+            conexao.execute(text("SELECT DISTINCT categoria FROM barreira_oficial"))
+            .scalars()
+            .all()
+        )
+    assert categorias  # a tabela não pode estar vazia
+    assert set(categorias) <= set(CATEGORIAS.values())
+
+
+def test_barreira_dentro_da_area_piloto(engine):
+    consulta = """
+        SELECT count(*) FROM barreira_oficial b
+        WHERE NOT EXISTS (SELECT 1 FROM area_piloto a WHERE ST_Within(b.geom, a.geom))
+    """
+    with engine.connect() as conexao:
+        fora = conexao.execute(text(consulta)).scalar_one()
+    assert fora == 0
+
+
+def test_barreira_datas_coerentes(engine):
+    consulta = """
+        SELECT count(*) FROM barreira_oficial
+        WHERE data_abertura IS NOT NULL AND data_finalizacao IS NOT NULL
+          AND data_finalizacao < data_abertura
+    """
+    with engine.connect() as conexao:
+        invalidas = conexao.execute(text(consulta)).scalar_one()
+    assert invalidas == 0
+
+
+def test_proveniencia_completa_barreira(engine):
+    consulta = """
+        SELECT count(*) FROM barreira_oficial WHERE fonte_id IS NULL OR data_referencia IS NULL
+    """
+    with engine.connect() as conexao:
+        sem_fonte = conexao.execute(text(consulta)).scalar_one()
+    assert sem_fonte == 0
