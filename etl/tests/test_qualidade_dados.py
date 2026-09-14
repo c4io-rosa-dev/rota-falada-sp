@@ -96,3 +96,56 @@ def test_proveniencia_completa_osm(engine):
         ).scalar_one()
     assert sem_fonte_via == 0
     assert sem_fonte_no == 0
+
+
+# --- GeoSampa: calcada_sp (Task 4) --------------------------------------------
+
+
+def test_calcada_populada(engine):
+    with engine.connect() as conexao:
+        total = conexao.execute(text("SELECT count(*) FROM calcada_sp")).scalar_one()
+    assert total >= 5000
+
+
+def test_wfs_nao_truncou(engine):
+    """A última execução `ok` do GeoSampa carregou exatamente o que o WFS
+    reportou via `numberMatched` (nenhuma página truncada em silêncio)."""
+    consulta = """
+        SELECT linhas, esperado FROM etl_execucao
+        WHERE fonte = 'geosampa' AND status = 'ok'
+        ORDER BY fim DESC LIMIT 1
+    """
+    with engine.connect() as conexao:
+        linhas, esperado = conexao.execute(text(consulta)).one()
+    assert linhas == esperado
+
+
+def test_calcada_sem_zeros_mascarados(engine):
+    consulta_mascarados = """
+        SELECT count(*) FROM calcada_sp WHERE largura_min_m = 0 AND largura_medida
+    """
+    consulta_nao_medida = "SELECT count(*) FROM calcada_sp WHERE NOT largura_medida"
+    with engine.connect() as conexao:
+        mascarados = conexao.execute(text(consulta_mascarados)).scalar_one()
+        alguma_nao_medida = conexao.execute(text(consulta_nao_medida)).scalar_one()
+    assert mascarados == 0
+    assert alguma_nao_medida > 0
+
+
+def test_calcada_dentro_da_area_piloto(engine):
+    consulta = """
+        SELECT count(*) FROM calcada_sp c
+        WHERE NOT EXISTS (SELECT 1 FROM area_piloto a WHERE ST_Intersects(c.geom, a.geom))
+    """
+    with engine.connect() as conexao:
+        fora = conexao.execute(text(consulta)).scalar_one()
+    assert fora == 0
+
+
+def test_proveniencia_completa_calcada(engine):
+    consulta = """
+        SELECT count(*) FROM calcada_sp WHERE fonte_id IS NULL OR data_referencia IS NULL
+    """
+    with engine.connect() as conexao:
+        sem_fonte = conexao.execute(text(consulta)).scalar_one()
+    assert sem_fonte == 0
