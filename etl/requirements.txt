@@ -1,0 +1,11 @@
+osmnx>=2.0
+geopandas>=1.0
+pyogrio
+shapely>=2
+pyproj
+pandas
+requests
+sqlalchemy>=2
+geoalchemy2
+psycopg[binary]
+pytest

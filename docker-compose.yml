@@ -15,5 +15,17 @@ services:
       timeout: 3s
       retries: 20
 
+  etl:
+    build: ./etl
+    profiles: ["etl"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:dev@db:5432/acessibilidade
+    volumes:
+      - ./etl:/app
+      - ./etl/dados:/app/dados
+
 volumes:
   pgdata:

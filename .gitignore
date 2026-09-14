@@ -19,7 +19,8 @@ frontend/coverage/
 # dados brutos (nunca versionar)
 *.pbf
 *.zip
-etl/dados/
+etl/dados/*
+!etl/dados/.gitkeep
 
 # sistema
 .DS_Store
