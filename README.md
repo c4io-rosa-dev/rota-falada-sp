@@ -59,6 +59,7 @@ Variáveis: `DATABASE_URL` e `CORS_ORIGINS` no Render; `VITE_API_URL` no Cloudfl
 Esta seção é obrigatória e cresce a cada plano. Do Plano 1:
 
 1. `docker compose exec db psql` funciona sem instalar o psql na máquina.
+1b. O container expõe o Postgres na porta **5433** do host (não 5432), porque máquinas com PostgreSQL nativo instalado já ocupam a 5432 e as conexões caem no banco errado com "senha falhou". A URL padrão do backend já usa 5433; no CI o serviço usa 5432 com `DATABASE_URL` explícita.
 2. O `.env` fica na **raiz**; o backend lê `../.env` quando roda de `backend/`.
 3. `CORS_ORIGINS` é uma lista JSON na variável de ambiente: `CORS_ORIGINS=["https://seu-site.pages.dev"]`.
 4. **Nunca** use o Postgres gratuito do Render: expira em 30 dias e não tem backup. O banco fica no Supabase.

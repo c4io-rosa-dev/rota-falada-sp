@@ -103,7 +103,7 @@ rota-falada-sp/                      (raiz do repositório atual)
 - Modify: `.gitignore`
 
 **Interfaces:**
-- Produces: banco PostgreSQL acessível em `postgresql+psycopg://postgres:dev@localhost:5432/acessibilidade`, com as extensões `postgis`, `pgrouting` e `pg_trgm` disponíveis para instalação (a migration da Task 3 as instala).
+- Produces: banco PostgreSQL acessível em `postgresql+psycopg://postgres:dev@localhost:5433/acessibilidade`, com as extensões `postgis`, `pgrouting` e `pg_trgm` disponíveis para instalação (a migration da Task 3 as instala).
 
 - [ ] **Step 1: Escrever o `docker-compose.yml`**
 
@@ -116,7 +116,7 @@ services:
       POSTGRES_PASSWORD: dev
       POSTGRES_DB: acessibilidade
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -401,7 +401,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
 
     app_env: str = "dev"
-    database_url: str = "postgresql+psycopg://postgres:dev@localhost:5432/acessibilidade"
+    database_url: str = "postgresql+psycopg://postgres:dev@localhost:5433/acessibilidade"
     cors_origins: list[str] = ["http://localhost:5173"]
     use_fixtures: bool = False
     sptrans_token: str | None = None
