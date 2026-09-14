@@ -15,11 +15,20 @@ def test_health_degradado_quando_banco_cai():
     app.dependency_overrides[get_db] = lambda: SessaoQuebrada()
     resposta = TestClient(app).get("/health")
     assert resposta.status_code == 200
-    assert resposta.json() == {"status": "degradado", "versao": "0.1.0", "banco": "indisponivel"}
+    assert resposta.json() == {
+        "status": "degradado",
+        "versao": "0.1.0",
+        "banco": "indisponivel",
+        "ultimo_etl": None,
+    }
 
 
 @pytest.mark.integration
 def test_health_ok_com_banco():
     resposta = TestClient(create_app()).get("/health")
     assert resposta.status_code == 200
-    assert resposta.json() == {"status": "ok", "versao": "0.1.0", "banco": "ok"}
+    corpo = resposta.json()
+    assert corpo["status"] == "ok"
+    assert corpo["versao"] == "0.1.0"
+    assert corpo["banco"] == "ok"
+    assert corpo["ultimo_etl"] is None
