@@ -11,7 +11,7 @@ import argparse
 import sys
 from typing import Any
 
-FONTES = ["osm", "geosampa", "sp156", "gtfs", "tudo"]
+FONTES = ["osm", "geosampa", "sp156", "gtfs", "conflacao", "tudo"]
 
 
 def _engine_para_tudo():
@@ -44,6 +44,12 @@ def _executar_gtfs(engine) -> dict:
     return executar(engine)
 
 
+def _executar_conflacao(engine, buffer_m: float, metodo: str) -> dict:
+    from etl.conflacao import executar
+
+    return executar(engine, buffer_m=buffer_m, metodo=metodo)
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m etl.cli",
@@ -54,6 +60,18 @@ def _parser() -> argparse.ArgumentParser:
     subparsers.add_parser("geosampa", help="calçadas do GeoSampa (WFS)")
     subparsers.add_parser("sp156", help="reclamações do SP156 (CKAN)")
     subparsers.add_parser("gtfs", help="paradas e linhas do GTFS da SPTrans")
+    conflacao = subparsers.add_parser(
+        "conflacao", help="liga via_pedestre (OSM) a calcada_sp (GeoSampa)"
+    )
+    conflacao.add_argument(
+        "--buffer", type=float, default=5.0, help="buffer em metros (padrão: 5.0)"
+    )
+    conflacao.add_argument(
+        "--metodo",
+        choices=["mesmo_lado", "mais_proximo"],
+        default="mesmo_lado",
+        help="regra de desempate (padrão: mesmo_lado)",
+    )
     subparsers.add_parser("tudo", help="roda as quatro fontes em sequência")
     return parser
 
@@ -69,6 +87,8 @@ def main(argv: list[str] | None = None) -> int:
         print(_executar_sp156(_engine_para_tudo()))
     elif args.fonte == "gtfs":
         print(_executar_gtfs(_engine_para_tudo()))
+    elif args.fonte == "conflacao":
+        print(_executar_conflacao(_engine_para_tudo(), args.buffer, args.metodo))
     elif args.fonte == "tudo":
         return _tudo()
 
