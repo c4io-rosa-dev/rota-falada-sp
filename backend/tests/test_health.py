@@ -1,10 +1,25 @@
+import pytest
 from fastapi.testclient import TestClient
 
+from app.db import get_db
 from app.main import create_app
 
 
-def test_health_responde_ok():
-    client = TestClient(create_app())
-    resposta = client.get("/health")
+class SessaoQuebrada:
+    def execute(self, *args, **kwargs):
+        raise RuntimeError("sem banco")
+
+
+def test_health_degradado_quando_banco_cai():
+    app = create_app()
+    app.dependency_overrides[get_db] = lambda: SessaoQuebrada()
+    resposta = TestClient(app).get("/health")
     assert resposta.status_code == 200
-    assert resposta.json() == {"status": "ok", "versao": "0.1.0"}
+    assert resposta.json() == {"status": "degradado", "versao": "0.1.0", "banco": "indisponivel"}
+
+
+@pytest.mark.integration
+def test_health_ok_com_banco():
+    resposta = TestClient(create_app()).get("/health")
+    assert resposta.status_code == 200
+    assert resposta.json() == {"status": "ok", "versao": "0.1.0", "banco": "ok"}
