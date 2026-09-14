@@ -24,6 +24,14 @@ etl/
     └── cli.py                python -m etl.cli osm|geosampa|sp156|gtfs|tudo
 ```
 
+## Orquestrador `tudo` e agendamento
+
+`python -m etl.cli tudo` roda as quatro fontes em sequência (`osm → geosampa → sp156 → gtfs`). Cada módulo já grava sua própria linha em `etl_execucao` (inclusive `status='erro'` com o `detalhe`, antes de relançar a exceção) — o orquestrador só captura essa exceção fonte a fonte para que uma falha não impeça as demais de rodar, imprime `<fonte>: ERRO — <mensagem>` em stderr e continua. Ao final, o código de saída é `1` se qualquer fonte falhou (e `0` só se as quatro terminaram `ok`), para que o passo do CI/Actions marque o job como falho sem abortar a carga das outras fontes.
+
+`.github/workflows/etl.yml` roda esse orquestrador e depois `pytest tests/test_qualidade_dados.py -q` num cron semanal (segunda 03:17 BRT) e por `workflow_dispatch` — **de propósito não roda em `push`** (é um job de dados, não de código, e o `DATABASE_URL_PROD` ainda não existe, ver pendência abaixo). Antes de rodar `tudo`, garanta que o banco tem o esquema mais recente (`alembic upgrade head` em `backend/`, apontando para o mesmo `DATABASE_URL`).
+
+**Pendência do dono do projeto:** o workflow depende do Secret `DATABASE_URL_PROD` (string de conexão do Supabase de produção, Session pooler). Enquanto ele não existir no repositório, tanto o cron quanto um disparo manual (`workflow_dispatch`) falham no primeiro passo com banco (`python -m etl.cli tudo`) com erro de conexão — comportamento esperado, não um bug do ETL.
+
 ## Como rodar
 
 Com o Docker Desktop rodando e o banco local no ar (`docker compose up -d db`):
@@ -61,7 +69,7 @@ python -m pytest tests -q
 
 ## Tempos e contagens reais
 
-Preenchido conforme cada fonte é implementada (Tasks 3–6):
+Preenchido conforme cada fonte é implementada (Tasks 3–7):
 
 - **OSM** (medido em 14/09/2026, `docker compose --profile etl run --rm etl osm`, rede residencial):
   - Download do Geofabrik (`sudeste-latest.osm.pbf`, sudeste do Brasil inteiro): **857.760.454 bytes (~858 MB)**, cerca de **1min50s**; reaproveitado por até 7 dias (`max_idade_dias` padrão de `baixar()`), então corridas seguintes pulam o download.
@@ -88,3 +96,8 @@ Preenchido conforme cada fonte é implementada (Tasks 3–6):
   - `routes.txt` inteiro: **1.362** linhas, nenhum `route_id` duplicado, nenhum `route_short_name`/`route_long_name` nulo — todas carregadas em `linha` (mínimo exigido: 1.000).
   - Tempo de ponta a ponta com o zip já em cache: **~2,1s**.
   - `pytest etl/tests -q` (com o banco local no ar, OSM + GeoSampa + SP156 + GTFS carregados): **59 passed** (31 unitários de `osm_regras` + 2 unitários de paginação do GeoSampa + 5 unitários de leitura/descoberta de URL do SP156 + 7 de qualidade OSM + 5 de qualidade GeoSampa + 5 de qualidade SP156 + 4 de qualidade GTFS).
+- **`tudo`** (medido em 14/09/2026, `docker compose --profile etl run --rm etl tudo`, os quatro downloads já em cache de execuções anteriores):
+  - Tempo de ponta a ponta das quatro fontes em sequência, com todo o cache quente (nenhum download de fato refeito): **~2min24s** (`osm` continua sendo a mais lenta por causa do `osmium extract`/`osmnx`, mesmo sem baixar o PBF de novo).
+  - As quatro fontes terminaram `ok`, saída: `osm: {'nos': 18333, 'vias': 25040}`, `geosampa: {'calcadas': 22422, 'esperado': 25278}`, `sp156: {'barreiras': 1865}`, `gtfs: {'paradas': 1142, 'linhas': 1362}` — código de saída `0`; as contagens batem exatamente com as corridas isoladas de cada fonte (Tasks 3–6), confirmando que `tudo` é apenas o encadeamento, sem efeito colateral entre fontes.
+  - `pytest etl/tests -q` (com o banco populado pelo `tudo` acima): **62 passed** (58 anteriores + 3 unitários novos do orquestrador em `test_cli_tudo.py`, que simulam uma fonte falhando e verificam que as outras três continuam rodando e que o código de saída vira `1`).
+  - `GET /health` do backend local (`uvicorn`, mesmo `DATABASE_URL` do ETL), depois desse `tudo`: `ultimo_etl` deixa de ser `null` e passa a refletir o horário da execução mais recente com `status='ok'` em `etl_execucao` (a `gtfs`, por ser a última fonte a terminar na sequência `osm → geosampa → sp156 → gtfs`).

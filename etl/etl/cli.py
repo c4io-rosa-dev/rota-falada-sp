@@ -1,15 +1,47 @@
 """Ponto de entrada do ETL: `python -m etl.cli <fonte>`.
 
-Cada subcomando roda uma fonte isolada; `tudo` roda as quatro em sequência
-(implementado na Task 7, junto com o orquestrador que continua mesmo se uma
-fonte falhar). Por enquanto (Task 2) só o parser existe: os módulos de cada
-fonte chegam nas Tasks 3 a 6.
+Cada subcomando roda uma fonte isolada; `tudo` roda as quatro em sequência.
+Cada fonte já registra sua própria linha em `etl_execucao` (inclusive em caso
+de erro, dentro do próprio `executar`) e relança a exceção; o orquestrador
+`tudo` captura essa exceção fonte a fonte para que uma falha não impeça as
+demais de rodar, e devolve o código de saída 1 se alguma delas falhou.
 """
 
 import argparse
 import sys
+from typing import Any
 
 FONTES = ["osm", "geosampa", "sp156", "gtfs", "tudo"]
+
+
+def _engine_para_tudo():
+    from etl.db import engine
+
+    return engine()
+
+
+def _executar_osm(engine) -> dict:
+    from etl.osm import executar
+
+    return executar(engine)
+
+
+def _executar_geosampa(engine) -> dict:
+    from etl.geosampa import executar
+
+    return executar(engine)
+
+
+def _executar_sp156(engine) -> dict:
+    from etl.sp156 import executar
+
+    return executar(engine)
+
+
+def _executar_gtfs(engine) -> dict:
+    from etl.gtfs import executar
+
+    return executar(engine)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -30,29 +62,40 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
 
     if args.fonte == "osm":
-        from etl.db import engine
-        from etl.osm import executar
-
-        print(executar(engine()))
+        print(_executar_osm(_engine_para_tudo()))
     elif args.fonte == "geosampa":
-        from etl.db import engine
-        from etl.geosampa import executar
-
-        print(executar(engine()))
+        print(_executar_geosampa(_engine_para_tudo()))
     elif args.fonte == "sp156":
-        from etl.db import engine
-        from etl.sp156 import executar
-
-        print(executar(engine()))
+        print(_executar_sp156(_engine_para_tudo()))
     elif args.fonte == "gtfs":
-        from etl.db import engine
-        from etl.gtfs import executar
-
-        print(executar(engine()))
+        print(_executar_gtfs(_engine_para_tudo()))
     elif args.fonte == "tudo":
-        raise NotImplementedError("orquestrador 'tudo' chega na Task 7")
+        return _tudo()
 
     return 0
+
+
+def _tudo() -> int:
+    """Roda osm → geosampa → sp156 → gtfs em sequência. Cada fonte já grava
+    sua própria linha de erro em `etl_execucao` antes de relançar a exceção;
+    aqui só continuamos para a próxima fonte e marcamos a saída como falha."""
+    motor = _engine_para_tudo()
+    passos: list[tuple[str, Any]] = [
+        ("osm", _executar_osm),
+        ("geosampa", _executar_geosampa),
+        ("sp156", _executar_sp156),
+        ("gtfs", _executar_gtfs),
+    ]
+    houve_erro = False
+    for nome, executar in passos:
+        try:
+            resultado = executar(motor)
+        except Exception as exc:  # noqa: BLE001 — segue para a próxima fonte
+            houve_erro = True
+            print(f"{nome}: ERRO — {exc}", file=sys.stderr)
+        else:
+            print(f"{nome}: {resultado}")
+    return 1 if houve_erro else 0
 
 
 if __name__ == "__main__":

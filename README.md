@@ -66,3 +66,11 @@ Esta seção é obrigatória e cresce a cada plano. Do Plano 1:
 5. No Supabase, use a string de conexão do **Session pooler** (porta 5432); o Transaction pooler (6543) não suporta os prepared statements do psycopg.
 6. GitHub desativa workflows agendados em repositório público após 60 dias sem commits.
 7. A imagem `pgrouting/pgrouting:latest` local trouxe `postgis` 3.5.2, `pgrouting` 3.7.3 (série 3.x) e `pg_trgm` 1.6. O código deste plano não depende de funções removidas na 4.0.
+
+Do Plano 2 (ETL, ver `etl/README.md` para os detalhes e as contagens reais de cada fonte):
+
+8. O WFS do GeoSampa devolve HTTP 200 mesmo quando trunca o resultado — a paginação só está correta se verificar `numberReturned` somado contra `numberMatched` a cada página, nunca assumir que uma página menor que `count` é a última.
+9. A paginação do WFS 2.0 do GeoSampa exige `sortBy` explícito (`sortBy=cd_identificador_calcada`); sem ordenação estável entre páginas, a paginação pode repetir ou pular feições em silêncio.
+10. O CSV do SP156 é `cp1252`, não UTF-8/latin-1 estrito (o campo `Serviço` mistura hífen e travessão, inclusive o byte `0x96`, que `normalizar_traco` trata).
+11. `osmium extract` usa `-s smart` (não o padrão `simple`) para manter inteiras as vias que cruzam a borda da bbox de recorte; com `simple`, uma via cortada no meio perde nós e o pgRouting fica sem `source`/`target` corretos.
+12. O ETL roda em Docker (`docker compose --profile etl run --rm etl <fonte>`) e agendado no GitHub Actions (`.github/workflows/etl.yml`, cron semanal + `workflow_dispatch`); o workflow não roda em `push` de propósito. Enquanto o Secret `DATABASE_URL_PROD` não existir (depende do Supabase de produção), a execução agendada/manual falha no primeiro passo com banco — pendência do dono do projeto.

@@ -1,0 +1,27 @@
+name: etl
+
+on:
+  schedule:
+    - cron: "17 6 * * 1" # segunda 03:17 BRT
+  workflow_dispatch:
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y osmium-tool
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r etl/requirements.txt
+      - name: ETL de todas as fontes
+        working-directory: etl
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
+        run: python -m etl.cli tudo
+      - name: Testes de qualidade de dados
+        working-directory: etl
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
+        run: pytest tests/test_qualidade_dados.py -q
