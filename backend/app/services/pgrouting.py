@@ -184,6 +184,15 @@ _SQL_ARESTAS_PARA_INSTRUCOES = text(
 )
 
 
+def _pontos_proximos(a: tuple[float, float], b: tuple[float, float], tol: float = 1e-7) -> bool:
+    """`True` se `a` e `b` (lng, lat em graus) são o mesmo ponto a menos de
+    `tol` graus — usado só para casar o primeiro ponto de
+    `rota_bruta.geometria` com um extremo (source/target) de uma aresta;
+    ambos vêm do mesmo `ST_AsText` sobre a mesma coluna `geom`, então na
+    prática coincidem bit a bit, mas a tolerância evita depender disso."""
+    return abs(a[0] - b[0]) < tol and abs(a[1] - b[1]) < tol
+
+
 def _rumo_graus(coords: list[tuple[float, float]]) -> float:
     """Rumo aproximado (graus, 0-360, sentido horário a partir do norte) do
     primeiro ao último ponto do trecho — suficiente para decidir viradas
@@ -226,17 +235,23 @@ def instrucoes(db: Session, rota_bruta: RotaBruta) -> list[PassoBruto]:
     por_id = {linha["id"]: linha for linha in linhas}
 
     # reconstrói, na ordem do caminho, a orientação de cada aresta a partir
-    # do nó em que a rota entra nela (o primeiro nó é o source da 1ª aresta
-    # ou o target, conforme qual dos dois é compartilhado com a 2ª aresta).
+    # do nó em que a rota entra na 1ª aresta. `rota_bruta.geometria` já foi
+    # orientada corretamente (origem -> destino) por `rota_pgrouting` a
+    # partir do retorno de `pgr_dijkstra`, então seu primeiro ponto é a
+    # referência: comparamos com os dois extremos da geometria bruta da 1ª
+    # aresta (fonte da verdade sobre qual extremo é source e qual é target)
+    # para decidir por qual nó a rota entra — sem depender de olhar a 2ª
+    # aresta, que não existe quando o caminho tem uma única aresta (bug
+    # corrigido na revisão da Tarefa 4, Tentativa 2: o código antigo caía
+    # num `else` que assumia cegamente `no_atual = source` nesse caso).
     primeira = por_id[rota_bruta.arestas[0]]
-    if len(rota_bruta.arestas) > 1:
-        segunda = por_id[rota_bruta.arestas[1]]
-        extremos_segunda = {segunda["source"], segunda["target"]}
-        no_atual = (
-            primeira["target"] if primeira["source"] in extremos_segunda else primeira["source"]
-        )
-    else:
-        no_atual = primeira["source"]
+    coords_brutas_primeira = list(_carregar_wkt(primeira["geom_wkt"]).coords)
+    ponto_entrada = rota_bruta.geometria.coords[0]
+    no_atual = (
+        primeira["source"]
+        if _pontos_proximos(coords_brutas_primeira[0], ponto_entrada)
+        else primeira["target"]
+    )
 
     trechos: list[dict] = []
     for aresta_id in rota_bruta.arestas:
