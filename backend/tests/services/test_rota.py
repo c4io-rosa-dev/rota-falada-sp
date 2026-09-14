@@ -36,7 +36,7 @@ from app.services.ors_client import EstadoCota, OrsClient, OrsErro, OrsFixtureCl
 from app.services.pgrouting import rota_pgrouting
 from app.services.rota import RotaNaoEncontrada, calcular
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.dados_reais]
 
 # bem fora das três area_piloto (mesmo ponto-base de test_barreira_geom_db.py
 # e test_pgrouting.py) — nenhuma via_pedestre/barreira real está por perto.

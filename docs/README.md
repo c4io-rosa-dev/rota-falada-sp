@@ -4,7 +4,7 @@ Projeto da disciplina Engenharia de Software II (FATEC, 4º semestre): guia de r
 
 ## Como ler
 
-0. `superpowers/plans/2026-09-13-roteiro-de-planos.md` — sequência dos 8 planos de implementação; `superpowers/plans/2026-09-13-plano-01-fundacao.md` — Plano 1 completo (semanas 1–2).
+0. `superpowers/plans/2026-09-13-roteiro-de-planos.md` — sequência dos 8 planos de implementação; `superpowers/plans/2026-09-13-plano-0{1,2,3,4}-*.md` — Planos 1 a 4 (fundação, ETL, conflação, roteamento), todos executados em 14/09/2026; `pesquisa/2026-09-14-calibracao-conflacao.md` — calibração real do buffer de conflação.
 1. `superpowers/specs/2026-09-08-rotas-acessiveis-sp-design.md` — documento de design (arquitetura, backend, modelo de dados, roteamento, acessibilidade, MVP, cronograma, decisões pendentes). **Comece por aqui.**
 2. `pesquisa/2026-09-08-relatorio-apis.md` — relatório consolidado de todas as APIs e fontes investigadas, já com as correções da verificação.
 3. `pesquisa/2026-09-08-painel-de-designs.md` — as 3 arquiteturas independentes (MVP-first, usuário-first, dados-first) e as notas dos 2 juízes.

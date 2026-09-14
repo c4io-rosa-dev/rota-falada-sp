@@ -32,7 +32,7 @@ from app.services.barreira_geom import PROJ_4326_31983, BarreiraCandidata
 from app.services.enriquecimento import _distancia_m, _pct_da_classe_steepness, enriquecer_passos
 from app.services.pgrouting import PassoBruto
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.dados_reais]
 
 _VIA_COM_CONFLACAO_MEDIDA = 25041
 _VIA_SEM_CONFLACAO = 25044

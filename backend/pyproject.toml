@@ -41,4 +41,7 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: precisa de banco PostGIS acessível em DATABASE_URL"]
+markers = [
+  "integration: precisa de banco PostGIS acessível em DATABASE_URL",
+  "dados_reais: precisa do ETL carregado (via_pedestre não vazia); pulado no CI",
+]

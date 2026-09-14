@@ -27,7 +27,7 @@ from app.services.pgrouting import (
     rota_pgrouting,
 )
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.dados_reais]
 
 # no_pedestre.id reais (Vila Mariana), caminho a pé de ~401,9 m entre eles.
 _NO_ORIGEM = 9509943143
