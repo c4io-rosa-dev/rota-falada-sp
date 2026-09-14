@@ -1,0 +1,84 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 100%;
+  line-height: 1.5;
+  --cor-foco: #005a9c;
+  --cor-fundo: #ffffff;
+  --cor-texto: #1a1a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cor-foco: #9ecbff;
+    --cor-fundo: #121212;
+    --cor-texto: #f2f2f2;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+
+/* Alvos de 44 px: acima do mínimo AA (24 px) por decisão de projeto */
+button,
+.alvo {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.75rem;
+}
+
+:focus-visible {
+  outline: 3px solid var(--cor-foco);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  z-index: 1000;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  padding: 0.75rem 1rem;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+.menu {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.5rem;
+}
+
+main {
+  max-width: 45rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Reflow: nada pode gerar rolagem horizontal a 320 px */
+img,
+svg {
+  max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
