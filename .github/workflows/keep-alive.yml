@@ -1,0 +1,19 @@
+name: keep-alive
+
+on:
+  schedule:
+    # a cada 10 min, fora da hora cheia (crons na hora cheia atrasam),
+    # das 07h às 23h59 de Brasília (10h–02h59 UTC)
+    - cron: "7-59/10 10-23 * * *"
+    - cron: "7-59/10 0-2 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acorda o backend no Render
+        run: |
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "${{ secrets.RENDER_HEALTH_URL }}")
+          echo "HTTP $codigo"
+          test "$codigo" = "200"

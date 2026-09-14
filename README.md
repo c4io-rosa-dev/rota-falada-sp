@@ -44,6 +44,16 @@ Copie `.env.example` para `.env` na raiz e preencha o que tiver. Nada do `.env` 
 | Lint | `ruff check . ; ruff format --check .` | `npm run lint` |
 | Tipos da API | — | `npm run gerar-tipos` (backend precisa estar no ar) |
 
+## Produção (custo zero)
+
+| Componente | Serviço | URL |
+|---|---|---|
+| Frontend | Cloudflare Pages | https://<projeto>.pages.dev |
+| Backend | Render Free (512 MB) | https://rota-falada-api.onrender.com |
+| Banco | Supabase Free (PostGIS + pgRouting) | painel do Supabase |
+
+Variáveis: `DATABASE_URL` e `CORS_ORIGINS` no Render; `VITE_API_URL` no Cloudflare Pages; Secret `RENDER_HEALTH_URL` no GitHub para o keep-alive. O backend dorme após 15 min sem tráfego e leva ~1 min para voltar; o workflow `keep-alive` faz ping a cada 10 min das 7h às 3h. **Antes de qualquer demonstração, abra `/health` cinco minutos antes.**
+
 ## Armadilhas conhecidas
 
 Esta seção é obrigatória e cresce a cada plano. Do Plano 1:
