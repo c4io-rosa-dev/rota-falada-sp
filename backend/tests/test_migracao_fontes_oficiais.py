@@ -30,9 +30,7 @@ def test_tabelas_oficiais_existem_e_area_piloto_semeada(db):
     nomes_tabelas = {
         linha[0]
         for linha in db.execute(
-            text(
-                "SELECT table_name FROM information_schema.tables " "WHERE table_schema = 'public'"
-            )
+            text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
         )
     }
     assert TABELAS_ESPERADAS <= nomes_tabelas

@@ -31,4 +31,5 @@ def test_health_ok_com_banco():
     assert corpo["status"] == "ok"
     assert corpo["versao"] == "0.1.0"
     assert corpo["banco"] == "ok"
-    assert corpo["ultimo_etl"] is None
+    # None em banco recém-criado; ISO 8601 depois da primeira execução do ETL
+    assert corpo["ultimo_etl"] is None or isinstance(corpo["ultimo_etl"], str)
