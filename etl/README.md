@@ -10,9 +10,10 @@ Ver `docs/adr/002-grafo-com-osmnx.md` para a decisão de usar `osmium` + `osmnx`
 etl/
 ├── Dockerfile              python:3.12-slim + osmium-tool + requirements
 ├── requirements.txt
+├── gabarito_conflacao.csv  gabarito da conflação (via_osmid;calcada_cd_identificador;origem;observacao)
 ├── dados/                  downloads cacheados (fora do git; ver .gitignore)
 └── etl/
-    ├── config.py           AREA_PILOTO, BBOX_UNIAO, DATABASE_URL, URLs, DIR_DADOS
+    ├── config.py           AREA_PILOTO, BBOX_UNIAO, DATABASE_URL, URLs, DIR_DADOS, BUFFER_CONFLACAO_M, METODO_CONFLACAO
     ├── db.py                engine(), fonte_id(), registrar_execucao(), concluir_execucao()
     ├── download.py          baixar(url, destino, max_idade_dias=7) com cache e validação de tamanho
     ├── geo.py                bbox_para_poligono(), PROJ_31983, comprimento_m()
@@ -22,12 +23,13 @@ etl/
     ├── sp156.py              executar(engine): CSV cp1252 do CKAN → barreira_oficial
     ├── gtfs.py                executar(engine): zip GTFS da SPTrans (http, anônimo) → parada/linha
     ├── conflacao.py           executar(engine, buffer_m, metodo, so_medir=False): liga via_pedestre × calcada_sp
+    ├── calibracao_conflacao.py  gerar_gabarito()/avaliar_buffer(): gabarito + calibração do buffer → docs/pesquisa/*-calibracao-conflacao.md
     └── cli.py                python -m etl.cli osm|geosampa|sp156|gtfs|conflacao|tudo
 ```
 
 ## Orquestrador `tudo` e agendamento
 
-`python -m etl.cli tudo` roda as quatro fontes em sequência (`osm → geosampa → sp156 → gtfs`). Cada módulo já grava sua própria linha em `etl_execucao` (inclusive `status='erro'` com o `detalhe`, antes de relançar a exceção) — o orquestrador só captura essa exceção fonte a fonte para que uma falha não impeça as demais de rodar, imprime `<fonte>: ERRO — <mensagem>` em stderr e continua. Ao final, o código de saída é `1` se qualquer fonte falhou (e `0` só se as quatro terminaram `ok`), para que o passo do CI/Actions marque o job como falho sem abortar a carga das outras fontes.
+`python -m etl.cli tudo` roda as cinco fontes em sequência (`osm → geosampa → sp156 → gtfs → conflacao`; a conflação por último, já com o buffer e o método fixados pela calibração — `BUFFER_CONFLACAO_M`/`METODO_CONFLACAO` em `etl/config.py`, Plano 3 Task 3 — não os padrões do subcomando isolado, hoje os mesmos valores). Cada módulo já grava sua própria linha em `etl_execucao` (inclusive `status='erro'` com o `detalhe`, antes de relançar a exceção) — o orquestrador só captura essa exceção fonte a fonte para que uma falha não impeça as demais de rodar, imprime `<fonte>: ERRO — <mensagem>` em stderr e continua. Ao final, o código de saída é `1` se qualquer fonte falhou (e `0` só se as cinco terminaram `ok`), para que o passo do CI/Actions marque o job como falho sem abortar a carga das outras fontes.
 
 `.github/workflows/etl.yml` roda esse orquestrador e depois `pytest tests/test_qualidade_dados.py -q` num cron semanal (segunda 03:17 BRT) e por `workflow_dispatch` — **de propósito não roda em `push`** (é um job de dados, não de código, e o `DATABASE_URL_PROD` ainda não existe, ver pendência abaixo). Antes de rodar `tudo`, garanta que o banco tem o esquema mais recente (`alembic upgrade head` em `backend/`, apontando para o mesmo `DATABASE_URL`).
 
@@ -44,8 +46,15 @@ docker compose --profile etl run --rm etl osm        # Task 3
 docker compose --profile etl run --rm etl geosampa   # Task 4
 docker compose --profile etl run --rm etl sp156      # Task 5
 docker compose --profile etl run --rm etl gtfs       # Task 6
-docker compose --profile etl run --rm etl conflacao --buffer 5 --metodo mesmo_lado  # Plano 3, Task 2
-docker compose --profile etl run --rm etl tudo       # Task 7
+docker compose --profile etl run --rm etl conflacao --buffer 5 --metodo mesmo_lado  # Plano 3, Task 2 (5/mesmo_lado já são o padrão calibrado na Task 3)
+docker compose --profile etl run --rm etl tudo       # Task 7 (agora também roda a conflação por último)
+```
+
+Gabarito e calibração do buffer (Plano 3, Task 3; fora do `cli` porque não faz parte do pipeline de dados, é uma ferramenta de pesquisa que se roda à mão):
+
+```bash
+python -m etl.calibracao_conflacao --gerar-gabarito                      # regenera etl/gabarito_conflacao.csv (só automatico_contido)
+python -m etl.calibracao_conflacao --buffers 2 3 5 8 10 15               # roda a calibração, escreve docs/pesquisa/<data>-calibracao-conflacao.md
 ```
 
 Testes (de dentro do container, sempre funciona — é o mesmo ambiente do CI):
@@ -69,6 +78,7 @@ python -m pytest tests -q
 - **SP156:** o CSV é `cp1252`, não UTF-8/latin-1 estrito (o campo `Serviço` mistura hífen e travessão, byte `0x96`). A API do CKAN (`package_show`) não bloqueou o `User-Agent` do projeto em nenhum teste (14/09/2026); mesmo assim `descobrir_url` tenta de novo com um `User-Agent` de navegador antes de cair no CSV fixo, caso o WAF passe a bloquear. **Armadilha adicional encontrada na prática:** o campo `last_modified` do CKAN não é confiável para achar "o recurso mais recente" — confirmado ao vivo em 14/09/2026, o recurso "Dados do SP156 - 2º TRI 2021" tinha `last_modified` (17:29:39) *depois* do "2º TRI 2026" de fato mais novo (17:20:14), porque alguém editou o metadado do recurso antigo mais tarde. `descobrir_url` por isso extrai o período do **nome** do recurso (`_chave_periodo`, ex. "2º TRI 2026" → 2026.25) e só cai em `last_modified`/`created` se o nome não bater com esse padrão.
 - **GTFS:** o feed **não** tem `wheelchair_boarding`, `wheelchair_accessible`, `pathways.txt`, `levels.txt` nem `calendar_dates.txt` (confirmado em 08/09/2026); serve só como seed de paradas e linhas.
 - **Conflação (`etl/conflacao.py`):** o GEOS 3.9.0 desta imagem (`pgrouting/pgrouting:latest`, PostGIS 3.5.2) tem um bug de robustez confirmado em 14/09/2026: `ST_Intersection`/`ST_Difference` entre uma `LineString` e um `Polygon`/`MultiPolygon` **sempre devolve geometria vazia** — reproduzido até com coordenadas triviais (`LINESTRING(0 0,10 0)` × um polígono que a contém de sobra), independente de SRID, ordem dos operandos ou `ST_Buffer(...,0)` como workaround; `ST_Contains`/`ST_Within`/`ST_Relate`/`ST_Intersects` (booleanos) e `ST_Intersection` **Polígono × Polígono** continuam corretos. Por isso `fracao_dentro` (a fração do comprimento da via dentro da calçada, usada para decidir o método `'contido'`) não usa `ST_Intersection` direto sobre a via: a via é bufferizada numa faixa fininha (0,001 m, `ST_Buffer(..., 'endcap=flat')`, sem sobra nas pontas) e a fração vem da razão de **áreas** entre essa faixa e sua interseção com a calçada — interseção Polígono × Polígono, que funciona. Validado com casos sintéticos de sobreposição total (fração 1.0) e parcial (fração 0.5, ver `etl/tests/test_conflacao_sql.py`).
+- **Gabarito da conflação (`etl/etl/calibracao_conflacao.py`):** `via_pedestre.osmid` **não é único** nesta base — o `osmnx` nem sempre funde todos os segmentos de uma via original do OSM num único trecho simplificado (confirmado em 14/09/2026: 6.690 grupos de `osmid` duplicado no total, 527 só dentro de `esquema_calcada='geometria_propria'`). A geração automática do gabarito por isso só escolhe arestas cujo `osmid` é único em todo `via_pedestre`, para que `via_osmid` no CSV resolva sem ambiguidade — o que reduziu bastante a amostra automática em Ipiranga/Lapa (ver números abaixo); `_resolver_gabarito` ainda aceita `osmid` duplicado para as futuras linhas `manual_streetview` (conta acerto se qualquer via daquele `osmid` ligou certo). Achado relacionado: dos 27 casos automáticos, 3 erram em **todo** buffer testado — não é sensibilidade a buffer, é um polígono do GeoSampa sobreposto a outro no mesmo lugar (a via fica a distância 0 de duas calçadas, e o desempate por `calcada_id` de `conflacao.py` às vezes escolhe a errada); documentado como achado, não corrigido aqui (mudar o desempate é código da Task 2, fora do escopo desta task).
 
 ## Tempos e contagens reais
 
@@ -110,3 +120,11 @@ Preenchido conforme cada fonte é implementada (Tasks 3–7):
   - Verificado após a carga: `count(*) = count(DISTINCT via_id)` = 11.001 (uma calçada por aresta, sem duplicata); nenhuma linha com `metodo='contido'` e `confianca≠1`/`distancia_m≠0`; nenhuma `distancia_m > buffer_m`. `etl_execucao` (fonte `'conflacao'`) registrou `status='ok', linhas=11001`.
   - **Armadilha real encontrada nesta task** (não estimada, ver seção acima): o GEOS 3.9.0 desta imagem não calcula `ST_Intersection` entre `LineString` e `Polygon`/`MultiPolygon` (sempre vazio) — descoberto ao rodar o teste de integração com dados sintéticos, que originalmente usava `ST_Length(ST_Intersection(...))` (como no esqueleto do plano) e falhava mesmo no caso trivial de uma via inteiramente dentro de um polígono. O workaround (razão de áreas com a via bufferizada numa faixa fina) está documentado no docstring de `etl/etl/conflacao.py` e cobre o mesmo caso no teste automatizado.
   - `pytest etl/tests -q` (dentro do container, com o banco populado por `tudo` + `conflacao`): **64 passed** (62 anteriores + 2 novos: `test_regras_de_desempate_da_conflacao` sintético/revertido e `test_metodo_invalido_recusado`).
+- **Gabarito e calibração do buffer** (medido em 14/09/2026, `python -m etl.calibracao_conflacao --gerar-gabarito` e depois `python -m etl.calibracao_conflacao` no host, sobre os mesmos 25.040 `via_pedestre` × 22.422 `calcada_sp`):
+  - `--gerar-gabarito`: **27 linhas `automatico_contido`** (Vila Mariana 20, Ipiranga 4, Lapa 3 — bem abaixo dos 20 por recorte / 60 no total que o plano antecipava, porque a exigência adicional de `osmid` único no grafo, ver armadilha acima, elimina a maior parte dos candidatos em Ipiranga e Lapa: sem essa exigência havia 122/284/597 candidatos por recorte, mas ficariam ambíguos para o gabarito). `etl/gabarito_conflacao.csv` commitado com essas 27 linhas; **0 linhas `manual_streetview`** — pendência humana, ver abaixo.
+  - Calibração (`--buffers 2 3 5 8 10 15`, os dois métodos): **~52 s** de ponta a ponta (12 corridas da query de candidatos, cada uma ~4 s). Com o gabarito só `automatico_contido`, acertos/erros ficaram **constantes em todo buffer testado** (24 acertos, 3 erros, em `mesmo_lado` e em `mais_proximo`) — esperado: essas linhas testam exclusivamente a regra `'contido'`, que vence a disputa de prioridade independente do buffer sempre que a aresta está de fato dentro do polígono, então `detectar_joelho` não encontra joelho (`None`) com este gabarito.
+  - O sinal que de fato varia com o buffer é a **cobertura** do método de produção `mesmo_lado`: 34,2% (buffer 2) → 38,7% (3) → **pico de 43,9% no buffer 5** → cai para 41,8% (8) e só recupera parcialmente com buffers maiores (41,9% em 10, 42,6% em 15) — a regra de desempate do `mesmo_lado` passa a recusar mais candidatos como empate (o lado oposto da rua entra no alcance) mais rápido do que ganha cobertura nova. `detectar_pico_cobertura` acha o buffer 5 m.
+  - **Buffer fixado: `BUFFER_CONFLACAO_M = 5.0`, `METODO_CONFLACAO = 'mesmo_lado'`** em `etl/etl/config.py` (o mesmo valor que já era o padrão do subcomando `conflacao` desde a Task 2, por coincidência — o padrão do esqueleto do plano já era o valor certo). `python -m etl.cli tudo` agora também roda a conflação com esses valores no final. Relatório completo: `docs/pesquisa/2026-09-14-calibracao-conflacao.md`.
+  - Rodar `python -m etl.cli conflacao` de novo com o buffer/método fixados reproduziu exatamente o resultado da Task 2 (**11.001 vias ligadas, cobertura 43,9%**) — confirma que a carga já feita é a definitiva, nenhum recarregamento necessário.
+  - `pytest etl/tests -q`: **75 passed** (64 anteriores + 9 novos de `test_calibracao_conflacao.py`, incluindo 2 de integração contra o gabarito real gerado do banco + 2 do orquestrador `cli tudo` atualizados para a quinta etapa `conflacao`).
+  - **Pendência para o dono do projeto:** faltam as linhas `manual_streetview` do gabarito (mínimo 40, verificadas no Street View pela equipe humana, semanas 5–6, conforme o plano). `etl.calibracao_conflacao.ler_gabarito`/`avaliar_buffer` já aceitam as duas origens sem mudança de código — basta acrescentar linhas a `etl/gabarito_conflacao.csv` (`origem=manual_streetview`) e rodar `python -m etl.calibracao_conflacao` de novo; só essas linhas (casos ambíguos, perto de mais de uma calçada) vão de fato testar a sensibilidade ao buffer via `detectar_joelho`, hoje inconclusivo por falta delas.

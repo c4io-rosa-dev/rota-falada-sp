@@ -23,6 +23,14 @@ BBOX_UNIAO: tuple[float, float, float, float] = (
     max(bbox[3] for bbox in AREA_PILOTO.values()),
 )
 
+# calibrados em docs/pesquisa/2026-09-14-calibracao-conflacao.md (Plano 3, Task 3):
+# com o gabarito atual (só `automatico_contido`; `manual_streetview` é pendência
+# humana, ver etl/README.md), o buffer que maximiza a cobertura do método de
+# produção 'mesmo_lado' é 5 m — buffers maiores aumentam empates (ambiguidade
+# entre os dois lados da rua) mais rápido do que ganham cobertura.
+BUFFER_CONFLACAO_M = 5.0
+METODO_CONFLACAO = "mesmo_lado"
+
 DATABASE_URL = os.environ.get(
     "DATABASE_URL", "postgresql+psycopg://postgres:dev@localhost:5433/acessibilidade"
 )

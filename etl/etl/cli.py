@@ -1,6 +1,7 @@
 """Ponto de entrada do ETL: `python -m etl.cli <fonte>`.
 
-Cada subcomando roda uma fonte isolada; `tudo` roda as quatro em sequência.
+Cada subcomando roda uma fonte isolada; `tudo` roda as cinco em sequência
+(osm, geosampa, sp156, gtfs e, por último, conflacao).
 Cada fonte já registra sua própria linha em `etl_execucao` (inclusive em caso
 de erro, dentro do próprio `executar`) e relança a exceção; o orquestrador
 `tudo` captura essa exceção fonte a fonte para que uma falha não impeça as
@@ -10,6 +11,8 @@ demais de rodar, e devolve o código de saída 1 se alguma delas falhou.
 import argparse
 import sys
 from typing import Any
+
+from etl.config import BUFFER_CONFLACAO_M, METODO_CONFLACAO
 
 FONTES = ["osm", "geosampa", "sp156", "gtfs", "conflacao", "tudo"]
 
@@ -50,6 +53,15 @@ def _executar_conflacao(engine, buffer_m: float, metodo: str) -> dict:
     return executar(engine, buffer_m=buffer_m, metodo=metodo)
 
 
+def _executar_conflacao_tudo(engine) -> dict:
+    """Roda a conflação com o buffer e o método fixados pela calibração
+    (Plano 3, Task 3: `BUFFER_CONFLACAO_M`/`METODO_CONFLACAO` em
+    `etl/config.py`), não os padrões (sobrepostos) do subcomando `conflacao`."""
+    from etl.conflacao import executar
+
+    return executar(engine, buffer_m=BUFFER_CONFLACAO_M, metodo=METODO_CONFLACAO)
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m etl.cli",
@@ -64,15 +76,20 @@ def _parser() -> argparse.ArgumentParser:
         "conflacao", help="liga via_pedestre (OSM) a calcada_sp (GeoSampa)"
     )
     conflacao.add_argument(
-        "--buffer", type=float, default=5.0, help="buffer em metros (padrão: 5.0)"
+        "--buffer",
+        type=float,
+        default=BUFFER_CONFLACAO_M,
+        help=f"buffer em metros (padrão: {BUFFER_CONFLACAO_M}, calibrado na Task 3 do Plano 3)",
     )
     conflacao.add_argument(
         "--metodo",
         choices=["mesmo_lado", "mais_proximo"],
-        default="mesmo_lado",
-        help="regra de desempate (padrão: mesmo_lado)",
+        default=METODO_CONFLACAO,
+        help=f"regra de desempate (padrão: {METODO_CONFLACAO})",
     )
-    subparsers.add_parser("tudo", help="roda as quatro fontes em sequência")
+    subparsers.add_parser(
+        "tudo", help="roda osm, geosampa, sp156, gtfs e conflacao em sequência"
+    )
     return parser
 
 
@@ -96,15 +113,21 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _tudo() -> int:
-    """Roda osm → geosampa → sp156 → gtfs em sequência. Cada fonte já grava
-    sua própria linha de erro em `etl_execucao` antes de relançar a exceção;
-    aqui só continuamos para a próxima fonte e marcamos a saída como falha."""
+    """Roda osm → geosampa → sp156 → gtfs → conflacao em sequência. Cada
+    fonte já grava sua própria linha de erro em `etl_execucao` antes de
+    relançar a exceção; aqui só continuamos para a próxima fonte e marcamos a
+    saída como falha. A conflação roda por último (depende de via_pedestre e
+    calcada_sp, carregadas pelas duas primeiras fontes) com o buffer e o
+    método fixados pela calibração (`BUFFER_CONFLACAO_M`/`METODO_CONFLACAO`
+    em `etl/config.py`, Plano 3 Task 3), não os padrões do subcomando
+    isolado — hoje os mesmos valores, mas isso pode divergir no futuro."""
     motor = _engine_para_tudo()
     passos: list[tuple[str, Any]] = [
         ("osm", _executar_osm),
         ("geosampa", _executar_geosampa),
         ("sp156", _executar_sp156),
         ("gtfs", _executar_gtfs),
+        ("conflacao", _executar_conflacao_tudo),
     ]
     houve_erro = False
     for nome, executar in passos:
