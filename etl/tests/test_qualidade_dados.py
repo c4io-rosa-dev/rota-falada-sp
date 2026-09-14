@@ -233,6 +233,76 @@ def test_linha_populada(engine):
     assert total >= 1000
 
 
+# --- Conflação: conflacao_via_calcada (Plano 3, Task 4) -----------------------
+
+
+def test_conflacao_cobertura_minima(engine):
+    """Gate do spec: pelo menos 30% das arestas do grafo de pedestres (OSM)
+    precisam estar ligadas a uma calçada do GeoSampa em `conflacao_via_calcada`.
+    Se a cobertura real cair abaixo disso, este teste **falha** — não afrouxa
+    o limiar — porque a saída é uma decisão humana: assumir a camada
+    colaborativa (OSM) como fonte principal e tratar os polígonos do
+    GeoSampa como barreiras (não como fonte de largura/atributo), ver
+    `docs/superpowers/specs/2026-09-08-rotas-acessiveis-sp-design.md`."""
+    with engine.connect() as conexao:
+        arestas = conexao.execute(
+            text("SELECT count(*) FROM via_pedestre")
+        ).scalar_one()
+        ligadas = conexao.execute(
+            text("SELECT count(*) FROM conflacao_via_calcada")
+        ).scalar_one()
+    cobertura = ligadas / arestas if arestas else 0.0
+    assert cobertura >= 0.30, (
+        f"cobertura real da conflação = {cobertura:.1%} ({ligadas}/{arestas} arestas), "
+        "abaixo do gate de 30% do spec. Decisão humana necessária (o teste não decide "
+        "sozinho): assumir o OSM (camada colaborativa) como fonte principal de topologia "
+        "e tratar os polígonos do GeoSampa como barreiras, não como fonte de largura/"
+        "declividade por aresta."
+    )
+
+
+def test_conflacao_sem_geometria_nem_atributos(engine):
+    """Guarda permanente (redundante de propósito com
+    `backend/tests/test_migracao_conflacao.py` da Task 1): mesmo que a
+    migration mude, `conflacao_via_calcada` nunca pode ganhar coluna de
+    geometria nem atributo copiado de largura/declividade — ela resolve
+    ODbL (OSM) x CC-BY-SA (GeoSampa) só por chave e distância, nunca
+    misturando os dados das duas licenças numa única linha."""
+    consulta = """
+        SELECT column_name, udt_name FROM information_schema.columns
+        WHERE table_name = 'conflacao_via_calcada'
+    """
+    with engine.connect() as conexao:
+        colunas = conexao.execute(text(consulta)).all()
+    nomes = {linha[0] for linha in colunas}
+    tipos = {linha[1] for linha in colunas}
+    assert "geometry" not in tipos
+    assert not any("largura" in nome or "declividade" in nome for nome in nomes)
+
+
+def test_conflacao_confianca_coerente(engine):
+    consulta_contido = """
+        SELECT count(*) FROM conflacao_via_calcada
+        WHERE metodo = 'contido' AND (confianca <> 1 OR distancia_m <> 0)
+    """
+    consulta_demais = """
+        SELECT count(*) FROM conflacao_via_calcada
+        WHERE metodo <> 'contido' AND distancia_m > buffer_m
+    """
+    with engine.connect() as conexao:
+        contido_incoerente = conexao.execute(text(consulta_contido)).scalar_one()
+        demais_incoerente = conexao.execute(text(consulta_demais)).scalar_one()
+    assert contido_incoerente == 0
+    assert demais_incoerente == 0
+
+
+def test_conflacao_uma_calcada_por_aresta(engine):
+    consulta = "SELECT count(*), count(DISTINCT via_id) FROM conflacao_via_calcada"
+    with engine.connect() as conexao:
+        total, distintos = conexao.execute(text(consulta)).one()
+    assert total == distintos
+
+
 def test_gtfs_sem_campos_de_acessibilidade():
     """Canário sobre o zip cacheado (não sobre o banco): se o feed da SPTrans
     um dia passar a trazer `wheelchair_boarding`/`wheelchair_accessible` ou os
