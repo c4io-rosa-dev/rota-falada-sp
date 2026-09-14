@@ -2,7 +2,7 @@
 
 **Disciplina:** Engenharia de Software II · FATEC · 4º semestre · 08/09/2026
 **Produto:** Guia de Rotas de Transporte com Alertas de Barreiras Físicas
-**Status:** rascunho aguardando aprovação do dono do projeto (ver seção 14)
+**Status:** aprovado em 13/09/2026 (backend Python + FastAPI); implementação segue `docs/superpowers/plans/2026-09-13-roteiro-de-planos.md`
 **Base:** pesquisa verificada em `docs/pesquisa/` (relatório consolidado em `2026-09-08-relatorio-apis.md`; painel de 3 arquiteturas e julgamento em `2026-09-08-painel-de-designs.md`)
 
 ---
