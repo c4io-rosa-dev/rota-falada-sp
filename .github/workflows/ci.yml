@@ -60,6 +60,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # gitleaks/gitleaks-action@v2 quebra no primeiro push de um repositório
+      # (o commit raiz não tem pai para o diff "<raiz>^..HEAD" que a action monta:
+      # https://github.com/gitleaks/gitleaks-action/issues/199). Para não depender
+      # desse bug, baixamos o binário (mesma versão do pre-commit) e escaneamos
+      # o histórico inteiro a cada execução.
+      - name: Baixar e rodar o gitleaks
+        run: |
+          curl -sSfL -o gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks detect --source . --verbose --redact
