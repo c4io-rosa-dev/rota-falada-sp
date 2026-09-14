@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Chave falsa de teste do Plano 1 (Task 9, Step 2) documentada no plano — nunca é uma credencial real, só serve para provar que o gitleaks bloqueia um segredo"
+regexes = [
+  '''0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef''',
+]
