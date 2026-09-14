@@ -53,3 +53,7 @@ funciona, regrave as fixtures com uma chave válida.**
    casos já cobertos por respostas reais.
 
 Nunca commite a chave nem o `.env` da raiz.
+
+## Fixtures reais gravadas em 14/09/2026
+
+Os quatro arquivos nomeados por coordenadas foram gravados com `scripts/gravar_fixtures_ors.py` usando uma chave real do ORS (respostas verdadeiras do perfil `wheelchair`, sem nenhum segredo dentro). `generica.json` continua **sintética** e serve só de fallback para pares de coordenadas sem fixture própria.

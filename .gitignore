@@ -27,3 +27,8 @@ etl/dados/*
 # sistema
 .DS_Store
 Thumbs.db
+
+# cloudflare wrangler e config local de MCP
+.wrangler/
+frontend/.dev.vars
+.mcp.json

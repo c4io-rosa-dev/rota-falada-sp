@@ -1,0 +1,1101 @@
+{
+  "type": "FeatureCollection",
+  "bbox": [
+    -46.644648,
+    -23.602749,
+    778.0,
+    -46.641947,
+    -23.590393,
+    796.0
+  ],
+  "features": [
+    {
+      "bbox": [
+        -46.644648,
+        -23.602749,
+        778.0,
+        -46.641947,
+        -23.590393,
+        796.0
+      ],
+      "type": "Feature",
+      "properties": {
+        "ascent": 52.0,
+        "descent": 40.0,
+        "segments": [
+          {
+            "distance": 1680.0,
+            "duration": 1176.3,
+            "steps": [
+              {
+                "distance": 76.8,
+                "duration": 55.3,
+                "type": 11,
+                "instruction": "Siga para sul em direção a Rua Uruana",
+                "name": "Rua Uruana",
+                "way_points": [
+                  0,
+                  4
+                ]
+              },
+              {
+                "distance": 138.3,
+                "duration": 99.6,
+                "type": 0,
+                "instruction": "Vire à esquerda em direção a Rua Doutor Mário Cardim",
+                "name": "Rua Doutor Mário Cardim",
+                "way_points": [
+                  4,
+                  9
+                ]
+              },
+              {
+                "distance": 12.5,
+                "duration": 9.0,
+                "type": 1,
+                "instruction": "Vire à direita em direção a Rua Botucatu",
+                "name": "Rua Botucatu",
+                "way_points": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "distance": 4.0,
+                "duration": 1.4,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "distance": 45.5,
+                "duration": 32.8,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  11,
+                  12
+                ]
+              },
+              {
+                "distance": 4.6,
+                "duration": 1.7,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  12,
+                  13
+                ]
+              },
+              {
+                "distance": 156.1,
+                "duration": 112.4,
+                "type": 0,
+                "instruction": "Vire à esquerda em direção a Rua Botucatu",
+                "name": "Rua Botucatu",
+                "way_points": [
+                  13,
+                  18
+                ]
+              },
+              {
+                "distance": 4.6,
+                "duration": 1.7,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "distance": 65.4,
+                "duration": 47.1,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "distance": 4.2,
+                "duration": 1.5,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "distance": 36.3,
+                "duration": 26.1,
+                "type": 0,
+                "instruction": "Vire à esquerda em direção a Rua Botucatu",
+                "name": "Rua Botucatu",
+                "way_points": [
+                  21,
+                  24
+                ]
+              },
+              {
+                "distance": 5.1,
+                "duration": 1.8,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  24,
+                  25
+                ]
+              },
+              {
+                "distance": 44.0,
+                "duration": 31.7,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  25,
+                  28
+                ]
+              },
+              {
+                "distance": 8.5,
+                "duration": 3.1,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  28,
+                  30
+                ]
+              },
+              {
+                "distance": 53.2,
+                "duration": 38.3,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  30,
+                  35
+                ]
+              },
+              {
+                "distance": 6.1,
+                "duration": 3.0,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  35,
+                  39
+                ]
+              },
+              {
+                "distance": 84.0,
+                "duration": 60.5,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  39,
+                  43
+                ]
+              },
+              {
+                "distance": 14.4,
+                "duration": 5.2,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  43,
+                  45
+                ]
+              },
+              {
+                "distance": 129.1,
+                "duration": 92.9,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  45,
+                  48
+                ]
+              },
+              {
+                "distance": 116.0,
+                "duration": 83.5,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  48,
+                  50
+                ]
+              },
+              {
+                "distance": 8.0,
+                "duration": 3.9,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  50,
+                  54
+                ]
+              },
+              {
+                "distance": 143.5,
+                "duration": 103.3,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  54,
+                  59
+                ]
+              },
+              {
+                "distance": 12.5,
+                "duration": 5.9,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  59,
+                  63
+                ]
+              },
+              {
+                "distance": 3.5,
+                "duration": 2.5,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  63,
+                  65
+                ]
+              },
+              {
+                "distance": 140.5,
+                "duration": 98.7,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  65,
+                  71
+                ]
+              },
+              {
+                "distance": 1.0,
+                "duration": 0.7,
+                "type": 5,
+                "instruction": "Vire ligeiramente à direita",
+                "name": "-",
+                "way_points": [
+                  71,
+                  72
+                ]
+              },
+              {
+                "distance": 2.9,
+                "duration": 1.3,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  72,
+                  74
+                ]
+              },
+              {
+                "distance": 328.5,
+                "duration": 236.5,
+                "type": 0,
+                "instruction": "Vire à esquerda em direção a Rua Napoleão de Barros",
+                "name": "Rua Napoleão de Barros",
+                "way_points": [
+                  74,
+                  77
+                ]
+              },
+              {
+                "distance": 6.6,
+                "duration": 2.4,
+                "type": 1,
+                "instruction": "Vire à direita",
+                "name": "-",
+                "way_points": [
+                  77,
+                  78
+                ]
+              },
+              {
+                "distance": 10.4,
+                "duration": 7.5,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  78,
+                  80
+                ]
+              },
+              {
+                "distance": 13.5,
+                "duration": 4.9,
+                "type": 0,
+                "instruction": "Vire à esquerda",
+                "name": "-",
+                "way_points": [
+                  80,
+                  82
+                ]
+              },
+              {
+                "distance": 0.0,
+                "duration": 0.0,
+                "type": 10,
+                "instruction": "Chegar ao seu destino, em frente",
+                "name": "-",
+                "way_points": [
+                  82,
+                  82
+                ]
+              }
+            ],
+            "ascent": 52.0,
+            "descent": 40.0
+          }
+        ],
+        "extras": {
+          "waytype": {
+            "values": [
+              [
+                0,
+                10,
+                3
+              ],
+              [
+                10,
+                13,
+                7
+              ],
+              [
+                13,
+                18,
+                3
+              ],
+              [
+                18,
+                21,
+                7
+              ],
+              [
+                21,
+                24,
+                3
+              ],
+              [
+                24,
+                82,
+                7
+              ]
+            ],
+            "summary": [
+              {
+                "value": 7.0,
+                "distance": 1259.9,
+                "amount": 75.0
+              },
+              {
+                "value": 3.0,
+                "distance": 420.1,
+                "amount": 25.0
+              }
+            ]
+          },
+          "surface": {
+            "values": [
+              [
+                0,
+                11,
+                3
+              ],
+              [
+                11,
+                12,
+                4
+              ],
+              [
+                12,
+                19,
+                3
+              ],
+              [
+                19,
+                20,
+                4
+              ],
+              [
+                20,
+                25,
+                3
+              ],
+              [
+                25,
+                28,
+                0
+              ],
+              [
+                28,
+                30,
+                3
+              ],
+              [
+                30,
+                36,
+                0
+              ],
+              [
+                36,
+                38,
+                3
+              ],
+              [
+                38,
+                43,
+                0
+              ],
+              [
+                43,
+                45,
+                3
+              ],
+              [
+                45,
+                50,
+                4
+              ],
+              [
+                50,
+                51,
+                0
+              ],
+              [
+                51,
+                53,
+                3
+              ],
+              [
+                53,
+                54,
+                0
+              ],
+              [
+                54,
+                59,
+                4
+              ],
+              [
+                59,
+                60,
+                0
+              ],
+              [
+                60,
+                62,
+                3
+              ],
+              [
+                62,
+                63,
+                4
+              ],
+              [
+                63,
+                67,
+                14
+              ],
+              [
+                67,
+                68,
+                4
+              ],
+              [
+                68,
+                70,
+                3
+              ],
+              [
+                70,
+                73,
+                4
+              ],
+              [
+                73,
+                74,
+                3
+              ],
+              [
+                74,
+                77,
+                0
+              ],
+              [
+                77,
+                78,
+                3
+              ],
+              [
+                78,
+                80,
+                0
+              ],
+              [
+                80,
+                82,
+                3
+              ]
+            ],
+            "summary": [
+              {
+                "value": 0.0,
+                "distance": 527.7,
+                "amount": 31.41
+              },
+              {
+                "value": 3.0,
+                "distance": 512.4,
+                "amount": 30.5
+              },
+              {
+                "value": 4.0,
+                "distance": 505.5,
+                "amount": 30.09
+              },
+              {
+                "value": 14.0,
+                "distance": 134.4,
+                "amount": 8.0
+              }
+            ]
+          },
+          "steepness": {
+            "values": [
+              [
+                0,
+                82,
+                1
+              ]
+            ],
+            "summary": [
+              {
+                "value": 1.0,
+                "distance": 1680.0,
+                "amount": 100.0
+              }
+            ]
+          }
+        },
+        "warnings": [
+          {
+            "code": 4,
+            "message": "Extra info requested but not available: roadaccessrestrictions"
+          }
+        ],
+        "way_points": [
+          0,
+          82
+        ],
+        "summary": {
+          "distance": 1680.0,
+          "duration": 1176.3
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -46.643373,
+            -23.590393,
+            780.0
+          ],
+          [
+            -46.643339,
+            -23.590472,
+            780.0
+          ],
+          [
+            -46.643264,
+            -23.590702,
+            783.2
+          ],
+          [
+            -46.643291,
+            -23.591003,
+            788.0
+          ],
+          [
+            -46.643297,
+            -23.591067,
+            788.0
+          ],
+          [
+            -46.643226,
+            -23.591079,
+            788.0
+          ],
+          [
+            -46.642746,
+            -23.591166,
+            788.0
+          ],
+          [
+            -46.642445,
+            -23.59127,
+            790.2
+          ],
+          [
+            -46.642086,
+            -23.591313,
+            791.0
+          ],
+          [
+            -46.641975,
+            -23.591326,
+            791.0
+          ],
+          [
+            -46.641986,
+            -23.591438,
+            791.0
+          ],
+          [
+            -46.641947,
+            -23.591442,
+            791.0
+          ],
+          [
+            -46.641985,
+            -23.591849,
+            794.0
+          ],
+          [
+            -46.64203,
+            -23.591846,
+            794.0
+          ],
+          [
+            -46.642039,
+            -23.591933,
+            794.0
+          ],
+          [
+            -46.642048,
+            -23.592011,
+            794.0
+          ],
+          [
+            -46.64216,
+            -23.593064,
+            792.0
+          ],
+          [
+            -46.64217,
+            -23.593152,
+            792.0
+          ],
+          [
+            -46.642181,
+            -23.593243,
+            792.0
+          ],
+          [
+            -46.642135,
+            -23.593246,
+            792.0
+          ],
+          [
+            -46.642206,
+            -23.59383,
+            784.0
+          ],
+          [
+            -46.642247,
+            -23.593825,
+            784.0
+          ],
+          [
+            -46.642261,
+            -23.593947,
+            784.0
+          ],
+          [
+            -46.642275,
+            -23.594083,
+            784.0
+          ],
+          [
+            -46.642281,
+            -23.59415,
+            784.0
+          ],
+          [
+            -46.642331,
+            -23.594155,
+            784.0
+          ],
+          [
+            -46.64237,
+            -23.594472,
+            778.0
+          ],
+          [
+            -46.642383,
+            -23.594504,
+            778.0
+          ],
+          [
+            -46.64243,
+            -23.594508,
+            778.0
+          ],
+          [
+            -46.642432,
+            -23.594559,
+            778.0
+          ],
+          [
+            -46.642433,
+            -23.594585,
+            778.0
+          ],
+          [
+            -46.642371,
+            -23.594589,
+            778.0
+          ],
+          [
+            -46.642375,
+            -23.594656,
+            778.0
+          ],
+          [
+            -46.642402,
+            -23.594921,
+            778.0
+          ],
+          [
+            -46.642407,
+            -23.594975,
+            778.0
+          ],
+          [
+            -46.642444,
+            -23.594972,
+            778.0
+          ],
+          [
+            -46.642444,
+            -23.594979,
+            778.0
+          ],
+          [
+            -46.642445,
+            -23.594996,
+            778.0
+          ],
+          [
+            -46.642447,
+            -23.595012,
+            782.0
+          ],
+          [
+            -46.642453,
+            -23.595026,
+            782.0
+          ],
+          [
+            -46.642437,
+            -23.595053,
+            782.0
+          ],
+          [
+            -46.642513,
+            -23.59572,
+            778.0
+          ],
+          [
+            -46.642529,
+            -23.595742,
+            778.0
+          ],
+          [
+            -46.64256,
+            -23.595739,
+            778.0
+          ],
+          [
+            -46.64257,
+            -23.595814,
+            778.0
+          ],
+          [
+            -46.642576,
+            -23.595868,
+            790.0
+          ],
+          [
+            -46.642551,
+            -23.595883,
+            790.0
+          ],
+          [
+            -46.642543,
+            -23.595917,
+            790.0
+          ],
+          [
+            -46.642659,
+            -23.597011,
+            795.0
+          ],
+          [
+            -46.642712,
+            -23.59704,
+            795.0
+          ],
+          [
+            -46.643788,
+            -23.596995,
+            793.0
+          ],
+          [
+            -46.643789,
+            -23.597006,
+            793.0
+          ],
+          [
+            -46.643791,
+            -23.597025,
+            793.0
+          ],
+          [
+            -46.643794,
+            -23.597052,
+            793.0
+          ],
+          [
+            -46.643796,
+            -23.597067,
+            793.0
+          ],
+          [
+            -46.643887,
+            -23.597063,
+            793.0
+          ],
+          [
+            -46.643892,
+            -23.597106,
+            793.0
+          ],
+          [
+            -46.644019,
+            -23.598212,
+            795.0
+          ],
+          [
+            -46.644021,
+            -23.598243,
+            795.0
+          ],
+          [
+            -46.643999,
+            -23.598246,
+            795.0
+          ],
+          [
+            -46.644001,
+            -23.598266,
+            795.0
+          ],
+          [
+            -46.644006,
+            -23.598312,
+            795.0
+          ],
+          [
+            -46.644009,
+            -23.598344,
+            796.0
+          ],
+          [
+            -46.64401,
+            -23.598358,
+            796.0
+          ],
+          [
+            -46.644026,
+            -23.598357,
+            796.0
+          ],
+          [
+            -46.644044,
+            -23.598363,
+            796.0
+          ],
+          [
+            -46.644156,
+            -23.599521,
+            788.0
+          ],
+          [
+            -46.644154,
+            -23.599535,
+            788.0
+          ],
+          [
+            -46.644155,
+            -23.599546,
+            788.0
+          ],
+          [
+            -46.64416,
+            -23.599586,
+            788.0
+          ],
+          [
+            -46.644162,
+            -23.599608,
+            788.0
+          ],
+          [
+            -46.644163,
+            -23.599622,
+            788.0
+          ],
+          [
+            -46.644171,
+            -23.599627,
+            778.0
+          ],
+          [
+            -46.644178,
+            -23.599626,
+            778.0
+          ],
+          [
+            -46.644199,
+            -23.599625,
+            778.0
+          ],
+          [
+            -46.644328,
+            -23.600841,
+            783.0
+          ],
+          [
+            -46.644376,
+            -23.601454,
+            783.0
+          ],
+          [
+            -46.644511,
+            -23.602566,
+            792.0
+          ],
+          [
+            -46.644576,
+            -23.602569,
+            792.0
+          ],
+          [
+            -46.644597,
+            -23.602619,
+            792.0
+          ],
+          [
+            -46.644639,
+            -23.602627,
+            792.0
+          ],
+          [
+            -46.644644,
+            -23.602704,
+            792.0
+          ],
+          [
+            -46.644648,
+            -23.602749,
+            792.0
+          ]
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "attribution": "openrouteservice.org | OpenStreetMap contributors",
+    "service": "routing",
+    "timestamp": 1789415982230,
+    "query": {
+      "coordinates": [
+        [
+          -46.6433726,
+          -23.5903933
+        ],
+        [
+          -46.6446479,
+          -23.602749
+        ]
+      ],
+      "profile": "wheelchair",
+      "profileName": "wheelchair",
+      "format": "geojson",
+      "units": "m",
+      "language": "pt",
+      "instructions": true,
+      "elevation": true,
+      "extra_info": [
+        "steepness",
+        "surface",
+        "waytype"
+      ],
+      "options": {
+        "avoid_features": [
+          "steps"
+        ],
+        "profile_params": {
+          "restrictions": {
+            "maximum_incline": 6
+          },
+          "surface_quality_known": false,
+          "allow_unsuitable": false
+        }
+      }
+    },
+    "engine": {
+      "version": "9.10.0",
+      "build_date": "2026-07-28T16:17:20Z",
+      "graph_date": "2026-09-06T00:02:11Z",
+      "osm_date": "2026-08-30T23:59:56Z"
+    }
+  }
+}

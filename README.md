@@ -75,11 +75,11 @@ estado atual (sintéticas ou gravadas de verdade).
 
 | Componente | Serviço | URL |
 |---|---|---|
-| Frontend | Cloudflare Pages | https://<projeto>.pages.dev |
+| Frontend | Cloudflare Workers (assets estáticos) | https://rota-falada-sp.<conta>.workers.dev |
 | Backend | Render Free (512 MB) | https://rota-falada-api.onrender.com |
 | Banco | Supabase Free (PostGIS + pgRouting) | painel do Supabase |
 
-Variáveis: `DATABASE_URL` e `CORS_ORIGINS` no Render; `VITE_API_URL` no Cloudflare Pages; Secret `RENDER_HEALTH_URL` no GitHub para o keep-alive. O backend dorme após 15 min sem tráfego e leva ~1 min para voltar; o workflow `keep-alive` faz ping a cada 10 min das 7h às 3h. **Antes de qualquer demonstração, abra `/health` cinco minutos antes.**
+Variáveis: `DATABASE_URL` e `CORS_ORIGINS` no Render; `VITE_API_URL` como variável de build no Cloudflare Workers; Secret `RENDER_HEALTH_URL` no GitHub para o keep-alive. O backend dorme após 15 min sem tráfego e leva ~1 min para voltar; o workflow `keep-alive` faz ping a cada 10 min das 7h às 3h. **Antes de qualquer demonstração, abra `/health` cinco minutos antes.**
 
 ## Armadilhas conhecidas
 
@@ -88,7 +88,7 @@ Esta seção é obrigatória e cresce a cada plano. Do Plano 1:
 1. `docker compose exec db psql` funciona sem instalar o psql na máquina.
 1b. O container expõe o Postgres na porta **5433** do host (não 5432), porque máquinas com PostgreSQL nativo instalado já ocupam a 5432 e as conexões caem no banco errado com "senha falhou". A URL padrão do backend já usa 5433; no CI o serviço usa 5432 com `DATABASE_URL` explícita.
 2. O `.env` fica na **raiz**; o backend lê `../.env` quando roda de `backend/`.
-3. `CORS_ORIGINS` é uma lista JSON na variável de ambiente: `CORS_ORIGINS=["https://seu-site.pages.dev"]`.
+3. `CORS_ORIGINS` é uma lista JSON na variável de ambiente: `CORS_ORIGINS=["https://rota-falada-sp.<conta>.workers.dev"]`.
 4. **Nunca** use o Postgres gratuito do Render: expira em 30 dias e não tem backup. O banco fica no Supabase.
 5. No Supabase, use a string de conexão do **Session pooler** (porta 5432); o Transaction pooler (6543) não suporta os prepared statements do psycopg.
 6. GitHub desativa workflows agendados em repositório público após 60 dias sem commits.
@@ -112,3 +112,4 @@ Do Plano 4 (roteamento acessível):
 15. `avoid_polygons` é um **bloqueio binário**: a rota não passa nem raspando, não é uma penalidade de custo. Por isso o teto de 15 polígonos e os limites de forma do ORS (≤ 200 km² e ≤ 20 km de extensão por polígono; rota com avoid areas ≤ 150 km) importam — passar poligonal demais ou grande demais faz o ORS rejeitar a requisição inteira (`entrada_invalida`), não ignorar os excedentes.
 16. `pgr_dijkstra` roda com `directed := false`: `via_pedestre` não tem sentido único (é malha de pedestre, não viária), e rodar `directed := true` por padrão silenciosamente perde metade das rotas possíveis sem erro nenhum — o caminho simplesmente não é encontrado.
 17. `EstadoCota` (a cota do ORS exposta em `/health`) precisa ser o **mesmo objeto** entre requisições — um `OrsClient` novo a cada chamada (por exemplo, criado dentro da própria função de rota em vez de guardado em `app.state`) sempre reporta cota "nunca observada", porque nada nunca atualizou aquele `EstadoCota` em particular.
+8. Cloudflare: o projeto é um **Worker com assets estáticos**, não Pages. O roteamento de SPA vem de `not_found_handling` em `frontend/wrangler.jsonc`; o arquivo `public/_redirects` no estilo Pages (regra coringa para index.html) é rejeitado com o erro Infinite loop detected.
