@@ -75,9 +75,9 @@ estado atual (sintéticas ou gravadas de verdade).
 
 | Componente | Serviço | URL |
 |---|---|---|
-| Frontend | Cloudflare Workers (assets estáticos) | https://rota-falada-sp.<conta>.workers.dev |
+| Frontend | Cloudflare Workers (assets estáticos) | https://rota-falada-sp.caiorosa2006.workers.dev |
 | Backend | Render Free (512 MB) | https://rota-falada-api.onrender.com |
-| Banco | Supabase Free (PostGIS + pgRouting) | painel do Supabase |
+| Banco | Supabase Free (PostGIS 3.3 + pgRouting 3.4, região sa-east-1, RLS ligado: só o backend acessa) | painel do Supabase |
 
 Variáveis: `DATABASE_URL` e `CORS_ORIGINS` no Render; `VITE_API_URL` como variável de build no Cloudflare Workers; Secret `RENDER_HEALTH_URL` no GitHub para o keep-alive. O backend dorme após 15 min sem tráfego e leva ~1 min para voltar; o workflow `keep-alive` faz ping a cada 10 min das 7h às 3h. **Antes de qualquer demonstração, abra `/health` cinco minutos antes.**
 
