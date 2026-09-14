@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import fontes, health
+from app.routers import fontes, health, rotas
+from app.services.ors_client import criar_cliente
 
 
 def create_app() -> FastAPI:
@@ -13,8 +14,12 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
+    # único cliente ORS do processo (ver routers/rotas.py::obter_cliente_ors):
+    # POST /api/rotas e GET /health compartilham o mesmo EstadoCota.
+    app.state.cliente_ors = criar_cliente(settings)
     app.include_router(health.router)
     app.include_router(fontes.router)
+    app.include_router(rotas.router)
     return app
 
 

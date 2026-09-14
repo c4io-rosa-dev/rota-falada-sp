@@ -38,10 +38,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rotas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Criar Rota */
+        post: operations["criar_rota_api_rotas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Aviso */
+        Aviso: {
+            /**
+             * Tipo
+             * @enum {string}
+             */
+            tipo: "exigencia_relaxada" | "barreira_dificulta" | "trecho_sem_dados" | "motor_fallback";
+            /** Mensagem */
+            mensagem: string;
+        };
+        /** BarreiraResumo */
+        BarreiraResumo: {
+            /** Id */
+            id: number;
+            /**
+             * Origem
+             * @enum {string}
+             */
+            origem: "oficial" | "colaborativa";
+            /** Categoria */
+            categoria: string;
+            /** Severidade */
+            severidade: string;
+            /** Distancia M */
+            distancia_m: number;
+            /** Confirmacoes */
+            confirmacoes: number | null;
+            /** Data Referencia */
+            data_referencia: string | null;
+        };
+        /** Coordenada */
+        Coordenada: {
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+        };
         /** FonteOut */
         FonteOut: {
             /** Chave */
@@ -59,6 +113,11 @@ export interface components {
             /** Data Extracao */
             data_extracao: string | null;
         };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** HealthOut */
         HealthOut: {
             /**
@@ -73,6 +132,139 @@ export interface components {
              * @enum {string}
              */
             banco: "ok" | "indisponivel";
+            /** Ultimo Etl */
+            ultimo_etl: string | null;
+            /** Ors Cota Restante */
+            ors_cota_restante: number | null;
+            /** Ors Cota Reset */
+            ors_cota_reset: string | null;
+            /** Modo Fixtures */
+            modo_fixtures: boolean;
+        };
+        /** Passo */
+        Passo: {
+            /** Ordem */
+            ordem: number;
+            /** Instrucao */
+            instrucao: string;
+            /** Distancia M */
+            distancia_m: number;
+            /** Duracao S */
+            duracao_s: number;
+            /** Direcao */
+            direcao: string;
+            /** Largura M */
+            largura_m: number | null;
+            /** Largura Medida */
+            largura_medida: boolean;
+            /** Declividade Pct */
+            declividade_pct: number | null;
+            /** Declividade Medida */
+            declividade_medida: boolean;
+            /**
+             * Guia
+             * @enum {string}
+             */
+            guia: "transponivel" | "nao_transponivel" | "desconhecida";
+            /** Is Degrau */
+            is_degrau: boolean;
+            /** Barreiras Proximas */
+            barreiras_proximas: components["schemas"]["BarreiraResumo"][];
+            /** Fonte */
+            fonte: string;
+            /** Data Referencia */
+            data_referencia: string | null;
+            /** Geometria */
+            geometria: {
+                [key: string]: unknown;
+            };
+        };
+        /** PerfilAcessibilidade */
+        PerfilAcessibilidade: {
+            /**
+             * Inclinacao Max
+             * @default 6
+             * @enum {unknown}
+             */
+            inclinacao_max: 3 | 6 | 10 | "any";
+            /**
+             * Guia Max M
+             * @default 0.06
+             * @enum {unknown}
+             */
+            guia_max_m: 0.03 | 0.06 | 0.1 | "any";
+            /**
+             * Largura Min M
+             * @default 0.9
+             */
+            largura_min_m: number;
+            /**
+             * Evitar Degraus
+             * @default true
+             */
+            evitar_degraus: boolean;
+            /**
+             * Velocidade Kmh
+             * @default 3
+             */
+            velocidade_kmh: number;
+        };
+        /** RotaIn */
+        RotaIn: {
+            origem: components["schemas"]["Coordenada"];
+            destino: components["schemas"]["Coordenada"];
+            /**
+             * @default {
+             *       "inclinacao_max": 6,
+             *       "guia_max_m": 0.06,
+             *       "largura_min_m": 0.9,
+             *       "evitar_degraus": true,
+             *       "velocidade_kmh": 3
+             *     }
+             */
+            perfil: components["schemas"]["PerfilAcessibilidade"];
+        };
+        /** RotaOut */
+        RotaOut: {
+            /** Passos */
+            passos: components["schemas"]["Passo"][];
+            /** Distancia M */
+            distancia_m: number;
+            /** Duracao S */
+            duracao_s: number;
+            /** Avisos */
+            avisos: components["schemas"]["Aviso"][];
+            /**
+             * Nivel Exigencia Atendido
+             * @enum {unknown}
+             */
+            nivel_exigencia_atendido: 3 | 6 | 10 | "any";
+            /**
+             * Motor
+             * @enum {string}
+             */
+            motor: "ors" | "pgrouting" | "fixture";
+            /** Fontes */
+            fontes: string[];
+            /** Geometria */
+            geometria: {
+                [key: string]: unknown;
+            };
+            /** Cache */
+            cache: boolean;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -119,6 +311,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FonteOut"][];
+                };
+            };
+        };
+    };
+    criar_rota_api_rotas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RotaIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RotaOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

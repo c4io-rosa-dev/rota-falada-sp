@@ -36,6 +36,33 @@ npm run dev
 
 Copie `.env.example` para `.env` na raiz e preencha o que tiver. Nada do `.env` é versionado.
 
+## Roteamento
+
+`POST /api/rotas` calcula uma rota a pé acessível (perfil `wheelchair`) usando o
+[OpenRouteService](https://openrouteservice.org/) (ORS), com fallback determinístico em
+pgRouting quando o ORS não acha rota ou a cota estoura. Para rodar contra o ORS de verdade:
+
+1. Crie uma chave gratuita em `openrouteservice.org/dev/#/signup` (o painel do ORS emite
+   chaves novas como **JWT**, bem maiores que as chaves antigas — copie o token inteiro).
+2. Coloque em `ORS_API_KEY=...` no `.env` da raiz (nunca commitado).
+3. Deixe `USE_FIXTURES` ausente ou `false`. Com `USE_FIXTURES=true`, **ou** sem
+   `ORS_API_KEY` configurada, o backend usa `OrsFixtureClient` e nunca chama a rede —
+   é o modo usado pela suíte de testes e recomendado para demonstração sem depender de
+   internet ou de cota.
+4. Cota do ORS (`x-ratelimit-remaining`/`x-ratelimit-reset` da última chamada) aparece em
+   `GET /health` como `ors_cota_restante`/`ors_cota_reset`; `modo_fixtures` diz se o
+   backend está servindo fixtures.
+
+Para regravar as fixtures de `backend/app/fixtures/ors/` com respostas reais (com uma
+chave válida no `.env`, venv do backend ativado, a partir de `backend/`):
+
+```
+python scripts/gravar_fixtures_ors.py
+```
+
+Veja `backend/app/fixtures/README.md` para como o `OrsFixtureClient` escolhe o arquivo e o
+estado atual (sintéticas ou gravadas de verdade).
+
 ## Comandos
 
 | O quê | Backend (`backend/`) | Frontend (`frontend/`) |
@@ -78,3 +105,10 @@ Do Plano 2 (ETL, ver `etl/README.md` para os detalhes e as contagens reais de ca
 Do Plano 3 (conflação OSM x GeoSampa, ver `etl/README.md` para os detalhes e os números reais da calibração):
 
 13. A conflação **não inventa um lado quando o caso é ambíguo**: quando uma aresta no eixo da rua (não é a própria geometria da calçada) tem dois polígonos do GeoSampa candidatos a distâncias parecidas — os dois lados da rua —, ela **fica sem calçada ligada** em vez de escolher uma ao acaso. É melhor não dizer a largura da calçada do que dizer a largura errada para quem depende da rota ser confiável; por isso o gate de cobertura do spec é de só 30% das arestas, não 100%, e o teste de qualidade (`test_conflacao_cobertura_minima`) falha — não afrouxa o limiar — se a cobertura real cair abaixo disso.
+
+Do Plano 4 (roteamento acessível):
+
+14. O ORS **sempre** por `POST` — mesmo o endpoint `/geojson`, que em outras APIs de rota costuma aceitar `GET` com querystring. A chave nunca sai do servidor (vai só no header `Authorization`, nunca no frontend); chaves novas emitidas pelo ORS são **JWT**, bem mais longas que o formato antigo — não trunque nem valide por tamanho fixo.
+15. `avoid_polygons` é um **bloqueio binário**: a rota não passa nem raspando, não é uma penalidade de custo. Por isso o teto de 15 polígonos e os limites de forma do ORS (≤ 200 km² e ≤ 20 km de extensão por polígono; rota com avoid areas ≤ 150 km) importam — passar poligonal demais ou grande demais faz o ORS rejeitar a requisição inteira (`entrada_invalida`), não ignorar os excedentes.
+16. `pgr_dijkstra` roda com `directed := false`: `via_pedestre` não tem sentido único (é malha de pedestre, não viária), e rodar `directed := true` por padrão silenciosamente perde metade das rotas possíveis sem erro nenhum — o caminho simplesmente não é encontrado.
+17. `EstadoCota` (a cota do ORS exposta em `/health`) precisa ser o **mesmo objeto** entre requisições — um `OrsClient` novo a cada chamada (por exemplo, criado dentro da própria função de rota em vez de guardado em `app.state`) sempre reporta cota "nunca observada", porque nada nunca atualizou aquele `EstadoCota` em particular.

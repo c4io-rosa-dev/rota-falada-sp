@@ -9,3 +9,6 @@ class HealthOut(BaseModel):
     versao: str
     banco: Literal["ok", "indisponivel"]
     ultimo_etl: datetime | None
+    ors_cota_restante: int | None
+    ors_cota_reset: datetime | None
+    modo_fixtures: bool
