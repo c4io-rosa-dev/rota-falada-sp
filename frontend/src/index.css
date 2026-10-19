@@ -1,25 +1,183 @@
+/* ==========================================================================
+   Rota Falada SP — Concreto da escola paulista, "concreto limpo"
+   (revisão minimalista de 13/10/2026: mesmo mundo, menos coisa e mais ar)
+   Concreto liso como chão, juntas de 1 px, tinta quase-preta e vermelho-óxido só
+   na placa de ação e no estado ativo. Profundidade por material e junta; nenhuma
+   sombra. O espaço separa os blocos antes de qualquer moldura.
+
+   Tipografia: Archivo variável. 4 tamanhos (--t-1 a --t-4), 3 pesos (400, 600, 800).
+   Espaço: um ritmo só (--e-1 a --e-6); mais ar acima do título que abaixo.
+
+   Contrastes (WCAG 2.x, calculados sobre os hex abaixo):
+   CLARO
+     tinta #1c1f1d     sobre concreto 11,13 · torre 9,63 · placa 13,37 · vão 12,53
+     tinta-2 #3a3f3b   sobre concreto 7,19 · torre 6,22 · placa 8,65 · vão 8,10
+     óxido #9a3f2c     caixilho da ação e guarda-corpo ativo: placa 5,41 · vão 5,07 ·
+                       concreto 4,50 (≥ 3); óxido não é usado como cor de texto
+     guarda-corpo em repouso = junta #8a8f8a (2,48 sobre o vão, decorativo); o passo
+                       ativo também inverte o número (sobre-óxido), pista que não é cor
+     sobre-óxido #f3f3ef sobre óxido 6,05
+     junta-forte #5d625e (borda de campo e de placa neutra) concreto 4,17 · placa 5,01 · vão 4,69
+     aresta das torres #8a8f8a contra o chão 2,20 (a torre sozinha seria 1,16); cobertura 4,17
+     faixa #1c1f1d: texto #d2d4cf 11,13 · óxido-faixa #d27a62 5,30 · foco #e6e7e3 13,38
+     foco #1c1f1d      concreto 11,13 · torre 9,63 · placa 13,37 · vão 12,53
+   ESCURO
+     tinta #e6e7e3     sobre concreto 12,92 · torre 11,09 · placa 11,52 · vão 10,48
+     tinta-2 #b8bcb7   sobre concreto 8,35 · torre 7,16 · placa 7,44 · vão 6,77
+     óxido #cf6e55     placa 4,10 · vão 3,73 · concreto 4,60 (≥ 3)
+     sobre-óxido #141615 sobre óxido 5,21
+     junta-forte #7f8580 concreto 4,26 · placa 3,79 · vão 3,45
+     aresta das torres #5b605c contra o chão 2,50 (a torre sozinha seria 1,17); cobertura 4,26
+     faixa #141615: texto #e6e7e3 14,63 · óxido-faixa #cf6e55 5,21 · foco 14,63
+     foco #e6e7e3      concreto 12,92 · torre 11,09 · placa 11,52 · vão 10,48
+   TEXTURA do chão (tábuas de fôrma e furos de ancoragem, quase sumida):
+     pior ponto contra a base 1,04:1 (claro) e 1,035:1 (escuro). Torres, janelas e
+     lajes são lisas.
+   ========================================================================== */
+
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+
+  --concreto: #d2d4cf;
+  --torre: #c3c6c0;
+  --placa: #e6e7e2;
+  --vao: #dfe0db;
+  --junta: #8a8f8a;
+  --junta-forte: #5d625e;
+  /* aresta das torres: 2,20 contra o chão; a cobertura usa junta-forte (4,17) */
+  --aresta: #8a8f8a;
+  --tinta: #1c1f1d;
+  --tinta-2: #3a3f3b;
+  --oxido: #9a3f2c;
+  --sobre-oxido: #f3f3ef;
+  --faixa: #1c1f1d;
+  --faixa-tinta: #d2d4cf;
+  --faixa-oxido: #d27a62;
+  --foco: #1c1f1d;
+  --foco-faixa: #e6e7e3;
+  --marca-visto: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5L6.5 12L13 4.5' fill='none' stroke='%23f3f3ef' stroke-width='2'/%3E%3C/svg%3E");
+
+  /* fôrma de tábuas horizontais com emendas e furos de ancoragem, quase sumida */
+  --textura: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='180'%3E%3Cg fill='%231c1f1d'%3E%3Crect y='45' width='360' height='45' fill-opacity='.006'/%3E%3Crect y='90' width='360' height='45' fill-opacity='.003'/%3E%3Crect y='135' width='360' height='45' fill-opacity='.01'/%3E%3Crect y='44' width='360' height='1' fill-opacity='.012'/%3E%3Crect y='89' width='360' height='1' fill-opacity='.012'/%3E%3Crect y='134' width='360' height='1' fill-opacity='.012'/%3E%3Crect y='179' width='360' height='1' fill-opacity='.012'/%3E%3Ccircle cx='90' cy='22.5' r='3' fill-opacity='.02'/%3E%3Ccircle cx='270' cy='22.5' r='3' fill-opacity='.02'/%3E%3Ccircle cx='90' cy='112.5' r='3' fill-opacity='.02'/%3E%3Ccircle cx='270' cy='112.5' r='3' fill-opacity='.02'/%3E%3C/g%3E%3C/svg%3E");
+
+  /* tipografia: 4 tamanhos */
+  --fonte: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
+  --t-1: 0.875rem; /* rótulos, número do passo, legendas, navegação */
+  --t-2: 1.125rem; /* leitura, nomes de rua, títulos de bloco */
+  --t-3: clamp(1.375rem, 1rem + 1.6vw, 2rem); /* títulos de seção */
+  --t-4: clamp(2.25rem, 0.9rem + 3.4vw, 4.5rem); /* o título da página */
+
+  /* espaço: um ritmo */
+  --e-1: 0.5rem;
+  --e-2: 1rem;
+  --e-3: 1.5rem;
+  --e-4: 2.5rem;
+  --e-5: 4rem;
+  --e-6: 7rem;
+  --calha: clamp(1rem, 3vw, 2.5rem);
+  --largura-max: 90rem;
+
+  font-family: var(--fonte);
   font-size: 100%;
-  line-height: 1.5;
-  --cor-foco: #005a9c;
-  --cor-fundo: #ffffff;
-  --cor-texto: #1a1a1a;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  scrollbar-color: var(--junta-forte) var(--concreto);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --cor-foco: #9ecbff;
-    --cor-fundo: #121212;
-    --cor-texto: #f2f2f2;
+    color-scheme: dark;
+
+    --concreto: #1f2220;
+    --torre: #2a2e2b;
+    --placa: #282b29;
+    --vao: #2e322f;
+    --junta: #3a3e3b;
+    --junta-forte: #7f8580;
+    /* aresta escura: 2,50 contra o chão noturno; cobertura junta-forte 4,26 */
+    --aresta: #5b605c;
+    --tinta: #e6e7e3;
+    --tinta-2: #b8bcb7;
+    --oxido: #cf6e55;
+    --sobre-oxido: #141615;
+    --faixa: #141615;
+    --faixa-tinta: #e6e7e3;
+    --faixa-oxido: #cf6e55;
+    --foco: #e6e7e3;
+    --foco-faixa: #e6e7e3;
+    --marca-visto: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5L6.5 12L13 4.5' fill='none' stroke='%23141615' stroke-width='2'/%3E%3C/svg%3E");
+
+    --textura: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='180'%3E%3Cg fill='%23000'%3E%3Crect y='45' width='360' height='45' fill-opacity='.03'/%3E%3Crect y='90' width='360' height='45' fill-opacity='.015'/%3E%3Crect y='135' width='360' height='45' fill-opacity='.05'/%3E%3Crect y='44' width='360' height='1' fill-opacity='.04'/%3E%3Crect y='89' width='360' height='1' fill-opacity='.04'/%3E%3Crect y='134' width='360' height='1' fill-opacity='.04'/%3E%3Crect y='179' width='360' height='1' fill-opacity='.04'/%3E%3Ccircle cx='90' cy='22.5' r='3' fill-opacity='.08'/%3E%3Ccircle cx='270' cy='22.5' r='3' fill-opacity='.08'/%3E%3Ccircle cx='90' cy='112.5' r='3' fill-opacity='.08'/%3E%3Ccircle cx='270' cy='112.5' r='3' fill-opacity='.08'/%3E%3C/g%3E%3C/svg%3E");
   }
+}
+
+/* ---------- base ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: var(--cor-fundo);
-  color: var(--cor-texto);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--concreto);
+  background-image: var(--textura);
+  color: var(--tinta);
+  font-size: var(--t-2);
+  font-stretch: 100%;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  display: contents;
+}
+
+::selection {
+  background: var(--oxido);
+  color: var(--sobre-oxido);
+}
+
+input,
+textarea {
+  caret-color: var(--oxido);
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--tinta);
+  text-decoration-line: underline;
+  text-decoration-color: var(--junta-forte);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--tinta);
 }
 
 /* Alvos de 44 px: acima do mínimo AA (24 px) por decisão de projeto */
@@ -34,43 +192,1143 @@ button,
 }
 
 :focus-visible {
-  outline: 3px solid var(--cor-foco);
-  outline-offset: 2px;
+  outline: 3px solid var(--foco);
+  outline-offset: 3px;
+}
+
+/* alvos programáticos (main e h1 com tabIndex -1) não ganham anel ao receber foco por script */
+[tabindex='-1']:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .skip-link {
   position: absolute;
   left: -999px;
-  top: 0;
+  top: var(--e-1);
   z-index: 1000;
-  background: var(--cor-fundo);
-  color: var(--cor-texto);
+  background: var(--placa);
+  color: var(--tinta);
+  border: 1px solid var(--tinta);
   padding: 0.75rem 1rem;
+  font-weight: 600;
 }
 
 .skip-link:focus {
-  left: 0;
-}
-
-.menu {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0.5rem;
-}
-
-main {
-  max-width: 45rem;
-  margin: 0 auto;
-  padding: 1rem;
+  left: var(--e-1);
 }
 
 /* Reflow: nada pode gerar rolagem horizontal a 320 px */
 img,
 svg {
   max-width: 100%;
+}
+
+.medida {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- letreiro: largura e peso, sem relevo ---------- */
+
+.letreiro {
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+}
+
+.display {
+  font-size: var(--t-4);
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  margin: 0;
+}
+
+/* ---------- faixas: cabeçalho e rodapé ---------- */
+
+.faixa {
+  --foco: var(--foco-faixa);
+  background: var(--faixa);
+  color: var(--faixa-tinta);
+}
+
+.faixa a {
+  color: var(--faixa-tinta);
+  text-decoration-color: currentColor;
+}
+
+.faixa__miolo {
+  max-width: var(--largura-max);
+  margin: 0 auto;
+  padding: var(--e-1) var(--calha);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-1) var(--e-3);
+}
+
+.marca {
+  gap: 0.75rem;
+  padding-inline: 0;
+  font-size: var(--t-2);
+  text-decoration: none;
+}
+
+.marca .pictograma {
+  flex: none;
+}
+
+.faixa a.marca:hover .letreiro {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+.menu {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-1);
+  margin: 0;
+  padding: 0;
+}
+
+.menu a {
+  font-weight: 600;
+  font-size: var(--t-1);
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  border-block: 2px solid transparent;
+}
+
+.menu a:hover {
+  text-decoration: underline;
+}
+
+/* página atual: estado ativo, a única marca de cor da faixa */
+.menu a[aria-current='page'] {
+  border-bottom-color: var(--faixa-oxido);
+}
+
+.faixa--base {
+  margin-top: auto;
+}
+
+.faixa--base p {
+  margin: 0;
+  padding-block: var(--e-3);
+  font-size: var(--t-1);
+}
+
+main {
+  display: block;
+  width: 100%;
+}
+
+/* ---------- placa ---------- */
+
+.placa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2);
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  background: var(--placa);
+  color: var(--tinta);
+  border: 1px solid var(--junta-forte);
+  border-radius: 0;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: var(--t-1);
+  text-align: left;
+}
+
+.placa__texto {
+  letter-spacing: 0.04em;
+}
+
+.placa__picto {
+  flex: none;
+}
+
+.placa:hover {
+  background: var(--vao);
+  border-color: var(--tinta);
+}
+
+/* o único caixilho óxido da página: a placa de ação */
+.placa--acao {
+  min-height: 56px;
+  padding-inline: 1.25rem;
+  border: 2px solid var(--oxido);
+  font-size: var(--t-2);
+}
+
+.placa--acao:hover {
+  background: var(--oxido);
+  border-color: var(--oxido);
+  color: var(--sobre-oxido);
+}
+
+.placa[aria-pressed='true'] {
+  background: var(--vao);
+  border-color: var(--tinta);
+}
+
+.placa:disabled,
+.placa[aria-disabled='true'] {
+  cursor: not-allowed;
+  border-style: dashed;
+  border-color: var(--junta-forte);
+  background: var(--vao);
+  color: var(--tinta-2);
+}
+
+.ouvir-sem-suporte {
+  margin: 0;
+  font-size: var(--t-1);
+  color: var(--tinta-2);
+  max-width: 34ch;
+}
+
+/* ---------- torre e janela: planos lisos ---------- */
+
+.torre {
+  display: grid;
+  gap: var(--e-3);
+  align-content: start;
+  padding: 1.25rem;
+  background: var(--torre);
+  /* arestas em junta de 1 px e um único traço de cobertura no topo */
+  border: 1px solid var(--aresta);
+  border-top: 2px solid var(--junta-forte);
+}
+
+.janela {
+  min-width: 0;
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  padding: var(--e-4) 2rem;
+}
+
+/* nome da rua gravado na parede lisa da torre, na mesma escala do destino */
+.torre__base {
+  margin: 0;
+  padding: 0 0.75rem 0.5rem;
+  font-size: var(--t-3);
+  line-height: 1.1;
+}
+
+/* torre da origem: título e ações no alto, parede lisa, base discreta embaixo */
+.torre--origem {
+  grid-template-rows: auto auto 1fr;
+}
+
+.torre--origem .torre__base {
+  align-self: end;
+}
+
+.janela--titulo .subtitulo {
+  margin: var(--e-3) 0 0;
+  max-width: 34ch;
+}
+
+.janela--acoes {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.janela--acoes .placa {
+  width: 100%;
+}
+
+.torre--destino {
+  padding: 0.75rem;
+}
+
+.torre--destino .janela {
+  padding: 2rem 1.25rem;
+}
+
+.destino__rua {
+  margin: 0;
+  font-size: var(--t-3);
+}
+
+.destino__resumo {
+  margin: var(--e-2) 0 0;
+  font-weight: 600;
+}
+
+.proveniencia {
+  margin: var(--e-3) 0 0;
+  padding-top: var(--e-2);
+  border-top: 1px solid var(--junta);
+  font-size: var(--t-1);
+  color: var(--tinta-2);
+}
+
+/* ---------- elevação ---------- */
+
+.elevacao {
+  /* 26 px entre vãos: 2,6 vezes o intervalo de antes da revisão minimalista (10 px) */
+  --gap-vao: 1.625rem;
+  --poco: 1.25rem;
+  max-width: var(--largura-max);
+  margin: 0 auto;
+  padding: 1.25rem var(--calha) 0;
+  display: grid;
+  /* origem, vãos e destino: a coluna dos vãos é a mais larga */
+  grid-template-columns: minmax(0, 15fr) minmax(0, 23fr) minmax(0, 10fr);
+  grid-template-rows: 1fr auto;
+  /* ocupa a dobra (cabeçalho ≈ 3,75rem), com teto para não esticar em telas altas */
+  min-height: min(calc(100svh - 3.75rem), 52.5rem);
+}
+
+.elevacao > .torre--origem {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: stretch;
+}
+
+.elevacao > .torre--destino {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: end;
+}
+
+.elevacao__passos {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  list-style: none;
+  /* os vãos pares chegam na face do poço da torre do destino */
+  margin: 0 var(--poco) 0 0;
+  padding: 0.25rem 0 0.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--gap-vao);
+}
+
+/* uma única linha fina contínua liga os vãos; os vãos, opacos, a cobrem onde passam */
+.elevacao__passos::before {
+  content: '';
+  position: absolute;
+  left: calc(50% - 1px);
+  width: 2px;
+  top: 1.75rem;
+  bottom: 2rem;
+  background: var(--junta-forte);
+}
+
+/* poço de circulação da torre do destino: a parede onde os vãos pares encostam */
+.elevacao__poco {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: stretch;
+  width: var(--poco);
+  background: var(--torre);
+  border: 1px solid var(--aresta);
+  border-top: 2px solid var(--junta-forte);
+  border-right: 0;
+}
+
+.elevacao__desenho {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/* linha de chão: só a junta, sem hachura */
+.elevacao__chao {
+  display: block;
+  height: 1.5rem;
+  margin-inline: calc(-1 * var(--calha));
+  border-top: 2px solid var(--junta-forte);
+}
+
+/* ---------- passarela: número, rua e distância ---------- */
+
+.passarela {
+  position: relative;
+}
+
+/* ziguezague: o vão ímpar sai da torre da origem, o par chega no poço do destino */
+.elevacao__passos .passarela--inicio {
+  margin-right: 22%;
+}
+
+.elevacao__passos .passarela--fim {
+  margin-left: 22%;
+}
+
+.passarela__vao {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: 2.75rem;
+  padding: var(--e-1) var(--e-2);
+  background: var(--vao);
+  /* guarda-corpo fino em cima, junta da viga embaixo */
+  border-top: 2px solid var(--junta);
+  border-bottom: 1px solid var(--junta);
+  transition: border-top-color 200ms ease-out;
+}
+
+.passarela--ativa .passarela__vao {
+  border-top-color: var(--oxido);
+}
+
+.passarela__ordem {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  font-size: var(--t-1);
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.passarela--ativa .passarela__ordem {
+  background: var(--oxido);
+  color: var(--sobre-oxido);
+}
+
+.passarela__rua {
+  min-width: 0;
+  font-size: var(--t-2);
+  overflow-wrap: break-word;
+}
+
+.passarela__distancia {
+  flex: none;
+  margin-left: auto;
+  color: var(--tinta-2);
+}
+
+/* ---------- seções da landing ---------- */
+
+.secao {
+  max-width: var(--largura-max);
+  margin: 0 auto;
+  padding: var(--e-6) var(--calha) 0;
+}
+
+.secao:last-child {
+  padding-bottom: var(--e-6);
+}
+
+.titulo-secao {
+  font-size: var(--t-3);
+  margin: 0 0 var(--e-4);
+}
+
+/* Como funciona: três lajes que descem, ligadas pela mesma linha fina dos vãos */
+.como {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 6fr) minmax(0, 3fr);
+  gap: var(--e-5);
+  align-items: start;
+}
+
+.como::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 6rem;
+  height: 2px;
+  background: var(--junta-forte);
+}
+
+.laje {
+  position: relative;
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  padding: 2rem;
+}
+
+.laje--2 {
+  margin-top: var(--e-4);
+}
+
+.laje--3 {
+  margin-top: var(--e-5);
+}
+
+.laje__numero {
+  display: block;
+  font-size: var(--t-3);
+  color: var(--tinta-2);
+  margin-bottom: var(--e-2);
+}
+
+.laje h3 {
+  font-size: var(--t-2);
+  margin: 0 0 0.75rem;
+}
+
+.laje p {
+  margin: 0 0 var(--e-2);
+  max-width: 60ch;
+}
+
+.laje > p:last-child {
+  margin-bottom: 0;
+}
+
+.laje .pictograma {
+  color: var(--tinta-2);
+}
+
+/* laje 1: a placa gravada do pedido real */
+.placa-gravada {
+  display: grid;
+  gap: var(--e-1);
+  margin: var(--e-3) 0;
+  padding-top: var(--e-2);
+  border-top: 1px solid var(--junta);
+}
+
+.placa-gravada__trajeto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem var(--e-1);
+  font-size: var(--t-1);
+}
+
+.placa-gravada__perfil {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem var(--e-2);
+  padding-top: var(--e-1);
+  border-top: 1px solid var(--junta);
+  font-size: var(--t-1);
+  font-weight: 600;
+}
+
+/* laje 2: dois vãos reais */
+.como__amostra {
+  list-style: none;
+  margin: var(--e-3) 0 0;
+  padding: var(--e-3) 0 0;
+  display: grid;
+  gap: var(--e-2);
+  border-top: 1px solid var(--junta);
+}
+
+/* laje 3: a fala real de um passo */
+.fala {
+  margin: var(--e-3) 0 0;
+}
+
+.fala blockquote {
+  margin: 0;
+  padding-top: var(--e-2);
+  border-top: 1px solid var(--junta);
+}
+
+.fala blockquote p {
+  margin: 0;
+  max-width: none;
+}
+
+.fala figcaption {
+  margin-top: var(--e-1);
+  font-size: var(--t-1);
+  color: var(--tinta-2);
+}
+
+/* Para quem é: três colunas de texto separadas por espaço e junta de 1 px */
+.personas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-4);
+}
+
+.persona + .persona {
+  padding-left: var(--e-4);
+  border-left: 1px solid var(--junta);
+}
+
+.persona__nome {
+  margin: 0 0 0.25rem;
+  font-size: var(--t-2);
+}
+
+.persona__perfil {
+  margin: 0 0 var(--e-2);
+  font-size: var(--t-1);
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.persona p {
+  max-width: 48ch;
+}
+
+.persona p:last-child {
+  margin-bottom: 0;
+}
+
+.nota-banca {
+  margin: 0;
+  max-width: 80ch;
+  font-size: var(--t-1);
+  color: var(--tinta-2);
+}
+
+.personas + .nota-banca {
+  margin-top: var(--e-5);
+}
+
+/* Exemplo de rota real: ficha ao lado da tabela gravada */
+.exemplo {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 18fr);
+  gap: var(--e-4) var(--e-5);
+  align-items: start;
+}
+
+.ficha {
+  position: sticky;
+  top: var(--e-3);
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  padding: 2rem;
+}
+
+.ficha__resumo {
+  margin: 0 0 var(--e-3);
+}
+
+.ficha__dados {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--e-1) var(--e-2);
+  margin: 0 0 var(--e-3);
+  padding: var(--e-2) 0;
+  border-block: 1px solid var(--junta);
+  font-size: var(--t-1);
+}
+
+.ficha__dados dt {
+  font-weight: 600;
+}
+
+.ficha__dados dd {
+  margin: 0;
+}
+
+.aviso {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin: 0 0 var(--e-3);
+  font-size: var(--t-1);
+}
+
+.aviso .pictograma {
+  flex: none;
+  color: var(--tinta-2);
+}
+
+.ficha .placa {
+  width: 100%;
+}
+
+/* tabela gravada: linhas separadas só por régua de 1 px, sem caixa em volta */
+.placas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  border-top: 1px solid var(--junta-forte);
+}
+
+.placa-passo {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  padding: var(--e-3) 0;
+  border-bottom: 1px solid var(--junta);
+}
+
+.placa-passo__ordem {
+  grid-row: span 2;
+  align-self: start;
+  justify-self: start;
+  min-width: 2.75rem;
+  padding: 0 0.25rem;
+  text-align: center;
+  font-size: var(--t-3);
+  color: var(--tinta-2);
+}
+
+.placa-passo__instrucao {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+}
+
+.placa-passo__dados {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: 0.75rem var(--e-3);
+}
+
+.placa-passo__dados dt {
+  font-size: var(--t-1);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tinta-2);
+}
+
+.placa-passo__dados dd {
+  margin: 0;
+}
+
+.placa-passo__dados .alerta {
+  font-weight: 600;
+}
+
+/* passo em leitura: o número inverte em óxido */
+.placa-passo--ativa .placa-passo__ordem {
+  background: var(--oxido);
+  color: var(--sobre-oxido);
+}
+
+.tabela-passos__cabecalho {
+  display: none;
+}
+
+/* tela larga: cabeçalho e 11 linhas compartilham as mesmas 7 colunas; os rótulos
+   de cada linha saem da vista e ficam para o leitor de tela */
+@media (min-width: 1200px) {
+  .tabela-passos {
+    display: grid;
+    grid-template-columns: 4rem repeat(7, auto) minmax(0, 1fr);
+    column-gap: 1.25rem;
+  }
+
+  .tabela-passos__cabecalho {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    padding-bottom: 0.75rem;
+    font-size: var(--t-1);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--tinta-2);
+  }
+
+  .placas {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+
+  .placa-passo__dados .rotulo-campo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .placa-passo {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+
+  .placa-passo__ordem {
+    grid-column: 1;
+  }
+
+  .placa-passo__instrucao {
+    grid-column: 2 / -1;
+  }
+
+  .placa-passo__dados {
+    grid-column: 2 / -1;
+    grid-template-columns: subgrid;
+    row-gap: 0;
+  }
+}
+
+/* ---------- folhas de leitura (Fontes, Acessibilidade) ---------- */
+
+.folha {
+  width: min(48rem, 100% - 2 * var(--calha));
+  margin: var(--e-5) auto var(--e-6);
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+}
+
+.folha h1 {
+  font-size: var(--t-3);
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  margin: 0 0 var(--e-3);
+}
+
+.folha h2 {
+  font-size: var(--t-2);
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: var(--e-4) 0 0.75rem;
+}
+
+.folha p,
+.folha li {
+  max-width: 68ch;
+}
+
+.folha li + li {
+  margin-top: var(--e-1);
+}
+
+/* ---------- /rota ---------- */
+
+.rota {
+  max-width: var(--largura-max);
+  margin: 0 auto;
+  padding: var(--e-5) var(--calha) var(--e-6);
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: var(--e-4) var(--e-5);
+  align-items: start;
+}
+
+.rota__cabeca {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--e-3);
+}
+
+.rota__cabeca .subtitulo {
+  margin: 0;
+  max-width: 60ch;
+}
+
+.formulario {
+  display: grid;
+  gap: var(--e-3);
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.formulario__aviso {
+  margin: 0;
+  padding: var(--e-2);
+  background: var(--vao);
+  font-weight: 600;
+}
+
+.campo {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.campo label,
+.exigencia legend {
+  font-weight: 600;
+}
+
+.campo__dica {
+  margin: 0;
+  font-size: var(--t-1);
+  color: var(--tinta-2);
+}
+
+.campo input {
+  min-height: 48px;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--vao);
+  border: 1px solid var(--junta-forte);
+  border-radius: 0;
+}
+
+.campo input:hover {
+  border-color: var(--tinta);
+}
+
+.exigencia {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.exigencia legend {
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+.exigencia__opcoes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-1);
+  margin-top: var(--e-1);
+}
+
+/* a linha inteira é o alvo */
+.opcao {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  background: var(--vao);
+  border: 1px solid var(--junta);
+  cursor: pointer;
+}
+
+.opcao:hover {
+  border-color: var(--tinta);
+}
+
+/* opção marcada: estado ativo */
+.opcao:has(input:checked) {
+  border-color: var(--oxido);
+}
+
+/* marcas desenhadas, canto vivo; o foco usa o anel do sistema */
+.opcao input {
+  appearance: none;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  border: 2px solid var(--junta-forte);
+  border-radius: 0;
+  background: var(--placa);
+  cursor: pointer;
+}
+
+.opcao input[type='radio']:checked {
+  padding: 3px;
+  border-color: var(--oxido);
+  background: var(--oxido) content-box;
+}
+
+.opcao input[type='checkbox']:checked {
+  border-color: var(--oxido);
+  background: var(--oxido) var(--marca-visto) center / 100% 100% no-repeat;
+}
+
+.formulario__envio {
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--junta);
+}
+
+.formulario__envio .placa {
+  min-width: min(100%, 18rem);
+}
+
+.torre--anexo {
+  margin-top: var(--e-1);
+}
+
+.janela--aviso h2 {
+  font-size: var(--t-2);
+  margin: 0 0 0.75rem;
+}
+
+.janela--aviso p {
+  margin: 0 0 var(--e-2);
+}
+
+.janela--aviso p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- celular e tablet: patamares empilhados ---------- */
+
+@media (max-width: 1023px) {
+  .elevacao {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    min-height: 0;
+    padding-top: var(--e-4);
+  }
+
+  .elevacao > .torre--origem,
+  .elevacao__passos,
+  .elevacao > .torre--destino,
+  .elevacao__desenho {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .elevacao__passos {
+    margin: 0;
+    padding: var(--e-4) 0;
+    --gap-vao: var(--e-3);
+  }
+
+  .elevacao__poco {
+    display: none;
+  }
+
+  /* um patamar por linha, sem recuo: a junta contínua liga os patamares */
+  .elevacao__passos .passarela--inicio,
+  .elevacao__passos .passarela--fim {
+    margin: 0;
+  }
+
+  .como {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--e-4);
+  }
+
+  .como::before {
+    left: var(--e-3);
+    right: auto;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    height: auto;
+  }
+
+  .laje--2,
+  .laje--3 {
+    margin-top: 0;
+  }
+
+  .personas {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--e-3);
+  }
+
+  .persona + .persona {
+    padding: var(--e-3) 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--junta);
+  }
+
+  .exemplo,
+  .rota {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ficha {
+    position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .secao {
+    padding-top: var(--e-5);
+  }
+
+  .secao:last-child {
+    padding-bottom: var(--e-5);
+  }
+
+  .torre {
+    padding: 0.75rem;
+  }
+
+  .janela,
+  .laje,
+  .ficha {
+    padding: var(--e-3) 1.25rem;
+  }
+
+  .placa-passo {
+    grid-template-columns: 3rem minmax(0, 1fr);
+  }
+
+  .placa-passo__dados {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .exigencia__opcoes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 400px) {
+  .placa,
+  .placa--acao {
+    gap: var(--e-1);
+    padding-inline: 0.75rem;
+    font-size: var(--t-1);
+  }
+
+  .placa__texto {
+    font-stretch: 112%;
+    letter-spacing: 0.01em;
+  }
+
+  /* nomes de rua longos em largura normal, para não partir palavra */
+  .passarela__rua {
+    font-stretch: 100%;
+    letter-spacing: 0.02em;
+  }
+
+  .passarela__vao {
+    gap: 0.75rem;
+    padding-inline: 0.75rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .passarela__vao {
+    gap: 0.75rem;
+    padding-inline: 0.625rem;
+  }
+
+  .passarela__rua {
+    font-stretch: 75%;
+    letter-spacing: 0;
+  }
+
+  .placa-passo__dados {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .placa-passo__dados dd {
+    overflow-wrap: anywhere;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

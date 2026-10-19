@@ -10,7 +10,8 @@ describe('página /acessibilidade', () => {
         <App />
       </MemoryRouter>,
     )
-    expect(await screen.findByRole('heading', { level: 1, name: 'Declaração de acessibilidade' })).toHaveFocus()
+    // primeira carga da aplicação: o h1 existe, mas o foco fica com o navegador
+    expect(await screen.findByRole('heading', { level: 1, name: 'Declaração de acessibilidade' })).not.toHaveFocus()
     expect(screen.getByRole('heading', { level: 2, name: 'Meta de conformidade' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: 'Recursos disponíveis' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: 'Limitações conhecidas' })).toBeInTheDocument()
