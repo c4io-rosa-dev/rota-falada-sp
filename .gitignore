@@ -32,3 +32,16 @@ Thumbs.db
 .wrangler/
 frontend/.dev.vars
 .mcp.json
+
+# claude
+.claude
+
+#docs
+docs/*
+
+# impeccable
+.impeccable/
+
+# agents e IA
+.agents/
+.codex/
