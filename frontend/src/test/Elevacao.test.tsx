@@ -11,12 +11,11 @@ describe('Elevacao', () => {
         passoAtivo={ativo}
         rotuloLista="Passos da rota de exemplo"
         origem={<h1>A rota é um texto.</h1>}
-        destino={<p>Chegada no destino</p>}
       />,
     )
   }
 
-  it('é uma lista ordenada real, com um item por passo, entre as duas torres', async () => {
+  it('é uma lista ordenada real, com um item por passo ao lado do card da rota', async () => {
     const { container } = renderizar()
     const lista = screen.getByRole('list', { name: 'Passos da rota de exemplo' })
     expect(lista.tagName).toBe('OL')
@@ -25,20 +24,16 @@ describe('Elevacao', () => {
     expect(lista).not.toHaveTextContent('largura')
     expect(lista).not.toHaveTextContent('declividade')
     expect(screen.getByRole('heading', { level: 1, name: 'A rota é um texto.' })).toBeInTheDocument()
-    expect(screen.getByText('Chegada no destino')).toBeInTheDocument()
-    expect(container.querySelectorAll('.torre')).toHaveLength(2)
+    expect(container.querySelectorAll('.torre')).toHaveLength(1)
     expect(await axe(container)).toHaveNoViolations()
   })
 
-  it('a ordem do DOM é origem, passos, destino', () => {
+  it('a ordem do DOM é card da rota, passos e desenho decorativo', () => {
     const { container } = renderizar()
     const h1 = screen.getByRole('heading', { level: 1 })
     const lista = screen.getByRole('list')
-    const destino = screen.getByText('Chegada no destino')
     expect(h1.compareDocumentPosition(lista) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(lista.compareDocumentPosition(destino) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(container.querySelector('.elevacao__desenho')).toHaveAttribute('aria-hidden', 'true')
-    expect(container.querySelector('.elevacao__poco')).toHaveAttribute('aria-hidden', 'true')
   })
 
   it('acende só a passarela do passo ativo', () => {

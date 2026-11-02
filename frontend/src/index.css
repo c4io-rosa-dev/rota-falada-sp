@@ -60,21 +60,21 @@
   /* fôrma de tábuas horizontais com emendas e furos de ancoragem, quase sumida */
   --textura: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='180'%3E%3Cg fill='%231c1f1d'%3E%3Crect y='45' width='360' height='45' fill-opacity='.006'/%3E%3Crect y='90' width='360' height='45' fill-opacity='.003'/%3E%3Crect y='135' width='360' height='45' fill-opacity='.01'/%3E%3Crect y='44' width='360' height='1' fill-opacity='.012'/%3E%3Crect y='89' width='360' height='1' fill-opacity='.012'/%3E%3Crect y='134' width='360' height='1' fill-opacity='.012'/%3E%3Crect y='179' width='360' height='1' fill-opacity='.012'/%3E%3Ccircle cx='90' cy='22.5' r='3' fill-opacity='.02'/%3E%3Ccircle cx='270' cy='22.5' r='3' fill-opacity='.02'/%3E%3Ccircle cx='90' cy='112.5' r='3' fill-opacity='.02'/%3E%3Ccircle cx='270' cy='112.5' r='3' fill-opacity='.02'/%3E%3C/g%3E%3C/svg%3E");
 
-  /* tipografia: 4 tamanhos */
+  /* tipografia: escala compacta, mantendo leitura confortável */
   --fonte: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
   --t-1: 0.875rem; /* rótulos, número do passo, legendas, navegação */
-  --t-2: 1.125rem; /* leitura, nomes de rua, títulos de bloco */
-  --t-3: clamp(1.375rem, 1rem + 1.6vw, 2rem); /* títulos de seção */
-  --t-4: clamp(2.25rem, 0.9rem + 3.4vw, 4.5rem); /* o título da página */
+  --t-2: 1rem; /* leitura, nomes de rua, títulos de bloco */
+  --t-3: clamp(1.25rem, 0.95rem + 1.25vw, 1.75rem); /* títulos de seção */
+  --t-4: clamp(2rem, 0.9rem + 2.7vw, 3.75rem); /* o título da página */
 
   /* espaço: um ritmo */
   --e-1: 0.5rem;
-  --e-2: 1rem;
-  --e-3: 1.5rem;
-  --e-4: 2.5rem;
-  --e-5: 4rem;
-  --e-6: 7rem;
-  --calha: clamp(1rem, 3vw, 2.5rem);
+  --e-2: 0.875rem;
+  --e-3: 1.25rem;
+  --e-4: 2rem;
+  --e-5: 3rem;
+  --e-6: 5.5rem;
+  --calha: clamp(1rem, 2.5vw, 2rem);
   --largura-max: 90rem;
 
   font-family: var(--fonte);
@@ -84,8 +84,7 @@
   scrollbar-color: var(--junta-forte) var(--concreto);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+:root:not([data-tema='claro']) {
     color-scheme: dark;
 
     --concreto: #1f2220;
@@ -108,7 +107,6 @@
     --marca-visto: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5L6.5 12L13 4.5' fill='none' stroke='%23141615' stroke-width='2'/%3E%3C/svg%3E");
 
     --textura: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='180'%3E%3Cg fill='%23000'%3E%3Crect y='45' width='360' height='45' fill-opacity='.03'/%3E%3Crect y='90' width='360' height='45' fill-opacity='.015'/%3E%3Crect y='135' width='360' height='45' fill-opacity='.05'/%3E%3Crect y='44' width='360' height='1' fill-opacity='.04'/%3E%3Crect y='89' width='360' height='1' fill-opacity='.04'/%3E%3Crect y='134' width='360' height='1' fill-opacity='.04'/%3E%3Crect y='179' width='360' height='1' fill-opacity='.04'/%3E%3Ccircle cx='90' cy='22.5' r='3' fill-opacity='.08'/%3E%3Ccircle cx='270' cy='22.5' r='3' fill-opacity='.08'/%3E%3Ccircle cx='90' cy='112.5' r='3' fill-opacity='.08'/%3E%3Ccircle cx='270' cy='112.5' r='3' fill-opacity='.08'/%3E%3C/g%3E%3C/svg%3E");
-  }
 }
 
 /* ---------- base ---------- */
@@ -294,6 +292,21 @@ svg {
   flex: none;
 }
 
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-1);
+}
+
+.tema-botao {
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: var(--t-1);
+  cursor: pointer;
+}
+
 .faixa a.marca:hover .letreiro {
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -414,7 +427,7 @@ main {
   display: grid;
   gap: var(--e-3);
   align-content: start;
-  padding: 1.25rem;
+  padding: var(--e-2);
   background: var(--torre);
   /* arestas em junta de 1 px e um único traço de cobertura no topo */
   border: 1px solid var(--aresta);
@@ -425,7 +438,7 @@ main {
   min-width: 0;
   background: var(--placa);
   border: 1px solid var(--junta);
-  padding: var(--e-4) 2rem;
+  padding: var(--e-4) var(--e-3);
 }
 
 /* nome da rua gravado na parede lisa da torre, na mesma escala do destino */
@@ -436,13 +449,9 @@ main {
   line-height: 1.1;
 }
 
-/* torre da origem: título e ações no alto, parede lisa, base discreta embaixo */
+/* card da rota: apresentação, resumo do trajeto e ações */
 .torre--origem {
-  grid-template-rows: auto auto 1fr;
-}
-
-.torre--origem .torre__base {
-  align-self: end;
+  grid-template-rows: auto auto auto;
 }
 
 .janela--titulo .subtitulo {
@@ -452,19 +461,11 @@ main {
 
 .janela--acoes {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--e-1);
 }
 
 .janela--acoes .placa {
   width: 100%;
-}
-
-.torre--destino {
-  padding: 0.75rem;
-}
-
-.torre--destino .janela {
-  padding: 2rem 1.25rem;
 }
 
 .destino__rua {
@@ -488,30 +489,23 @@ main {
 /* ---------- elevação ---------- */
 
 .elevacao {
-  /* 26 px entre vãos: 2,6 vezes o intervalo de antes da revisão minimalista (10 px) */
-  --gap-vao: 1.625rem;
-  --poco: 1.25rem;
-  max-width: var(--largura-max);
+  --gap-vao: 1.5rem;
+  max-width: 80rem;
   margin: 0 auto;
   padding: 1.25rem var(--calha) 0;
   display: grid;
-  /* origem, vãos e destino: a coluna dos vãos é a mais larga */
-  grid-template-columns: minmax(0, 15fr) minmax(0, 23fr) minmax(0, 10fr);
+  /* card do trajeto e seus passos */
+  grid-template-columns: minmax(0, 13fr) minmax(0, 22fr);
+  column-gap: var(--e-3);
   grid-template-rows: 1fr auto;
   /* ocupa a dobra (cabeçalho ≈ 3,75rem), com teto para não esticar em telas altas */
-  min-height: min(calc(100svh - 3.75rem), 52.5rem);
+  min-height: min(calc(100svh - 3.75rem), 46rem);
 }
 
 .elevacao > .torre--origem {
   grid-column: 1;
   grid-row: 1;
-  align-self: stretch;
-}
-
-.elevacao > .torre--destino {
-  grid-column: 3;
-  grid-row: 1;
-  align-self: end;
+  align-self: center;
 }
 
 .elevacao__passos {
@@ -520,8 +514,7 @@ main {
   grid-row: 1;
   align-self: center;
   list-style: none;
-  /* os vãos pares chegam na face do poço da torre do destino */
-  margin: 0 var(--poco) 0 0;
+  margin: 0;
   padding: 0.25rem 0 0.5rem;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -539,19 +532,6 @@ main {
   background: var(--junta-forte);
 }
 
-/* poço de circulação da torre do destino: a parede onde os vãos pares encostam */
-.elevacao__poco {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
-  align-self: stretch;
-  width: var(--poco);
-  background: var(--torre);
-  border: 1px solid var(--aresta);
-  border-top: 2px solid var(--junta-forte);
-  border-right: 0;
-}
-
 .elevacao__desenho {
   grid-column: 1 / -1;
   grid-row: 2;
@@ -561,7 +541,7 @@ main {
 .elevacao__chao {
   display: block;
   height: 1.5rem;
-  margin-inline: calc(-1 * var(--calha));
+  margin: var(--e-2) calc(-1 * var(--calha)) 0;
   border-top: 2px solid var(--junta-forte);
 }
 
@@ -588,14 +568,19 @@ main {
   min-height: 2.75rem;
   padding: var(--e-1) var(--e-2);
   background: var(--vao);
-  /* guarda-corpo fino em cima, junta da viga embaixo */
-  border-top: 2px solid var(--junta);
-  border-bottom: 1px solid var(--junta);
+  border: 1px solid var(--junta);
+  border-top-width: 2px;
+  border-radius: 0.5rem;
   transition: border-top-color 200ms ease-out;
 }
 
 .passarela--ativa .passarela__vao {
   border-top-color: var(--oxido);
+  border-inline-start-width: 0.35rem;
+}
+
+.passarela--ativa .passarela__rua {
+  font-weight: 800;
 }
 
 .passarela__ordem {
@@ -669,7 +654,7 @@ main {
   position: relative;
   background: var(--placa);
   border: 1px solid var(--junta);
-  padding: 2rem;
+  padding: var(--e-3);
 }
 
 .laje--2 {
@@ -764,16 +749,18 @@ main {
   color: var(--tinta-2);
 }
 
-/* Para quem é: três colunas de texto separadas por espaço e junta de 1 px */
+/* Para quem é: cards de texto, sem pictogramas */
 .personas {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--e-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: var(--e-3);
 }
 
-.persona + .persona {
-  padding-left: var(--e-4);
-  border-left: 1px solid var(--junta);
+.persona {
+  padding: var(--e-3);
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  border-radius: 0.75rem;
 }
 
 .persona__nome {
@@ -820,7 +807,7 @@ main {
   top: var(--e-3);
   background: var(--placa);
   border: 1px solid var(--junta);
-  padding: 2rem;
+  padding: var(--e-3);
 }
 
 .ficha__resumo {
@@ -990,7 +977,7 @@ main {
   margin: var(--e-5) auto var(--e-6);
   background: var(--placa);
   border: 1px solid var(--junta);
-  padding: clamp(1.5rem, 5vw, 3.5rem);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
 }
 
 .folha h1 {
@@ -1049,7 +1036,7 @@ main {
   gap: var(--e-3);
   background: var(--placa);
   border: 1px solid var(--junta);
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+  padding: clamp(1.25rem, 3vw, 2rem);
 }
 
 .formulario__aviso {
@@ -1192,7 +1179,6 @@ main {
 
   .elevacao > .torre--origem,
   .elevacao__passos,
-  .elevacao > .torre--destino,
   .elevacao__desenho {
     grid-column: 1;
     grid-row: auto;
@@ -1202,10 +1188,6 @@ main {
     margin: 0;
     padding: var(--e-4) 0;
     --gap-vao: var(--e-3);
-  }
-
-  .elevacao__poco {
-    display: none;
   }
 
   /* um patamar por linha, sem recuo: a junta contínua liga os patamares */
@@ -1231,17 +1213,6 @@ main {
   .laje--2,
   .laje--3 {
     margin-top: 0;
-  }
-
-  .personas {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--e-3);
-  }
-
-  .persona + .persona {
-    padding: var(--e-3) 0 0;
-    border-left: 0;
-    border-top: 1px solid var(--junta);
   }
 
   .exemplo,
@@ -1339,4 +1310,44 @@ main {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+:root[data-tema='claro'] {
+  color-scheme: light;
+  --concreto: #fff;
+  --torre: #fff;
+  --placa: #fff;
+  --vao: #fff;
+  --faixa: #fff;
+  --faixa-tinta: #1c1f1d;
+  --faixa-oxido: #9a3f2c;
+  --foco-faixa: #1c1f1d;
+}
+
+:root[data-tema='claro'] .faixa--topo {
+  border-bottom: 1px solid var(--junta);
+}
+
+:root[data-tema='claro'] .faixa--base {
+  border-top: 1px solid var(--junta);
+}
+
+.torre,
+.janela,
+.laje,
+.ficha,
+.folha,
+.formulario {
+  border-radius: 0.75rem;
+}
+
+.torre {
+  overflow: hidden;
+}
+
+.tema-botao,
+.placa,
+.campo input,
+.opcao {
+  border-radius: 0.5rem;
 }

@@ -36,7 +36,6 @@ export function Inicio() {
           passos={PASSOS}
           passoAtivo={passoAtivo}
           rotuloLista="Passos da rota de exemplo, em elevação"
-          baseOrigem={ROTA_EXEMPLO_META.origem}
           origem={
             <>
               <Janela area="titulo">
@@ -48,6 +47,15 @@ export function Inicio() {
                   com fonte e data.
                 </p>
               </Janela>
+              <Janela area="destino">
+                <p className="letreiro destino__rua">
+                  {ROTA_EXEMPLO_META.origem} até {ROTA_EXEMPLO_META.destino}
+                </p>
+                <p className="destino__resumo medida">
+                  {DISTANCIA} em {PASSOS.length} passos · cerca de {MINUTOS} minutos a pé
+                </p>
+                <p className="proveniencia">{PROVENIENCIA}</p>
+              </Janela>
               <Janela area="acoes">
                 <Placa para="/rota" variante="acao" pictograma="siga">
                   Planejar rota
@@ -55,15 +63,6 @@ export function Inicio() {
                 <BotaoOuvir passos={PASSOS} aoMudarPasso={setPassoAtivo} />
               </Janela>
             </>
-          }
-          destino={
-            <Janela area="destino">
-              <p className="letreiro destino__rua">{ROTA_EXEMPLO_META.destino}</p>
-              <p className="destino__resumo medida">
-                {DISTANCIA} em {PASSOS.length} passos
-              </p>
-              <p className="proveniencia">{PROVENIENCIA}</p>
-            </Janela>
           }
         />
       </section>

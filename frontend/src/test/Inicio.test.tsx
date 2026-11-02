@@ -29,6 +29,14 @@ describe('página inicial', () => {
     const elevacao = screen.getByRole('list', { name: 'Passos da rota de exemplo, em elevação' })
     expect(within(elevacao).getAllByRole('listitem')).toHaveLength(11)
     expect(within(elevacao).getAllByRole('listitem')[1]).toHaveTextContent('Rua Helen Keller')
+    expect(document.querySelector('.elevacao__poco')).toBeNull()
+    expect(elevacao.querySelector('.passarela__vao')).toBeInTheDocument()
+    expect(elevacao.querySelector('.passarela--ativa .passarela__vao')).toBeNull()
+    const cardDaRota = document.querySelector('.torre--origem')!
+    expect(cardDaRota).toHaveTextContent('Rua Helen Keller até Rua Ouvidor Peleja')
+    expect(cardDaRota).toHaveTextContent('11 passos')
+    expect(cardDaRota.querySelector('.proveniencia')).toHaveTextContent('Vila Mariana')
+    expect(document.querySelector('.torre--destino')).toBeNull()
     const destino = screen.getByText(/Exemplo gravado em 12\/10\/2026/)
     expect(destino).toHaveTextContent('Vila Mariana')
     expect(destino).toHaveTextContent('OpenStreetMap, GeoSampa')
@@ -56,11 +64,12 @@ describe('página inicial', () => {
       expect(screen.getByRole('heading', { level: 3, name: nome })).toBeInTheDocument()
     }
     expect(screen.getByText(/Ouve a rota, navega só por teclado e digita com zoom de 400%/)).toBeInTheDocument()
-    // concreto limpo: personas são colunas de texto, sem caixa nem pictograma
+    // personas são cards de texto, sem pictogramas
     const quem = screen.getByRole('heading', { level: 2, name: 'Para quem é' }).closest('section')!
     expect(quem.querySelector('.janela, .torre, svg')).toBeNull()
     for (const nome of ['Marcos', 'Dona Ivete', 'Sr. Antônio']) {
-      expect(screen.getByRole('heading', { level: 3, name: nome }).closest('.persona')).not.toBeNull()
+      const card = screen.getByRole('heading', { level: 3, name: nome }).closest('.persona')
+      expect(card).toHaveClass('persona')
     }
     // a nota da banca sai da caixa: uma frase por assunto
     const notas = quem.querySelectorAll('.nota-banca')
@@ -124,6 +133,8 @@ describe('página inicial', () => {
     const lista = screen.getByRole('list', { name: 'Os 11 passos da rota de exemplo' })
     expect(within(elevacao).getAllByRole('listitem')[0]).toHaveAttribute('aria-current', 'step')
     expect(within(lista).getAllByRole('listitem')[0]).toHaveAttribute('aria-current', 'step')
+    expect(within(elevacao).getAllByRole('listitem')[0]).toHaveClass('passarela--ativa')
+    expect(within(lista).getAllByRole('listitem')[0]).toHaveClass('placa-passo--ativa')
   })
 
   it('não tem violações de acessibilidade', async () => {

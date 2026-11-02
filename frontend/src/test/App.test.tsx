@@ -13,7 +13,11 @@ function renderizar(rota = '/') {
 }
 
 describe('layout acessível', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    window.localStorage.removeItem('tema')
+    document.documentElement.removeAttribute('data-tema')
+  })
 
   it('tem skip link como primeiro elemento focável, apontando para o conteúdo', async () => {
     renderizar()
@@ -53,6 +57,35 @@ describe('layout acessível', () => {
     expect(within(nav).getByRole('link', { name: 'Início' })).toHaveAttribute('aria-current', 'page')
     expect(within(nav).getByRole('link', { name: 'Fontes' })).toHaveAttribute('href', '/fontes')
     expect(within(nav).getByRole('link', { name: 'Acessibilidade' })).toHaveAttribute('href', '/acessibilidade')
+  })
+
+  it('permite alternar entre tema escuro e claro e guarda a escolha', async () => {
+    const primeiraRenderizacao = renderizar()
+    expect(await screen.findByRole('button', { name: 'Tema atual: escuro. Mudar para modo claro.' })).toHaveTextContent(
+      'Escuro → claro',
+    )
+    expect(document.documentElement).toHaveAttribute('data-tema', 'escuro')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tema atual: escuro. Mudar para modo claro.' }))
+    expect(document.documentElement).toHaveAttribute('data-tema', 'claro')
+    expect(window.localStorage.getItem('tema')).toBe('claro')
+
+    primeiraRenderizacao.unmount()
+    renderizar()
+    expect(await screen.findByRole('button', { name: 'Tema atual: claro. Mudar para modo escuro.' })).toHaveTextContent(
+      'Claro → escuro',
+    )
+    expect(document.documentElement).toHaveAttribute('data-tema', 'claro')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tema atual: claro. Mudar para modo escuro.' }))
+    expect(document.documentElement).toHaveAttribute('data-tema', 'escuro')
+    expect(window.localStorage.getItem('tema')).toBe('escuro')
+  })
+
+  it('não tem violações de acessibilidade no tema claro', async () => {
+    const { container } = renderizar('/')
+    await userEvent.click(screen.getByRole('button', { name: 'Tema atual: escuro. Mudar para modo claro.' }))
+    expect(await axe(container)).toHaveNoViolations()
   })
 
   it('mantém o rodapé de atribuição e uma única região viva', () => {

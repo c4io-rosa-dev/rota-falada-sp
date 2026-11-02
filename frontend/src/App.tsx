@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes } from 'react-router'
 import { SkipLink } from './a11y/SkipLink'
 import { Pictograma } from './componentes/Pictograma'
@@ -8,6 +9,20 @@ import { Fontes } from './pages/Fontes'
 import { Acessibilidade } from './pages/Acessibilidade'
 
 export default function App() {
+  const [tema, setTema] = useState<'escuro' | 'claro'>(() =>
+    window.localStorage.getItem('tema') === 'claro' ? 'claro' : 'escuro',
+  )
+
+  useEffect(() => {
+    document.documentElement.dataset.tema = tema
+  }, [tema])
+
+  function alternarTema() {
+    const novoTema = tema === 'escuro' ? 'claro' : 'escuro'
+    window.localStorage.setItem('tema', novoTema)
+    setTema(novoTema)
+  }
+
   return (
     <RegiaoViva>
       <SkipLink />
@@ -35,6 +50,14 @@ export default function App() {
                 </NavLink>
               </li>
             </ul>
+            <button
+              className="alvo tema-botao"
+              type="button"
+              aria-label={`Tema atual: ${tema}. Mudar para modo ${tema === 'escuro' ? 'claro' : 'escuro'}.`}
+              onClick={alternarTema}
+            >
+              <span aria-hidden="true">{tema === 'escuro' ? 'Escuro → claro' : 'Claro → escuro'}</span>
+            </button>
           </nav>
         </div>
       </header>
