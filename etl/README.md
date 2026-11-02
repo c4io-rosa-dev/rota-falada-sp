@@ -35,6 +35,10 @@ etl/
 
 **Pendência do dono do projeto:** o workflow depende do Secret `DATABASE_URL_PROD` (string de conexão do Supabase de produção, Session pooler). Enquanto ele não existir no repositório, tanto o cron quanto um disparo manual (`workflow_dispatch`) falham no primeiro passo com banco (`python -m etl.cli tudo`) com erro de conexão — comportamento esperado, não um bug do ETL.
 
+## Etapas adicionais
+
+- `enderecos` (depende de `osm`): lê `dados/piloto.osm.pbf`, separa endereços com número (`addr:street` + `addr:housenumber`) e lugares com nome (`amenity`, `railway`, `public_transport`, `shop`, `leisure`, `tourism`, `office`, `healthcare`) e carrega a tabela `endereco` com eles e com uma linha por rua e bairro, derivada de `via_pedestre`. Alimenta `GET /api/geocode` e `/api/geocode/reverso`. Spec: `docs/superpowers/specs/2026-11-02-geocode-design.md`. Rodar sozinha: `docker compose --profile etl run --rm etl enderecos`.
+
 ## Como rodar
 
 Com o Docker Desktop rodando e o banco local no ar (`docker compose up -d db`):
@@ -128,3 +132,7 @@ Preenchido conforme cada fonte é implementada (Tasks 3–7):
   - Rodar `python -m etl.cli conflacao` de novo com o buffer/método fixados reproduziu exatamente o resultado da Task 2 (**11.001 vias ligadas, cobertura 43,9%**) — confirma que a carga já feita é a definitiva, nenhum recarregamento necessário.
   - `pytest etl/tests -q`: **75 passed** (64 anteriores + 9 novos de `test_calibracao_conflacao.py`, incluindo 2 de integração contra o gabarito real gerado do banco + 2 do orquestrador `cli tudo` atualizados para a quinta etapa `conflacao`).
   - **Pendência para o dono do projeto:** faltam as linhas `manual_streetview` do gabarito (mínimo 40, verificadas no Street View pela equipe humana, semanas 5–6, conforme o plano). `etl.calibracao_conflacao.ler_gabarito`/`avaliar_buffer` já aceitam as duas origens sem mudança de código — basta acrescentar linhas a `etl/gabarito_conflacao.csv` (`origem=manual_streetview`) e rodar `python -m etl.calibracao_conflacao` de novo; só essas linhas (casos ambíguos, perto de mais de uma calçada) vão de fato testar a sensibilidade ao buffer via `detectar_joelho`, hoje inconclusivo por falta delas.
+- **`enderecos` e `tudo` completo** (medido em 02/11/2026, `docker compose --profile etl run --rm etl tudo`, banco local migrado até a 007):
+  - Nesta data a área piloto do Ipiranga foi estendida ao sul até a latitude -23,615 para incluir a FATEC Ipiranga (migration 007, `etl/etl/config.py`), o que exigiu uma recarga completa (`tudo`).
+  - `endereco`: **13.476** `endereco`, **3.974** `lugar`, **2.062** `logradouro`. Demais fontes: `osm` 19.212 nós / 26.291 vias; `geosampa` 24.408 calçadas; `sp156` 2.041; `gtfs` 1.244 paradas / 1.364 linhas; `conflacao` 11.251 vias ligadas (cobertura 42,8%).
+  - `pytest tests -q` do ETL (container): **122 passed**. Backend: **208 passed**. Latência da busca local (`buscar`, 50 consultas sobre vias reais): p95 de ~5 ms, bem abaixo do orçamento de 300 ms.
