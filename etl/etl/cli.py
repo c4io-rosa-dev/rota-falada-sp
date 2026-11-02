@@ -1,7 +1,7 @@
 """Ponto de entrada do ETL: `python -m etl.cli <fonte>`.
 
-Cada subcomando roda uma fonte isolada; `tudo` roda as cinco em sequência
-(osm, geosampa, sp156, gtfs e, por último, conflacao).
+Cada subcomando roda uma fonte isolada; `tudo` roda as seis em sequência
+(osm, enderecos, geosampa, sp156, gtfs e, por último, conflacao).
 Cada fonte já registra sua própria linha em `etl_execucao` (inclusive em caso
 de erro, dentro do próprio `executar`) e relança a exceção; o orquestrador
 `tudo` captura essa exceção fonte a fonte para que uma falha não impeça as
@@ -14,7 +14,7 @@ from typing import Any
 
 from etl.config import BUFFER_CONFLACAO_M, METODO_CONFLACAO
 
-FONTES = ["osm", "geosampa", "sp156", "gtfs", "conflacao", "tudo"]
+FONTES = ["osm", "enderecos", "geosampa", "sp156", "gtfs", "conflacao", "tudo"]
 
 
 def _engine_para_tudo():
@@ -25,6 +25,12 @@ def _engine_para_tudo():
 
 def _executar_osm(engine) -> dict:
     from etl.osm import executar
+
+    return executar(engine)
+
+
+def _executar_enderecos(engine) -> dict:
+    from etl.enderecos import executar
 
     return executar(engine)
 
@@ -69,6 +75,9 @@ def _parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="fonte", required=True)
     subparsers.add_parser("osm", help="grafo de pedestres do OpenStreetMap")
+    subparsers.add_parser(
+        "enderecos", help="endereços, lugares e ruas do OSM para o geocode (depende de osm)"
+    )
     subparsers.add_parser("geosampa", help="calçadas do GeoSampa (WFS)")
     subparsers.add_parser("sp156", help="reclamações do SP156 (CKAN)")
     subparsers.add_parser("gtfs", help="paradas e linhas do GTFS da SPTrans")
@@ -88,7 +97,7 @@ def _parser() -> argparse.ArgumentParser:
         help=f"regra de desempate (padrão: {METODO_CONFLACAO})",
     )
     subparsers.add_parser(
-        "tudo", help="roda osm, geosampa, sp156, gtfs e conflacao em sequência"
+        "tudo", help="roda osm, enderecos, geosampa, sp156, gtfs e conflacao em sequência"
     )
     return parser
 
@@ -98,6 +107,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.fonte == "osm":
         print(_executar_osm(_engine_para_tudo()))
+    elif args.fonte == "enderecos":
+        print(_executar_enderecos(_engine_para_tudo()))
     elif args.fonte == "geosampa":
         print(_executar_geosampa(_engine_para_tudo()))
     elif args.fonte == "sp156":
@@ -113,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _tudo() -> int:
-    """Roda osm → geosampa → sp156 → gtfs → conflacao em sequência. Cada
+    """Roda osm → enderecos → geosampa → sp156 → gtfs → conflacao em sequência. Cada
     fonte já grava sua própria linha de erro em `etl_execucao` antes de
     relançar a exceção; aqui só continuamos para a próxima fonte e marcamos a
     saída como falha. A conflação roda por último (depende de via_pedestre e
@@ -124,6 +135,7 @@ def _tudo() -> int:
     motor = _engine_para_tudo()
     passos: list[tuple[str, Any]] = [
         ("osm", _executar_osm),
+        ("enderecos", _executar_enderecos),
         ("geosampa", _executar_geosampa),
         ("sp156", _executar_sp156),
         ("gtfs", _executar_gtfs),

@@ -12,14 +12,18 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from datetime import date
 from pathlib import Path
 
 from pyproj import Transformer
 from shapely.geometry import shape
+from sqlalchemy import Engine, text
 
-from etl.config import AREA_PILOTO
+from etl.config import AREA_PILOTO, DIR_DADOS
+from etl.db import concluir_execucao, fonte_id, registrar_execucao
 from etl.normalizacao import normalizar
 
 # chaves OSM que fazem de um objeto com `name` um "lugar" buscável
@@ -37,6 +41,40 @@ RAIO_DEDUPLICACAO_M = 15.0
 _MAX_DIGITOS_NUMERO = 9  # cabe em `integer`
 _DIGITOS_INICIAIS = re.compile(r"\s*(\d+)")
 _PARA_31983 = Transformer.from_crs("EPSG:4326", "EPSG:31983", always_xy=True)
+
+PILOTO_PBF = DIR_DADOS / "piloto.osm.pbf"
+ENDERECOS_PBF = DIR_DADOS / "piloto-enderecos.osm.pbf"
+ENDERECOS_GEOJSONSEQ = DIR_DADOS / "piloto-enderecos.geojsonseq"
+
+# Uma linha por (nome da via, bairro). Cada trecho pertence ao bairro de menor
+# id que contém seu centroide; o ponto fica sobre a via, perto do meio.
+SQL_LOGRADOUROS = """
+WITH trecho AS (
+  SELECT v.nome, v.geom,
+         (SELECT a.nome FROM area_piloto a
+          WHERE ST_Covers(a.geom, ST_Centroid(v.geom))
+          ORDER BY a.id LIMIT 1) AS bairro
+  FROM via_pedestre v
+  WHERE v.nome IS NOT NULL AND btrim(v.nome) <> ''
+), por_rua AS (
+  SELECT nome, bairro, ST_Collect(geom) AS geom
+  FROM trecho WHERE bairro IS NOT NULL
+  GROUP BY nome, bairro
+)
+SELECT nome, bairro, ST_X(p) AS lon, ST_Y(p) AS lat
+FROM (SELECT nome, bairro, ST_ClosestPoint(geom, ST_Centroid(geom)) AS p FROM por_rua) s
+ORDER BY nome, bairro
+"""
+
+SQL_INSERIR = text(
+    """
+    INSERT INTO endereco (tipo, rotulo, logradouro, numero, numero_int, categoria,
+                          texto_busca, geom, osm_tipo, osm_id, fonte_id, data_referencia)
+    VALUES (:tipo, :rotulo, :logradouro, :numero, :numero_int, :categoria, :texto_busca,
+            ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :osm_tipo, :osm_id,
+            :fonte_id, :data_referencia)
+    """
+)
 
 
 @dataclass(frozen=True)
@@ -209,3 +247,84 @@ def registros_logradouro(linhas: Iterable[tuple[str, str, float, float]]) -> lis
             )
         )
     return resultado
+
+
+def _executar_osmium(*args: str) -> None:
+    subprocess.run(["osmium", *args], check=True, capture_output=True, text=True)
+
+
+def _exportar_geojsonseq() -> Path:
+    """Filtra objetos com número ou nome e exporta como GeoJSONSeq, com o tipo
+    e o id OSM em `@type`/`@id`. Objetos sem tag não são exportados."""
+    _executar_osmium(
+        "tags-filter",
+        str(PILOTO_PBF),
+        "nwr/addr:housenumber",
+        "nwr/name",
+        "-o",
+        str(ENDERECOS_PBF),
+        "--overwrite",
+    )
+    _executar_osmium(
+        "export",
+        str(ENDERECOS_PBF),
+        "-f",
+        "geojsonseq",
+        "-a",
+        "type,id",
+        "-x",
+        "print_record_separator=false",
+        "-o",
+        str(ENDERECOS_GEOJSONSEQ),
+        "--overwrite",
+    )
+    return ENDERECOS_GEOJSONSEQ
+
+
+def carregar(engine: Engine, registros: list[Registro], fid: int, data_ref: date) -> int:
+    """Troca todo o conteúdo de `endereco` numa transação só."""
+    parametros = [
+        {**asdict(r), "fonte_id": fid, "data_referencia": data_ref} for r in registros
+    ]
+    with engine.begin() as conexao:
+        conexao.execute(text("TRUNCATE endereco RESTART IDENTITY"))
+        if parametros:
+            conexao.execute(SQL_INSERIR, parametros)
+    return len(parametros)
+
+
+def executar(engine: Engine) -> dict:
+    """Carrega `endereco` a partir do PBF da área piloto e de `via_pedestre`.
+    Depende da etapa `osm` (gera o PBF e carrega `via_pedestre`)."""
+    execucao_id = registrar_execucao(engine, "enderecos")
+    try:
+        if not PILOTO_PBF.exists():
+            raise FileNotFoundError(
+                f"{PILOTO_PBF} não existe; rode `python -m etl.cli osm` antes de `enderecos`."
+            )
+        with engine.connect() as conexao:
+            data_ref = conexao.execute(
+                text("SELECT max(data_referencia) FROM via_pedestre")
+            ).scalar_one()
+            linhas_vias = [tuple(linha) for linha in conexao.execute(text(SQL_LOGRADOUROS))]
+        if data_ref is None:
+            raise RuntimeError(
+                "via_pedestre está vazia; rode `python -m etl.cli osm` antes de `enderecos`."
+            )
+
+        caminho = _exportar_geojsonseq()
+        registros = deduplicar(
+            r for f in ler_geojsonseq(caminho) if (r := registro_de_feature(f)) is not None
+        )
+        registros += registros_logradouro(linhas_vias)
+
+        total = carregar(engine, registros, fonte_id(engine, "osm"), data_ref)
+        resultado = {
+            tipo: sum(1 for r in registros if r.tipo == tipo)
+            for tipo in ("endereco", "lugar", "logradouro")
+        }
+        concluir_execucao(engine, execucao_id, "ok", linhas=total)
+        return resultado
+    except Exception as exc:
+        concluir_execucao(engine, execucao_id, "erro", detalhe=str(exc)[:2000])
+        raise

@@ -2,8 +2,8 @@
 
 Cada fonte já registra sua própria linha em `etl_execucao` (inclusive em caso
 de erro, dentro do próprio `executar`) e relança a exceção; o orquestrador só
-precisa rodar as cinco em sequência (osm, geosampa, sp156, gtfs e, por
-último, conflacao — Plano 3, Task 3), continuar mesmo se uma falhar e
+precisa rodar as seis em sequência (osm, enderecos, geosampa, sp156, gtfs e,
+por último, conflacao), continuar mesmo se uma falhar e
 devolver código de saída 1 quando alguma fonte falhou.
 """
 
@@ -21,9 +21,9 @@ def _sem_engine_real(monkeypatch):
     monkeypatch.setattr(cli, "_engine_para_tudo", lambda: "engine-falso")
 
 
-def test_tudo_roda_as_cinco_fontes_em_ordem_e_devolve_zero(monkeypatch):
+def test_tudo_roda_as_seis_etapas_em_ordem_e_devolve_zero(monkeypatch):
     chamadas = []
-    for nome in ("osm", "geosampa", "sp156", "gtfs", "conflacao"):
+    for nome in ("osm", "enderecos", "geosampa", "sp156", "gtfs", "conflacao"):
         atributo = (
             "_executar_conflacao_tudo" if nome == "conflacao" else f"_executar_{nome}"
         )
@@ -40,6 +40,7 @@ def test_tudo_roda_as_cinco_fontes_em_ordem_e_devolve_zero(monkeypatch):
     assert codigo == 0
     assert chamadas == [
         call("osm", "engine-falso"),
+        call("enderecos", "engine-falso"),
         call("geosampa", "engine-falso"),
         call("sp156", "engine-falso"),
         call("gtfs", "engine-falso"),
@@ -62,6 +63,7 @@ def test_tudo_continua_apos_uma_fonte_falhar_e_devolve_um(monkeypatch, capsys):
         return _fn
 
     monkeypatch.setattr(cli, "_executar_osm", _osm_falha)
+    monkeypatch.setattr(cli, "_executar_enderecos", _ok("enderecos"))
     monkeypatch.setattr(cli, "_executar_geosampa", _ok("geosampa"))
     monkeypatch.setattr(cli, "_executar_sp156", _ok("sp156"))
     monkeypatch.setattr(cli, "_executar_gtfs", _ok("gtfs"))
@@ -70,8 +72,8 @@ def test_tudo_continua_apos_uma_fonte_falhar_e_devolve_um(monkeypatch, capsys):
     codigo = cli.main(["tudo"])
 
     assert codigo == 1
-    # as outras quatro fontes rodaram mesmo com o osm falhando
-    assert chamadas == ["osm", "geosampa", "sp156", "gtfs", "conflacao"]
+    # as demais etapas rodaram mesmo com o osm falhando
+    assert chamadas == ["osm", "enderecos", "geosampa", "sp156", "gtfs", "conflacao"]
     saida_erro = capsys.readouterr().err
     assert "osm" in saida_erro
     assert "download falhou" in saida_erro
@@ -81,7 +83,7 @@ def test_tudo_devolve_um_quando_todas_falham(monkeypatch):
     def _falha(engine):
         raise RuntimeError("erro")
 
-    for nome in ("osm", "geosampa", "sp156", "gtfs"):
+    for nome in ("osm", "enderecos", "geosampa", "sp156", "gtfs"):
         monkeypatch.setattr(cli, f"_executar_{nome}", _falha)
     monkeypatch.setattr(cli, "_executar_conflacao_tudo", _falha)
 
