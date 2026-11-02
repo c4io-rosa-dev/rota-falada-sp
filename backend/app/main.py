@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import fontes, health, rotas
+from app.routers import fontes, geocode, health, rotas
 from app.services.ors_client import criar_cliente
 
 
@@ -20,6 +20,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(fontes.router)
     app.include_router(rotas.router)
+    app.include_router(geocode.router)
     return app
 
 
