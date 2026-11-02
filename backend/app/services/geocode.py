@@ -19,6 +19,19 @@ from app.services.normalizacao import normalizar, separar_numero
 _COLUNAS = "id, tipo, rotulo, ST_Y(geom) AS lat, ST_X(geom) AS lon"
 _DIGITOS = re.compile(r"\d+")
 
+RAIO_REVERSO_M = 50.0
+# pré-filtro em graus para usar o índice GiST antes do cálculo em metros:
+# 0,0006° ≈ 66 m de latitude e ≈ 61 m de longitude a 23,5° S (> RAIO_REVERSO_M)
+_GRAUS_PREFILTRO = 0.0006
+
+MSG_FORA_DA_AREA = "Este ponto está fora da área atendida pelo Rota Falada SP."
+MSG_NADA_POR_PERTO = "Nenhum endereço conhecido a até 50 metros deste ponto."
+
+
+class ReversoNaoEncontrado(Exception):
+    """Sem endereço para o ponto; a mensagem vai direto para o usuário."""
+
+
 # rua das linhas numeradas que melhor casa com a parte da rua digitada
 _SQL_RUA = text(
     """
@@ -106,3 +119,64 @@ def buscar(db: Session, q: str, limite: int) -> list[EnderecoOut]:
         _SQL_SEM_NUMERO, {"q": texto, "prefixo": f"{texto}%", "limite": limite}
     ).all()
     return [_saida(linha) for linha in linhas]
+
+
+_SQL_DENTRO_DA_AREA = text(
+    """
+    SELECT EXISTS (
+      SELECT 1 FROM area_piloto
+      WHERE ST_Covers(geom, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326))
+    )
+    """
+)
+
+_SQL_ENDERECO_PROXIMO = text(
+    """
+    WITH p AS (SELECT ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) AS g)
+    SELECT e.id, e.tipo, e.rotulo, ST_Y(e.geom) AS lat, ST_X(e.geom) AS lon
+    FROM endereco e CROSS JOIN p
+    WHERE e.tipo = 'endereco'
+      AND e.geom && ST_Expand(p.g, :graus)
+      AND ST_DWithin(e.geom::geography, p.g::geography, :raio)
+    ORDER BY ST_Distance(e.geom::geography, p.g::geography), e.id
+    LIMIT 1
+    """
+)
+
+# via nomeada mais próxima; devolve a linha `logradouro` com esse nome mais
+# próxima do usuário, mas com o ponto da via mais próximo dele
+_SQL_VIA_PROXIMA = text(
+    """
+    WITH p AS (SELECT ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) AS g),
+    via AS (
+      SELECT v.nome, ST_ClosestPoint(v.geom, p.g) AS ponto
+      FROM via_pedestre v CROSS JOIN p
+      WHERE v.nome IS NOT NULL AND btrim(v.nome) <> ''
+        AND v.geom && ST_Expand(p.g, :graus)
+        AND ST_DWithin(v.geom::geography, p.g::geography, :raio)
+      ORDER BY ST_Distance(v.geom::geography, p.g::geography), v.nome
+      LIMIT 1
+    )
+    SELECT e.id, e.tipo, e.rotulo, ST_Y(via.ponto) AS lat, ST_X(via.ponto) AS lon
+    FROM via
+    JOIN endereco e ON e.tipo = 'logradouro' AND e.logradouro = via.nome
+    CROSS JOIN p
+    ORDER BY e.geom <-> p.g, e.id
+    LIMIT 1
+    """
+)
+
+
+def reverso(db: Session, lat: float, lon: float) -> EnderecoOut:
+    """Endereço numerado a até `RAIO_REVERSO_M`; senão a rua mais próxima no
+    mesmo raio; senão `ReversoNaoEncontrado`."""
+    ponto = {"lat": lat, "lon": lon}
+    if not db.execute(_SQL_DENTRO_DA_AREA, ponto).scalar_one():
+        raise ReversoNaoEncontrado(MSG_FORA_DA_AREA)
+    parametros = {**ponto, "graus": _GRAUS_PREFILTRO, "raio": RAIO_REVERSO_M}
+    linha = db.execute(_SQL_ENDERECO_PROXIMO, parametros).first()
+    if linha is None:
+        linha = db.execute(_SQL_VIA_PROXIMA, parametros).first()
+    if linha is None:
+        raise ReversoNaoEncontrado(MSG_NADA_POR_PERTO)
+    return _saida(linha)
