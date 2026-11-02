@@ -1,6 +1,7 @@
 """Geocode contra os dados reais do ETL (pulado no CI, que não roda o ETL).
 Orçamento de latência do spec-mãe: geocode p95 ≤ 300 ms."""
 
+import math
 import time
 
 import pytest
@@ -64,5 +65,5 @@ def test_p95_da_busca_abaixo_de_300_ms(db):
         buscar(db, consulta, 8)
         tempos.append(time.perf_counter() - inicio)
     tempos.sort()
-    p95 = tempos[int(0.95 * len(tempos)) - 1]
+    p95 = tempos[math.ceil(0.95 * len(tempos)) - 1]
     assert p95 < 0.300, f"p95 = {p95 * 1000:.0f} ms em {len(tempos)} buscas"

@@ -44,7 +44,7 @@ def test_indice_de_texto_e_gin_trigram(db):
 
 def test_endereco_tem_rls_ligado(db):
     ligado = db.execute(
-        text("SELECT relrowsecurity FROM pg_class WHERE relname = 'endereco'")
+        text("SELECT relrowsecurity FROM pg_class WHERE oid = 'endereco'::regclass")
     ).scalar_one()
     assert ligado is True
 

@@ -120,3 +120,14 @@ def test_registros_logradouro():
             osm_id=None,
         )
     ]
+
+
+def test_executar_osmium_traz_stderr_no_erro():
+    from etl.enderecos import _executar_osmium
+
+    with pytest.raises(RuntimeError) as erro:
+        _executar_osmium("fileinfo", "/caminho/que/nao/existe.osm.pbf")
+    mensagem = str(erro.value)
+    assert "osmium fileinfo falhou" in mensagem
+    assert "): " in mensagem
+    assert mensagem.split("): ", 1)[1].strip()  # stderr não vazio

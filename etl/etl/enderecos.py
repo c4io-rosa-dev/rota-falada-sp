@@ -250,7 +250,12 @@ def registros_logradouro(linhas: Iterable[tuple[str, str, float, float]]) -> lis
 
 
 def _executar_osmium(*args: str) -> None:
-    subprocess.run(["osmium", *args], check=True, capture_output=True, text=True)
+    try:
+        subprocess.run(["osmium", *args], check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as erro:
+        raise RuntimeError(
+            f"osmium {args[0]} falhou (código {erro.returncode}): {erro.stderr.strip()[:1000]}"
+        ) from erro
 
 
 def _exportar_geojsonseq() -> Path:

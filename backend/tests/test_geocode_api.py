@@ -6,7 +6,7 @@ from sqlalchemy.exc import OperationalError
 
 from app.db import get_db
 from app.main import create_app
-from app.routers.geocode import CACHE_CONTROL, MSG_INDISPONIVEL
+from app.routers.geocode import CACHE_CONTROL, CACHE_CONTROL_VAZIO, MSG_INDISPONIVEL
 from app.services.geocode import MSG_FORA_DA_AREA
 
 pytestmark = pytest.mark.integration
@@ -33,6 +33,7 @@ def test_busca_sem_resultado_e_200_com_lista_vazia(cliente):
     resposta = cliente.get("/api/geocode", params={"q": "xyzxyzxyz"})
     assert resposta.status_code == 200
     assert resposta.json() == []
+    assert resposta.headers["cache-control"] == CACHE_CONTROL_VAZIO
 
 
 @pytest.mark.parametrize(
