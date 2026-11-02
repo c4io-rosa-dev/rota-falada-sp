@@ -9,10 +9,11 @@ import os
 from pathlib import Path
 
 # oeste, sul, leste, norte (lon/lat, EPSG:4326)
+# Ipiranga vai até -23.615 (não -23.605) para incluir a FATEC (migration 007).
 AREA_PILOTO: dict[str, tuple[float, float, float, float]] = {
     "Vila Mariana": (-46.660, -23.610, -46.615, -23.570),
     "Lapa": (-46.720, -23.545, -46.680, -23.510),
-    "Ipiranga": (-46.625, -23.605, -46.590, -23.575),
+    "Ipiranga": (-46.625, -23.615, -46.590, -23.575),
 }
 
 # bbox que envolve os três recortes, usada no `osmium extract`.
