@@ -159,7 +159,16 @@ def config_auth_teste(chave_teste):
 
 @pytest.fixture
 def emitir_token(chave_teste):
-    def _emitir(sub, *, validade_s=3600, aud="authenticated", iss=EMISSOR_TESTE, chave=None):
+    def _emitir(
+        sub,
+        *,
+        validade_s=3600,
+        aud="authenticated",
+        iss=EMISSOR_TESTE,
+        chave=None,
+        extra=None,
+        sem_exp=False,
+    ):
         agora = datetime.now(UTC)
         dados = {
             "sub": str(sub),
@@ -169,6 +178,9 @@ def emitir_token(chave_teste):
             "iat": agora,
             "exp": agora + timedelta(seconds=validade_s),
         }
+        if sem_exp:
+            del dados["exp"]
+        dados.update(extra or {})
         return jwt.encode(dados, chave or chave_teste, algorithm="ES256")
 
     return _emitir

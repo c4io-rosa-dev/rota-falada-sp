@@ -206,8 +206,12 @@ def criar(
                 },
             ).scalar_one()
     except IntegrityError:
-        # outra requisição com a mesma chave venceu a corrida
-        return obter(db, db.execute(_SQL_POR_CHAVE, chave).scalar_one(), agora), False
+        # outra requisição com a mesma chave venceu a corrida; sem linha para
+        # (autor, chave), o erro era outro (ex.: FK) e não pode ser engolido
+        existente = db.execute(_SQL_POR_CHAVE, chave).scalar_one_or_none()
+        if existente is None:
+            raise
+        return obter(db, existente, agora), False
 
     registrar_evento(
         db,

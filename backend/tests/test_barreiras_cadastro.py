@@ -4,8 +4,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from pydantic import ValidationError
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
+from app.auth import UsuarioAtual
 from app.config import settings
 from app.schemas.barreira import BarreiraIn, BarreiraOut
 from app.services import barreiras
@@ -155,3 +158,19 @@ def test_url_publica_foto(monkeypatch):
     )
     monkeypatch.setattr(settings, "supabase_url", None)
     assert barreiras.url_publica_foto("7/x.webp") is None
+
+
+def test_violacao_de_fk_nao_e_confundida_com_corrida_de_idempotencia(db_transacional):
+    fantasma = UsuarioAtual(id=uuid.uuid4(), papel="colaborador")  # não está em `usuario`
+    with pytest.raises(IntegrityError):
+        barreiras.criar(db_transacional, fantasma, _entrada(), AGORA)
+
+
+def test_descricao_e_aparada_antes_do_limite_de_tamanho(db_transacional, criar_usuario):
+    texto = "a" * 500
+    barreira, _ = barreiras.criar(
+        db_transacional, criar_usuario(), _entrada(descricao=f"  {texto}  "), AGORA
+    )
+    assert barreira.descricao == texto
+    with pytest.raises(ValidationError):
+        _entrada(descricao="a" * 501)

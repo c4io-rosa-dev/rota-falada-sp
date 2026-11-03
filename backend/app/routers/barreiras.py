@@ -48,14 +48,13 @@ def transacao(db: Session) -> Iterator[None]:
     """Commit no sucesso; `ErroDominio` vira HTTP com a mensagem do domínio."""
     try:
         yield
+        db.commit()
     except ErroDominio as erro:
         db.rollback()
         raise HTTPException(status_code=erro.status_http, detail=str(erro)) from erro
     except OperationalError as erro:
         db.rollback()
         raise HTTPException(status_code=503, detail=MSG_INDISPONIVEL) from erro
-    else:
-        db.commit()
 
 
 Db = Annotated[Session, Depends(get_db)]

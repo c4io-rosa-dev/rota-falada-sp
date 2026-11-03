@@ -15,6 +15,7 @@ from typing import Annotated, Any, Protocol
 import jwt
 from fastapi import Depends, Header, HTTPException, Request
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -86,9 +87,9 @@ def usuario_atual(
 ) -> UsuarioAtual:
     if config is None:
         raise HTTPException(status_code=503, detail=MSG_LOGIN_INDISPONIVEL)
-    if not authorization or not authorization.startswith("Bearer "):
+    if not authorization or authorization[:7].lower() != "bearer ":
         raise _nao_autenticado()
-    token = authorization.removeprefix("Bearer ").strip()
+    token = authorization[7:].strip()
     try:
         chave = config.fonte.chave_para(token)
         dados = jwt.decode(
@@ -99,13 +100,21 @@ def usuario_atual(
             issuer=config.emissor,
             options={"require": ["exp", "sub", "aud", "iss"]},
         )
+        # login anônimo do Supabase também tem aud=authenticated; aceitá-lo
+        # permitiria criar contas à vontade e burlar o voto único por usuário
+        if dados.get("is_anonymous") is True:
+            raise _nao_autenticado()
         usuario_id = uuid.UUID(dados["sub"])
     except jwt.PyJWKClientConnectionError as erro:
         raise HTTPException(status_code=503, detail=MSG_LOGIN_INDISPONIVEL) from erro
-    except (jwt.PyJWTError, ValueError) as erro:
+    except (jwt.PyJWTError, ValueError, TypeError, AttributeError) as erro:
         raise _nao_autenticado() from erro
-    papel = db.execute(_SQL_UPSERT_USUARIO, {"id": usuario_id}).scalar_one()
-    db.commit()
+    try:
+        papel = db.execute(_SQL_UPSERT_USUARIO, {"id": usuario_id}).scalar_one()
+        db.commit()
+    except OperationalError as erro:
+        db.rollback()
+        raise HTTPException(status_code=503, detail=MSG_LOGIN_INDISPONIVEL) from erro
     return UsuarioAtual(id=usuario_id, papel=papel)
 
 

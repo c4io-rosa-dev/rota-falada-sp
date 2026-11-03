@@ -31,11 +31,11 @@ class BarreiraIn(BaseModel):
     # gerado pelo app; reenviar a mesma chave não duplica (fila offline)
     chave_idempotencia: uuid.UUID
 
-    @field_validator("descricao")
+    @field_validator("descricao", mode="before")
     @classmethod
     def _em_branco_vira_nula(cls, valor: str | None) -> str | None:
-        if valor is None:
-            return None
+        if not isinstance(valor, str):
+            return valor
         valor = valor.strip()
         return valor or None
 

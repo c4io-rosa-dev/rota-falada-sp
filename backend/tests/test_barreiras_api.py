@@ -5,10 +5,12 @@ import uuid
 
 import pytest
 from PIL import Image
+from sqlalchemy.exc import OperationalError
 
 from app.auth import MSG_LOGIN, MSG_SEM_PERMISSAO
 from app.config import settings
-from app.routers.barreiras import obter_armazenamento
+from app.db import get_db
+from app.routers.barreiras import MSG_INDISPONIVEL, obter_armazenamento
 from app.services.erros import AutorNaoVota, ForaDaArea, StorageIndisponivel
 
 pytestmark = pytest.mark.integration
@@ -218,3 +220,71 @@ def test_cors_libera_put_para_o_frontend(cliente_api):
     )
     assert resposta.status_code == 200
     assert "PUT" in resposta.headers["access-control-allow-methods"]
+
+
+class _SessaoQueFalhaNoCommit:
+    """Delega tudo à sessão transacional real, exceto `commit()`, que simula a
+    queda do banco no momento de gravar."""
+
+    def __init__(self, real):
+        self._real = real
+
+    def execute(self, *args, **kwargs):
+        return self._real.execute(*args, **kwargs)
+
+    def rollback(self):
+        self._real.rollback()
+
+    def commit(self):
+        raise OperationalError("COMMIT", {}, Exception("conexão perdida"))
+
+
+def test_falha_de_commit_vira_503(cliente_api, db_transacional):
+    cliente_api.app.dependency_overrides[get_db] = lambda: _SessaoQueFalhaNoCommit(db_transacional)
+    resposta = cliente_api.get("/api/barreiras", params={"lat": -23.59, "lon": -46.635})
+    assert resposta.status_code == 503
+    assert resposta.json()["detail"] == MSG_INDISPONIVEL
+
+
+def test_nenhuma_resposta_publica_vaza_autor_ou_votantes(
+    cliente_api, emitir_token, autor, criada, monkeypatch
+):
+    monkeypatch.setattr(settings, "supabase_url", "https://abc.supabase.co")
+    votantes = [uuid.uuid4(), uuid.uuid4()]
+    id_ = criada["id"]
+    respostas = [
+        (cliente_api.get("/api/barreiras", params={"lat": LAT, "lon": LON, "raio_m": 50}), True),
+        (cliente_api.get(f"/api/barreiras/{id_}"), False),
+    ]
+    for votante in votantes:
+        respostas.append(
+            (
+                cliente_api.put(
+                    f"/api/barreiras/{id_}/voto",
+                    json={"voto": "confirma"},
+                    headers=_auth(emitir_token, votante),
+                ),
+                False,
+            )
+        )
+    respostas.append(
+        (
+            cliente_api.post(
+                f"/api/barreiras/{id_}/foto",
+                files={"arquivo": ("foto.jpg", _jpeg(), "image/jpeg")},
+                data={"descricao": "Escada de três degraus"},
+                headers=_auth(emitir_token, autor),
+            ),
+            False,
+        )
+    )
+    segredos = [str(autor), *(str(v) for v in votantes)]
+    for resposta, e_lista in respostas:
+        assert resposta.status_code == 200
+        corpo = resposta.json()
+        itens = [b for b in corpo if b["id"] == id_] if e_lista else [corpo]
+        assert itens
+        for item in itens:
+            assert set(item) == CAMPOS_PUBLICOS
+        for segredo in segredos:
+            assert segredo not in resposta.text

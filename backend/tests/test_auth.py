@@ -120,3 +120,26 @@ def test_criar_config_auth():
     assert criar_config_auth("") is None
     config = criar_config_auth("https://abc.supabase.co/")
     assert config.emissor == "https://abc.supabase.co/auth/v1"
+
+
+def test_token_anonimo_e_401(cliente, emitir_token):
+    token = emitir_token(uuid.uuid4(), extra={"is_anonymous": True})
+    resposta = cliente.get("/eu", headers=_cabecalho(token))
+    assert resposta.status_code == 401
+    assert resposta.json()["detail"] == MSG_LOGIN
+
+
+def test_sub_inteiro_no_token_e_401(cliente, emitir_token):
+    token = emitir_token(uuid.uuid4(), extra={"sub": 123})
+    assert cliente.get("/eu", headers=_cabecalho(token)).status_code == 401
+
+
+def test_esquema_bearer_sem_diferenciar_maiusculas(cliente, emitir_token):
+    token = emitir_token(uuid.uuid4())
+    resposta = cliente.get("/eu", headers={"Authorization": f"bearer {token}"})
+    assert resposta.status_code == 200
+
+
+def test_token_sem_exp_e_401(cliente, emitir_token):
+    token = emitir_token(uuid.uuid4(), sem_exp=True)
+    assert cliente.get("/eu", headers=_cabecalho(token)).status_code == 401
