@@ -204,3 +204,10 @@ def criar_usuario(db_transacional):
         return UsuarioAtual(id=usuario_id, papel=papel)
 
     return _criar
+
+
+@pytest.fixture
+def armazenamento_memoria():
+    from app.services.fotos import ArmazenamentoMemoria
+
+    return ArmazenamentoMemoria()
