@@ -15,7 +15,7 @@ from typing import Protocol
 
 import httpx
 from PIL import Image, ImageOps, UnidentifiedImageError
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.orm import Session
 
 from app.auth import UsuarioAtual
@@ -48,7 +48,13 @@ def reprocessar(conteudo: bytes) -> bytes:
                 raise FotoFormato()
             imagem.load()
             limpa = ImageOps.exif_transpose(imagem).convert("RGB")
-    except (UnidentifiedImageError, Image.DecompressionBombError, OSError) as erro:
+    except (
+        UnidentifiedImageError,
+        Image.DecompressionBombError,
+        OSError,
+        SyntaxError,
+        ValueError,
+    ) as erro:
         raise FotoFormato() from erro
     limpa.thumbnail((LADO_MAX, LADO_MAX))
     saida = io.BytesIO()
@@ -113,6 +119,7 @@ def criar_armazenamento(supabase_url: str | None, chave: str | None) -> Armazena
     return ArmazenamentoSupabase(supabase_url, chave)
 
 
+_SQL_LER = text("SELECT autor_id, status FROM barreira_colaborativa WHERE id = :id")
 _SQL_TRAVAR = text(
     "SELECT autor_id, status, foto_caminho FROM barreira_colaborativa WHERE id = :id FOR UPDATE"
 )
@@ -122,12 +129,21 @@ _SQL_GRAVAR_FOTO = text(
 )
 
 
-def _travar_com_permissao(db: Session, usuario: UsuarioAtual, barreira_id: int):
-    linha = db.execute(_SQL_TRAVAR, {"id": barreira_id}).first()
+def _verificar(linha, usuario: UsuarioAtual) -> None:
     if linha is None or linha.status == "removida":
         raise NaoEncontrada()
     if not (usuario.admin or linha.autor_id == usuario.id):
         raise SemPermissao()
+
+
+def _checar_permissao(db: Session, usuario: UsuarioAtual, barreira_id: int) -> None:
+    """Checagem sem trava, antes das etapas lentas (reprocessar e enviar)."""
+    _verificar(db.execute(_SQL_LER, {"id": barreira_id}).first(), usuario)
+
+
+def _travar_com_permissao(db: Session, usuario: UsuarioAtual, barreira_id: int):
+    linha = db.execute(_SQL_TRAVAR, {"id": barreira_id}).first()
+    _verificar(linha, usuario)
     return linha
 
 
@@ -140,6 +156,19 @@ def _remover_sem_falhar(armazenamento: ArmazenamentoFotos, caminho: str | None) 
         armazenamento.remover(caminho)
     except StorageIndisponivel:
         pass
+
+
+def _remover_apos_commit(db: Session, armazenamento: ArmazenamentoFotos, caminho: str | None):
+    """Só apaga o objeto antigo depois que a transação confirma; se o commit
+    falhar, o banco ainda aponta para ele."""
+    if caminho is None:
+        return
+    event.listen(
+        db,
+        "after_commit",
+        lambda _sessao: _remover_sem_falhar(armazenamento, caminho),
+        once=True,
+    )
 
 
 def anexar_foto(
@@ -156,10 +185,12 @@ def anexar_foto(
     descricao = descricao.strip()
     if not _DESCRICAO_MIN <= len(descricao) <= _DESCRICAO_MAX:
         raise DescricaoFotoInvalida()
-    linha = _travar_com_permissao(db, usuario, barreira_id)
+    _checar_permissao(db, usuario, barreira_id)
     webp = reprocessar(conteudo)
     caminho = f"{barreira_id}/{uuid.uuid4().hex}.webp"
     armazenamento.enviar(caminho, webp)
+    # a trava só vale a partir daqui: lê a foto ATUAL e grava
+    linha = _travar_com_permissao(db, usuario, barreira_id)
     db.execute(
         _SQL_GRAVAR_FOTO,
         {"id": barreira_id, "caminho": caminho, "descricao": descricao, "agora": agora},
@@ -172,7 +203,7 @@ def anexar_foto(
         usuario_id=usuario.id,
         detalhe={"acao": "anexada"},
     )
-    _remover_sem_falhar(armazenamento, linha.foto_caminho)
+    _remover_apos_commit(db, armazenamento, linha.foto_caminho)
     return obter(db, barreira_id, agora)
 
 
@@ -197,5 +228,5 @@ def remover_foto(
         usuario_id=usuario.id,
         detalhe={"acao": "removida"},
     )
-    _remover_sem_falhar(armazenamento, linha.foto_caminho)
+    _remover_apos_commit(db, armazenamento, linha.foto_caminho)
     return obter(db, barreira_id, agora)

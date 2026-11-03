@@ -157,6 +157,7 @@ def test_autor_anexa_e_troca_foto(db_transacional, barreira, armazenamento_memor
         db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
     )
     assert segunda.foto_url != primeira.foto_url
+    db_transacional.commit()  # a foto antiga só sai do Storage depois do commit
     assert len(armazenamento_memoria.objetos) == 1  # a anterior foi apagada
     tipos = [e.tipo for e in barreiras.listar_eventos(db_transacional, b.id)]
     assert tipos.count("foto") == 2
@@ -208,4 +209,22 @@ def test_remover_foto(db_transacional, barreira, armazenamento_memoria):
     )
     resultado = fotos.remover_foto(db_transacional, autor, b.id, armazenamento_memoria, AGORA)
     assert (resultado.foto_url, resultado.foto_descricao) == (None, None)
+    db_transacional.commit()
     assert armazenamento_memoria.objetos == {}
+
+
+@pytest.mark.integration
+def test_foto_antiga_so_sai_do_storage_apos_commit(
+    db_transacional, barreira, armazenamento_memoria
+):
+    autor, b = barreira
+    fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    db_transacional.commit()
+    fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    db_transacional.rollback()
+    # sem commit a antiga continua lá (a nova fica órfã, o que é aceito)
+    assert len(armazenamento_memoria.objetos) == 2
