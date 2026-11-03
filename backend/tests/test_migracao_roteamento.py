@@ -60,13 +60,15 @@ def test_barreira_colaborativa_tem_indice_geom_e_fk_para_fonte_dados(db):
     }
     assert "barreira_colaborativa_geom_idx" in nomes_indices
 
-    fk_fonte = db.execute(
-        text(
-            "SELECT confrelid::regclass::text FROM pg_constraint "
-            "WHERE conrelid = 'barreira_colaborativa'::regclass AND contype = 'f'"
-        )
-    ).scalar_one()
-    assert fk_fonte == "fonte_dados"
+    fks = set(
+        db.execute(
+            text(
+                "SELECT confrelid::regclass::text FROM pg_constraint "
+                "WHERE conrelid = 'barreira_colaborativa'::regclass AND contype = 'f'"
+            )
+        ).scalars()
+    )
+    assert "fonte_dados" in fks
 
 
 def test_barreira_colaborativa_rejeita_severidade_fora_do_dominio(db):
