@@ -89,6 +89,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/barreiras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar */
+        get: operations["listar_api_barreiras_get"];
+        put?: never;
+        /** Criar */
+        post: operations["criar_api_barreiras_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/barreiras/{barreira_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obter */
+        get: operations["obter_api_barreiras__barreira_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/barreiras/{barreira_id}/voto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Votar */
+        put: operations["votar_api_barreiras__barreira_id__voto_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/barreiras/{barreira_id}/foto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Anexar Foto */
+        post: operations["anexar_foto_api_barreiras__barreira_id__foto_post"];
+        /** Remover Foto */
+        delete: operations["remover_foto_api_barreiras__barreira_id__foto_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/barreiras/{barreira_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mudar Status */
+        post: operations["mudar_status_api_admin_barreiras__barreira_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/barreiras/{barreira_id}/eventos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Eventos */
+        get: operations["eventos_api_admin_barreiras__barreira_id__eventos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -102,6 +206,63 @@ export interface components {
             tipo: "exigencia_relaxada" | "barreira_dificulta" | "trecho_sem_dados" | "motor_fallback";
             /** Mensagem */
             mensagem: string;
+        };
+        /** BarreiraIn */
+        BarreiraIn: {
+            /**
+             * Categoria
+             * @enum {string}
+             */
+            categoria: "escada" | "sem_rampa" | "elevador_quebrado" | "obstaculo_bloqueando" | "calcada_estreita" | "rampa_ingreme" | "buraco" | "piso_irregular" | "sem_piso_tatil" | "outro";
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Descricao */
+            descricao?: string | null;
+            /**
+             * Chave Idempotencia
+             * Format: uuid
+             */
+            chave_idempotencia: string;
+        };
+        /**
+         * BarreiraOut
+         * @description Ficha pública: nunca inclui quem reportou nem quem votou (LGPD).
+         */
+        BarreiraOut: {
+            /** Id */
+            id: number;
+            /** Categoria */
+            categoria: string;
+            /**
+             * Severidade
+             * @enum {string}
+             */
+            severidade: "intransponivel" | "dificulta" | "informativo";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pendente" | "validada" | "contestada" | "resolvida" | "expirada" | "removida";
+            votos: components["schemas"]["Votos"];
+            /** Descricao */
+            descricao: string | null;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /**
+             * Criada Em
+             * Format: date-time
+             */
+            criada_em: string;
+            /** Ultima Confirmacao Em */
+            ultima_confirmacao_em: string | null;
+            /** Foto Url */
+            foto_url: string | null;
+            /** Foto Descricao */
+            foto_descricao: string | null;
         };
         /** BarreiraResumo */
         BarreiraResumo: {
@@ -122,6 +283,13 @@ export interface components {
             confirmacoes: number | null;
             /** Data Referencia */
             data_referencia: string | null;
+        };
+        /** Body_anexar_foto_api_barreiras__barreira_id__foto_post */
+        Body_anexar_foto_api_barreiras__barreira_id__foto_post: {
+            /** Arquivo */
+            arquivo: string;
+            /** Descricao */
+            descricao: string;
         };
         /** Coordenada */
         Coordenada: {
@@ -150,6 +318,30 @@ export interface components {
              * @default false
              */
             aproximado: boolean;
+        };
+        /** EventoOut */
+        EventoOut: {
+            /** Id */
+            id: number;
+            /** Barreira Id */
+            barreira_id: number | null;
+            /** Usuario Id */
+            usuario_id: string | null;
+            /** Tipo */
+            tipo: string;
+            /** De Status */
+            de_status: string | null;
+            /** Para Status */
+            para_status: string | null;
+            /** Detalhe */
+            detalhe: {
+                [key: string]: unknown;
+            };
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
         };
         /** FonteOut */
         FonteOut: {
@@ -308,6 +500,16 @@ export interface components {
             /** Cache */
             cache: boolean;
         };
+        /** StatusAdminIn */
+        StatusAdminIn: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pendente" | "validada" | "contestada" | "resolvida" | "expirada" | "removida";
+            /** Motivo */
+            motivo: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -320,6 +522,23 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VotoIn */
+        VotoIn: {
+            /**
+             * Voto
+             * @enum {string}
+             */
+            voto: "confirma" | "contesta" | "resolvida";
+        };
+        /** Votos */
+        Votos: {
+            /** Confirma */
+            confirma: number;
+            /** Contesta */
+            contesta: number;
+            /** Resolvida */
+            resolvida: number;
         };
     };
     responses: never;
@@ -454,6 +673,282 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EnderecoOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_api_barreiras_get: {
+        parameters: {
+            query: {
+                lat: number;
+                lon: number;
+                raio_m?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BarreiraOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    criar_api_barreiras_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BarreiraIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BarreiraOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obter_api_barreiras__barreira_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                barreira_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BarreiraOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    votar_api_barreiras__barreira_id__voto_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                barreira_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VotoIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BarreiraOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anexar_foto_api_barreiras__barreira_id__foto_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                barreira_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_anexar_foto_api_barreiras__barreira_id__foto_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BarreiraOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_foto_api_barreiras__barreira_id__foto_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                barreira_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BarreiraOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mudar_status_api_admin_barreiras__barreira_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                barreira_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusAdminIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BarreiraOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    eventos_api_admin_barreiras__barreira_id__eventos_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                barreira_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventoOut"][];
                 };
             };
             /** @description Validation Error */

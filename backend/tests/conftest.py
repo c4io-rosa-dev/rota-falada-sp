@@ -211,3 +211,19 @@ def armazenamento_memoria():
     from app.services.fotos import ArmazenamentoMemoria
 
     return ArmazenamentoMemoria()
+
+
+@pytest.fixture
+def cliente_api(db_transacional, config_auth_teste, armazenamento_memoria):
+    from fastapi.testclient import TestClient
+
+    from app.auth import obter_config_auth
+    from app.db import get_db
+    from app.main import create_app
+    from app.routers.barreiras import obter_armazenamento
+
+    app = create_app()
+    app.dependency_overrides[get_db] = lambda: db_transacional
+    app.dependency_overrides[obter_config_auth] = lambda: config_auth_teste
+    app.dependency_overrides[obter_armazenamento] = lambda: armazenamento_memoria
+    return TestClient(app)
