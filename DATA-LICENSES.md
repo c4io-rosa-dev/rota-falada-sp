@@ -7,7 +7,9 @@
 | SP156 / SMIT | CC0 1.0 | Nenhuma (atribuímos por boa prática) | `barreira_oficial` |
 | SPTrans (Olho Vivo e GTFS) | Não declarada publicamente | Atribuímos "Dados: SPTrans / API Olho Vivo" | `parada`, `linha` |
 | openrouteservice | Dados ODbL; serviço CC-BY 4.0 | "© openrouteservice.org by HeiGIT" | respostas em `rota_cache` |
-| Contribuições dos usuários | ODbL 1.0 (decisão de 10/09/2026) | Permite devolução futura ao OSM | `barreira_colaborativa`, `confirmacao` |
+| Contribuições dos usuários | ODbL 1.0 (decisão de 10/09/2026) | Permite devolução futura ao OSM | `barreira_colaborativa`, `confirmacao`, `barreira_evento`, fotos no bucket `fotos-barreiras` |
+
+A tabela `usuario` guarda só o id do Supabase e o papel (`colaborador`/`admin`); nenhum e-mail é copiado para o banco da aplicação. As respostas públicas não expõem autor nem votantes; as fotos são reprocessadas sem metadados (o GPS da câmera é descartado).
 
 ## Por que as tabelas são separadas
 

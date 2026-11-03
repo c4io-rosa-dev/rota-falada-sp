@@ -63,6 +63,22 @@ python scripts/gravar_fixtures_ors.py
 Veja `backend/app/fixtures/README.md` para como o `OrsFixtureClient` escolhe o arquivo e o
 estado atual (sintéticas ou gravadas de verdade).
 
+## Geocode
+
+`GET /api/geocode?q=` busca ruas, endereços com número e lugares com nome da área piloto (dados do OSM, sem serviço externo); `GET /api/geocode/reverso?lat=&lon=` devolve o endereço a até 50 m. Os dados vêm da etapa `enderecos` do ETL.
+
+## Camada colaborativa
+
+Login por código de 6 dígitos no e-mail (Supabase Auth); o backend confere o JWT pelo JWKS público do projeto.
+
+- `GET /api/barreiras?lat=&lon=&raio_m=` e `GET /api/barreiras/{id}` — públicas, sem autor nem votantes.
+- `POST /api/barreiras` — cadastra (idempotente pela `chave_idempotencia`; 20 por dia por pessoa).
+- `PUT /api/barreiras/{id}/voto` — `confirma`, `contesta` ou `resolvida`; um voto por pessoa; o autor não vota.
+- `POST`/`DELETE /api/barreiras/{id}/foto` — foto opcional com texto alternativo; reprocessada sem metadados.
+- `POST /api/admin/barreiras/{id}/status` e `GET /api/admin/barreiras/{id}/eventos` — só admin.
+
+Intransponível valida com 2 confirmações, dificulta com 1; 2 contestações ou 2 "resolvida" encerram. Pendente expira em 30 dias e validada em 180 dias sem confirmação. Promover admin: `python scripts/promover_admin.py --email <e-mail>` (em `backend/`, contra o Supabase). Gravar expirações: `python scripts/expirar.py`.
+
 ## Comandos
 
 | O quê | Backend (`backend/`) | Frontend (`frontend/`) |
