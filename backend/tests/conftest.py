@@ -1,7 +1,12 @@
 import math
+import uuid
+from datetime import UTC, datetime, timedelta
 
+import jwt
 import pytest
+from cryptography.hazmat.primitives.asymmetric import ec
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
 from app.config import settings
 
@@ -123,3 +128,79 @@ def area_teste(db_geocode):
         {"oeste": lon - 0.01, "sul": lat - 0.01, "leste": lon + 0.01, "norte": lat + 0.01},
     )
     return lon, lat
+
+
+# --- camada colaborativa (Plano 6) ---------------------------------------------
+
+EMISSOR_TESTE = "https://projeto-teste.supabase.co/auth/v1"
+
+
+class _FonteFixa:
+    """Fonte de chaves que devolve sempre a mesma chave pública (sem rede)."""
+
+    def __init__(self, chave_publica) -> None:
+        self._chave = chave_publica
+
+    def chave_para(self, token: str):
+        return self._chave
+
+
+@pytest.fixture(scope="session")
+def chave_teste():
+    return ec.generate_private_key(ec.SECP256R1())
+
+
+@pytest.fixture
+def config_auth_teste(chave_teste):
+    from app.auth import ConfigAuth
+
+    return ConfigAuth(emissor=EMISSOR_TESTE, fonte=_FonteFixa(chave_teste.public_key()))
+
+
+@pytest.fixture
+def emitir_token(chave_teste):
+    def _emitir(sub, *, validade_s=3600, aud="authenticated", iss=EMISSOR_TESTE, chave=None):
+        agora = datetime.now(UTC)
+        dados = {
+            "sub": str(sub),
+            "aud": aud,
+            "iss": iss,
+            "role": "authenticated",
+            "iat": agora,
+            "exp": agora + timedelta(seconds=validade_s),
+        }
+        return jwt.encode(dados, chave or chave_teste, algorithm="ES256")
+
+    return _emitir
+
+
+@pytest.fixture
+def db_transacional():
+    """Sessão dentro de uma transação revertida no fim; `commit()` do código
+    testado vira apenas a liberação de um savepoint."""
+    from app.db import engine
+
+    conexao = engine.connect()
+    transacao = conexao.begin()
+    sessao = Session(bind=conexao, join_transaction_mode="create_savepoint")
+    try:
+        yield sessao
+    finally:
+        sessao.close()
+        transacao.rollback()
+        conexao.close()
+
+
+@pytest.fixture
+def criar_usuario(db_transacional):
+    from app.auth import UsuarioAtual
+
+    def _criar(papel: str = "colaborador") -> UsuarioAtual:
+        usuario_id = uuid.uuid4()
+        db_transacional.execute(
+            text("INSERT INTO usuario (id, papel) VALUES (:id, :papel)"),
+            {"id": usuario_id, "papel": papel},
+        )
+        return UsuarioAtual(id=usuario_id, papel=papel)
+
+    return _criar
