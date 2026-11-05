@@ -1,5 +1,5 @@
 import type { components } from './types.gen'
-import { ErroApi } from './base'
+import { ErroApi, MSG_INSTABILIDADE } from './base'
 import { pedir } from './http'
 
 export { apiUrl } from './base'
@@ -11,8 +11,7 @@ export type RotaOut = components['schemas']['RotaOut']
 
 /** Teto do POST depois de o servidor acordar: ORS tem 15 s por chamada e o fallback é local. */
 export const TEMPO_ROTA_MS = 60_000
-export const MSG_ROTA_INDISPONIVEL =
-  'O serviço de rotas não respondeu agora. Isso não quer dizer que a rota não existe.'
+export const MSG_ROTA_INDISPONIVEL = MSG_INSTABILIDADE
 
 export function listarFontes(sinal?: AbortSignal): Promise<Fonte[]> {
   return pedir('/api/fontes', { sinal })

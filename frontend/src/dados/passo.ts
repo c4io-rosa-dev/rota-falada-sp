@@ -62,13 +62,12 @@ export function textoMotor(motor: RotaOut['motor']): string {
 }
 
 /**
- * A frase fixa da ficha. Só diz o que o motor faz: o ORS desvia e o pgRouting usa o custo
- * gravado pelo ETL, que bloqueia escada da base de ruas e não lê barreira registrada. E, sob
- * o pgRouting, `barreiras_proximas` traz só `dificulta`: a que bloqueia nem aparece no passo.
+ * A frase fixa da ficha. Só diz o que o motor faz: o ORS e o pgRouting desviam das barreiras
+ * confirmadas que bloqueiam; o pgRouting também evita as escadas da base de ruas.
  */
 export function textoSobreARota(motor: RotaOut['motor']): string {
   if (motor === 'pgrouting') {
-    return 'Rota sugerida pelo roteamento local de reserva. Ele evita as escadas da base de ruas, mas não desvia das barreiras registradas, e as que bloqueiam a passagem podem não aparecer nos passos. Confira as barreiras perto de cada passo. Não sabemos o que não foi registrado.'
+    return 'Rota sugerida pelo roteamento local de reserva. Ela evita as escadas da base de ruas e as barreiras confirmadas que bloqueiam a passagem, e avisa das que só dificultam. Relatos ainda sem confirmação não mudam a rota, e não sabemos o que não foi registrado.'
   }
   if (motor === 'fixture') {
     return 'Rota gravada para demonstração. Ela não muda com as barreiras registradas, e não sabemos o que não foi registrado.'

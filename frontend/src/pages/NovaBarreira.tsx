@@ -18,7 +18,7 @@ import { apagarRascunho, comChave, comEdicao, gravarRascunho, lerRascunho, type 
 import '../estilos/colaborar.css'
 import '../estilos/rota.css'
 
-const MSG_FALHA_ENVIO = 'Não conseguimos enviar agora. O rascunho fica só nesta aba: se você a fechar, ele se perde.'
+const MSG_FALHA_ENVIO = 'Instabilidade no sistema. O rascunho fica só nesta aba: se você a fechar, ele se perde.'
 
 type EstadoNavegacao = { local?: LocalEscolhido } | null
 
@@ -147,7 +147,7 @@ export function NovaBarreira() {
         </h1>
         <p className="subtitulo">
           Três toques: o tipo, o lugar e confirmar. O que você registra fica público, sem seu nome nem e-mail; a moderação vê
-          só um código da conta, para auditoria.
+          só um código da conta, para auditoria. Os dados ficam abertos, sob a licença ODbL.
         </p>
       </div>
 

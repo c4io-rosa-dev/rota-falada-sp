@@ -19,7 +19,7 @@ export const SIGNIFICADO_STATUS: Record<StatusBarreira, string> = {
   contestada: 'Não existe, segundo a decisão. A rota não considera. Votação encerrada.',
   resolvida: 'Foi consertada. A rota não considera. Votação encerrada.',
   expirada: 'Venceu o prazo. A rota não considera. Votação encerrada.',
-  removida: 'Some do público: é falsa, abusiva ou duplicada.',
+  removida: 'Some do público e a foto é apagada de vez: é falsa, abusiva ou duplicada.',
 }
 
 export const STATUS_TODOS = Object.keys(TEXTO_STATUS) as StatusBarreira[]
@@ -53,10 +53,6 @@ export function textoEfeito(b: Pick<Barreira, 'status' | 'severidade' | 'votos'>
       return 'Removida pela moderação. Não aparece para o público.'
   }
 }
-
-/** O pgRouting usa só o custo gravado pelo ETL: a barreira registrada não muda a rota de reserva. */
-export const AVISO_ROTA_RESERVA =
-  'Exceção: a rota de reserva, usada quando o serviço principal cai, ainda não considera este registro. A ficha da rota diz quando é o caso.'
 
 export function explicacaoVoto(voto: Voto, b: Pick<Barreira, 'severidade'>): string {
   // informativa nasce validada e nunca entra na rota: não há efeito a prometer
@@ -145,7 +141,7 @@ export function textoEvento(e: Evento): string {
 const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_BYTES_FOTO = 5 * 1024 * 1024
 
-/** Os limites de services/fotos.py, antes de gastar o envio. Os 40 megapixels ficam para o servidor. */
+/** Os limites de services/fotos.py, antes de gastar o envio. Os 12 megapixels ficam para o servidor. */
 export function erroDoArquivo(arquivo: File): string | null {
   if (!TIPOS_FOTO.includes(arquivo.type)) return 'Use uma foto em JPEG, PNG ou WebP.'
   if (arquivo.size > MAX_BYTES_FOTO) return 'A foto passa de 5 MB. Escolha uma menor.'

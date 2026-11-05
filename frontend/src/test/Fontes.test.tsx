@@ -68,7 +68,7 @@ describe('página /fontes', () => {
       ),
     )
     renderizarFontes()
-    const texto = 'O serviço não respondeu agora. Tente de novo em alguns minutos.'
+    const texto = 'Instabilidade no sistema. Tente de novo em alguns minutos.'
     expect(await screen.findByText(texto)).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(texto))
     expect(document.querySelectorAll('[aria-live],[role=status],[role=alert]')).toHaveLength(1)

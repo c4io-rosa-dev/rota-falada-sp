@@ -169,7 +169,7 @@ describe('página /rota', () => {
     await preencher(user)
     await user.click(await botaoCalcular())
     expect(await screen.findByRole('heading', { level: 2, name: 'Não foi possível calcular agora' })).toHaveFocus()
-    expect(screen.getByText(/Isso não quer dizer que a rota não existe/)).toBeInTheDocument()
+    expect(screen.getByText(/Instabilidade no sistema/)).toBeInTheDocument()
     expect(screen.queryByText(/Não encontramos rota acessível/)).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Tentar de novo' }))
     await waitFor(() => expect(api.de('POST /api/rotas')).toHaveLength(2))
@@ -177,14 +177,14 @@ describe('página /rota', () => {
     expect(document.activeElement).not.toBe(document.body)
   })
 
-  it('sob o pgRouting a ficha diz que não desvia das barreiras registradas', async () => {
+  it('sob o pgRouting a ficha diz que a rota de reserva também desvia das barreiras', async () => {
     apiFalsa({ ...INATIVO, 'POST /api/rotas': Response.json({ ...ROTA, motor: 'pgrouting' }) })
     const user = userEvent.setup()
     abrir()
     await preencher(user)
     await user.click(await botaoCalcular())
-    expect(await screen.findByText(/não desvia das barreiras registradas/)).toBeInTheDocument()
-    expect(screen.queryByText(/evita as barreiras confirmadas/)).toBeNull()
+    expect(await screen.findByText(/roteamento local de reserva/)).toBeInTheDocument()
+    expect(screen.queryByText(/não desvia/)).toBeNull()
   })
 
   it('Enter no campo escolhido envia e leva o foco ao resultado, como o botão', async () => {

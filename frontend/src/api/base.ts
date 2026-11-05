@@ -34,13 +34,15 @@ export class ErroApi extends Error {
   }
 }
 
-export const MSG_SEM_INTERNET = 'Sem conexão com a internet. Confira o sinal e tente de novo.'
-export const MSG_REDE = 'Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.'
-export const MSG_TEMPO = 'Demorou demais. Tente de novo.'
-export const MSG_INDISPONIVEL = 'O serviço não respondeu agora. Tente de novo em alguns minutos.'
-export const MSG_SEM_RESPOSTA = 'O servidor não respondeu. Confira o sinal e tente de novo em alguns minutos.'
+/** Decisão do dono (05/11/2026): a tela de erro reporta só instabilidade, sem apontar causa nem culpar a conexão da pessoa. */
+export const MSG_INSTABILIDADE = 'Instabilidade no sistema. Tente de novo em alguns minutos.'
+export const MSG_SEM_INTERNET = MSG_INSTABILIDADE
+export const MSG_REDE = MSG_INSTABILIDADE
+export const MSG_TEMPO = MSG_INSTABILIDADE
+export const MSG_INDISPONIVEL = MSG_INSTABILIDADE
+export const MSG_SEM_RESPOSTA = MSG_INSTABILIDADE
 export const MSG_VALIDACAO = 'Confira os dados informados.'
-export const MSG_INESPERADO = 'Algo não saiu como esperado. Tente de novo.'
+export const MSG_INESPERADO = MSG_INSTABILIDADE
 
 /** Cancelamento pedido por quem chamou: nunca é erro para a pessoa. */
 export function ehCancelamento(erro: unknown): boolean {

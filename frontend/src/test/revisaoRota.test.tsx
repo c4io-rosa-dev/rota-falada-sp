@@ -92,7 +92,7 @@ describe('abortar com o corpo a caminho', () => {
     await waitFor(() => expect(pedidos).toHaveLength(1))
     await user.keyboard('x')
     await pausa(200)
-    expect(screen.getByRole('status')).not.toHaveTextContent('O serviço não respondeu agora')
+    expect(screen.getByRole('status')).not.toHaveTextContent('Instabilidade no sistema')
   })
 
   it('Enter de novo durante a leitura do corpo: a segunda busca ainda vira lista', async () => {

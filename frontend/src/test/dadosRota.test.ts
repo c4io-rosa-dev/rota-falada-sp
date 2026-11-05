@@ -59,9 +59,8 @@ describe('textos do passo', () => {
     expect(textoSobreARota('ors')).toBe(
       'Rota sugerida com os dados disponíveis. Ela evita as barreiras confirmadas que bloqueiam a passagem e avisa das que só dificultam. Relatos ainda sem confirmação não mudam a rota, e não sabemos o que não foi registrado.',
     )
-    // o pgRouting usa só o custo gravado pelo ETL: desvia de escada da base, nunca de barreira registrada
-    expect(textoSobreARota('pgrouting')).toContain('não desvia das barreiras registradas')
-    expect(textoSobreARota('pgrouting')).toContain('Não sabemos o que não foi registrado')
+    expect(textoSobreARota('pgrouting')).toContain('as barreiras confirmadas que bloqueiam a passagem')
+    expect(textoSobreARota('pgrouting')).toContain('não sabemos o que não foi registrado')
     expect(textoSobreARota('fixture')).toContain('Ela não muda com as barreiras registradas')
   })
 

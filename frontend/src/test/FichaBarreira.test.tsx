@@ -185,12 +185,6 @@ describe('/barreiras/:id', () => {
     expect(await screen.findByText('Endereço indisponível agora.')).toBeInTheDocument()
   })
 
-  it('barreira que bloqueia avisa da exceção da rota de reserva', async () => {
-    apiFalsa({ 'GET /api/barreiras/5': Response.json(ficha({ status: 'validada' })), ...REVERSO })
-    abrir('/barreiras/5')
-    expect(await screen.findByText(/a rota de reserva, usada quando o serviço principal cai, ainda não considera este registro/i)).toBeInTheDocument()
-  })
-
   it('"recém-criada" não sobrevive no histórico: outra conta não herda a autoria', async () => {
     apiFalsa({ 'GET /api/barreiras/5': Response.json(ficha()), ...REVERSO })
     let estado: unknown = 'inicial'

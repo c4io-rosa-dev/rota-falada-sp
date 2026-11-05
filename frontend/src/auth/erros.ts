@@ -1,10 +1,11 @@
+import { MSG_INSTABILIDADE } from '../api/base'
 import { ErroApi } from '../api/base'
 
 export const MSG_CODIGO_ERRADO = 'Código incorreto ou vencido. Confira os dígitos ou peça outro.'
 export const MSG_LIMITE = 'Muitos pedidos agora. Tente em alguns minutos. O que você escreveu continua aqui.'
-export const MSG_REDE_AUTH = 'Não conseguimos falar com o serviço de login. Tente de novo.'
-export const MSG_TEMPO_AUTH = 'O serviço de login demorou demais. Confira o sinal e tente de novo.'
-export const MSG_ABRIR_LOGIN = 'Não conseguimos abrir o login. Confira o sinal e tente de novo; se continuar, recarregue a página.'
+export const MSG_REDE_AUTH = MSG_INSTABILIDADE
+export const MSG_TEMPO_AUTH = MSG_INSTABILIDADE
+export const MSG_ABRIR_LOGIN = MSG_INSTABILIDADE
 
 const POR_CODIGO: Record<string, string> = {
   otp_expired: MSG_CODIGO_ERRADO,

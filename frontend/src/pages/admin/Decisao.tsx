@@ -144,7 +144,7 @@ export function Decisao() {
           {barreira.foto_url && <img className="foto__previa" src={barreira.foto_url} alt={barreira.foto_descricao ?? ''} loading="lazy" />}
           {barreira.foto_url && barreira.status !== 'removida' && (
             <>
-              <p className="campo__dica">Foto denunciada: remova antes de marcar como removida. Depois disso a foto não pode mais ser apagada por aqui.</p>
+              <p className="campo__dica">Foto denunciada: remova só a foto por aqui. Marcar a barreira como removida apaga a foto de vez, mesmo que ela volte depois.</p>
               <Placa ref={botaoRemover} aria-disabled={removendo || undefined} onClick={() => void remocao.executar()}>
                 Remover foto
               </Placa>

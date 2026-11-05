@@ -4,7 +4,7 @@ import { Placa } from './Placa'
 type Props = { children: ReactNode }
 type Estado = { falhou: boolean }
 
-const TITULO = 'Não conseguimos abrir esta página'
+const TITULO = 'Instabilidade no sistema'
 
 /**
  * Página que não carregou: sem sinal, ou um chunk antigo depois de um deploy (o Workers
@@ -39,7 +39,7 @@ export class ErroDePagina extends Component<Props, Estado> {
         <h1 ref={this.titulo} tabIndex={-1}>
           {TITULO}
         </h1>
-        <p>Pode ser falta de sinal ou uma versão nova do site. Confira o sinal e recarregue.</p>
+        <p>Pode ser falta de sinal ou uma versão nova do site. Recarregue a página em alguns minutos.</p>
         <Placa onClick={() => window.location.reload()}>Recarregar a página</Placa>
       </div>
     )

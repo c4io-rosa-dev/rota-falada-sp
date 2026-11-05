@@ -15,10 +15,10 @@ describe('ErroDePagina', () => {
         <Quebra />
       </ErroDePagina>,
     )
-    const titulo = screen.getByRole('heading', { level: 1, name: 'Não conseguimos abrir esta página' })
+    const titulo = screen.getByRole('heading', { level: 1, name: 'Instabilidade no sistema' })
     expect(titulo).toHaveFocus()
-    expect(document.title).toBe('Não conseguimos abrir esta página · Rota Falada SP')
-    expect(screen.getByText(/Confira o sinal e recarregue/)).toBeInTheDocument()
+    expect(document.title).toBe('Instabilidade no sistema · Rota Falada SP')
+    expect(screen.getByText(/Recarregue a página em alguns minutos/)).toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/recebeu uma versão nova/)
     expect(screen.getByRole('button', { name: 'Recarregar a página' })).toBeInTheDocument()
   })

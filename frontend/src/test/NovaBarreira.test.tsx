@@ -11,7 +11,7 @@ vi.mock('../auth/cliente', () => import('./clienteFalso'))
 
 prepararColaboracao()
 
-const MSG_FALHA = 'Não conseguimos enviar agora. O rascunho fica só nesta aba: se você a fechar, ele se perde.'
+const MSG_FALHA = 'Instabilidade no sistema. O rascunho fica só nesta aba: se você a fechar, ele se perde.'
 
 describe('/barreiras/nova', () => {
   const LOCAL = { lat: -23.59, lon: -46.635, rotulo: 'Rua A, 1', origem: 'busca' }

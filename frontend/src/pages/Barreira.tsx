@@ -12,7 +12,7 @@ import { useAnuncio } from '../componentes/useAnuncio'
 import { useEsperaServidor } from '../componentes/useEsperaServidor'
 import { Placa } from '../componentes/Placa'
 import { Votacao } from '../componentes/Votacao'
-import { AVISO_ROTA_RESERVA, formatarDia, textoEfeito, textoStatus, textoVotos, votacaoEncerrada } from '../dados/barreira'
+import { formatarDia, textoEfeito, textoStatus, textoVotos, votacaoEncerrada } from '../dados/barreira'
 import { rotuloCategoria } from '../dados/categorias'
 import { arredondar4 } from '../dados/localizacao'
 import { lembrarMinha, lerMinhas } from '../dados/rascunho'
@@ -146,7 +146,6 @@ export function Barreira() {
           <p ref={efeito} tabIndex={-1}>
             <strong className="escolha-local__rotulo">{textoStatus(barreira)}.</strong> {textoEfeito(barreira)}
           </p>
-          {barreira.status === 'validada' && barreira.severidade === 'intransponivel' && <p className="campo__dica">{AVISO_ROTA_RESERVA}</p>}
           <p>{textoEndereco}</p>
           {barreira.descricao && <p>{barreira.descricao}</p>}
           <p className="campo__dica">

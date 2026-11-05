@@ -123,7 +123,8 @@ export function FotoBarreira({ barreira, aoAtualizar }: { barreira: Barreira; ao
         <div className="campo">
           <label htmlFor="foto-arquivo">Arquivo da foto</label>
           <p id="foto-aviso" className="campo__dica">
-            Removemos a localização gravada na foto. Evite rostos e placas de carro; não há borramento automático.
+            Removemos a localização gravada na foto. Evite rostos e placas de carro; não há borramento automático. A foto
+            fica pública, sob a licença CC BY-SA 4.0.
           </p>
           <input
             ref={campoArquivo}

@@ -185,7 +185,7 @@ test('fim a fim: 404 e 503 falam a verdade', async ({ page }) => {
   await semViolacoes(page, 'sem rota')
   await page.getByRole('button', { name: 'Calcular rota' }).click()
   await expect(page.getByRole('heading', { level: 2, name: 'Não foi possível calcular agora' })).toBeFocused()
-  await expect(page.getByText(/Isso não quer dizer que a rota não existe/)).toBeVisible()
+  await expect(page.getByText(/Instabilidade no sistema/)).toBeVisible()
   await semViolacoes(page, 'indisponível')
   await page.getByRole('button', { name: 'Tentar de novo' }).click()
   await expect(page.getByRole('heading', { level: 2, name: /Rota encontrada/ })).toBeFocused()
