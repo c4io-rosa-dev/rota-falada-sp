@@ -45,13 +45,14 @@ Os quatro diferenciais abaixo foram confirmados pelo dono do projeto em 12/10/20
 - Backend `POST /api/rotas` com passos enriquecidos, avisos (`exigencia_relaxada`, `barreira_dificulta`, `trecho_sem_dados`, `motor_fallback`), nível de exigência atendido, motor usado e geometria GeoJSON por passo e da rota inteira. `GET /api/fontes` com licenças e datas. `GET /health` com estado do banco, último ETL e cota do ORS.
 - Frontend no estado do Plano 1 (o redesenho de setembro foi descartado em 12/10/2026): React 19, TypeScript, Vite, react-router 7, CSS puro com variáveis, tema claro e escuro por `prefers-color-scheme`, páginas `/`, `/fontes` e `/acessibilidade`, skip link, foco no `h1`, alvos de 44 px, `prefers-reduced-motion`, `jsx-a11y` strict e `vitest-axe`.
 - Tipos TypeScript gerados do OpenAPI em `frontend/src/api/types.gen.ts`.
+- Tela `/rota` real: autocomplete local (`GET /api/geocode`), minha localização, lista de passos canônica, região viva única e mapa redundante por botão.
+- Login por código de 6 dígitos, cadastro de barreira em 3 toques, votos, foto opcional e painel de moderação.
 
 **Ainda não existe:**
-- Tela de busca de rota, autocomplete de endereço (`GET /api/geocode` a construir, Photon como fallback), lista de passos, mapa e região viva única (Plano 5).
-- Cadastro colaborativo de barreiras (Plano 6), previsão de ônibus acessível, voz e fila offline (Plano 7).
+- Previsão de ônibus acessível, voz e fila offline (Plano 7).
 
 **Restrições duras:**
-- Nenhuma chave de API no frontend. Nenhuma IA generativa em runtime. Nenhum histórico de trajetos por usuário (LGPD).
+- Nenhuma chave secreta no frontend. A publishable key do Supabase é pública e usada só no login. Nenhuma IA generativa em runtime. Nenhum histórico de trajetos por usuário (LGPD).
 - Voz é recurso progressivo, nunca a única forma de entrada ou saída.
 - O mapa nunca é a única forma de entender a rota. Nenhum dado existe só no mapa.
 - Nunca prometer roteamento por transporte público acessível: o GTFS não tem campos de acessibilidade, e a SPTrans só informa se o veículo é acessível.

@@ -221,7 +221,7 @@ Página em pilha vertical com cabeçalho e rodapé em faixa escura de largura to
 - **Para quem é:** três colunas de texto sem caixa, separadas por espaço `e-4` e junta vertical de 1 px; a nota da banca segue embaixo em label tinta-2.
 - **Exemplo de rota:** h2 fora da ficha; ficha fixa (sticky) 6fr ao lado da tabela 18fr. A partir de 1200 px, um cabeçalho de colunas único e as 11 linhas compartilham as mesmas colunas por `subgrid`, e os rótulos por linha saem da vista mas continuam para o leitor de tela; abaixo disso cada campo mostra o próprio rótulo.
 - **/rota:** cabeça em largura total, formulário 7fr e torre anexo 5fr. **/fontes e /acessibilidade:** folha lisa de até 48rem.
-- **≤ 1023 px:** coluna única; as passarelas viram patamares empilhados em largura total, sem recuo alternado, ligados pela mesma junta contínua; o poço some; lajes e personas empilham (personas separadas por junta horizontal); a ficha deixa de ser fixa. **≤ 560 px:** paddings menores, tabela com dados em 2 colunas, opções em 1. **≤ 400 px:** placa em largura 112 e nome da rua no vão em largura 100. **≤ 360 px:** nome da rua no vão em largura 75 e tracking 0; dados em uma coluna.
+- **≤ 1023 px:** coluna única; as passarelas viram patamares empilhados em largura total, sem recuo alternado, ligados pela mesma junta contínua; o poço some; lajes e personas empilham (personas separadas por junta horizontal); a ficha deixa de ser fixa. **≤ 560 px:** paddings menores, tabela com dados em 2 colunas, opções em 1. **≤ 400 px:** placa em largura 112, nome da rua no vão e letreiro Display das telas colaborativas (`.colaborar .display`) em largura 100. **≤ 360 px:** nome da rua no vão em largura 75 e tracking 0; dados em uma coluna.
 
 ## Elevation & Depth
 
@@ -263,6 +263,15 @@ Um passo da rota como vão: tabuleiro em vão com guarda-corpo de 2 px em cima e
 ### Tabela gravada de passos
 Lista ordenada sem caixa, aberta por régua de 1 px em junta forte e com régua de 1 px em junta entre linhas. Cada linha: numeral em headline tinta-2, instrução em body 600 e os sete campos (distância, largura, declividade, guia, degrau, fonte, data) num `dl`; guia não rebaixada em 600. Passo em leitura: numeral invertido em óxido, em sincronia com o vão.
 
+### Autocomplete de endereço
+Combobox editável com lista em fluxo, nunca flutuante: empurra o conteúdo e resolve 320 px e zoom de 400%. Opção de 48 px sobre vão, junta de 1 px; ativa com contorno de 2 px em óxido e o pictograma `siga` como segundo sinal.
+
+### Mapa
+Só por botão, em `figure` com junta de 1 px. Casing em laje 8 px, linha em tinta 4 px; passo ativo em óxido 6 px, com o número na legenda como segundo sinal. Tiles em cinza por filtro. Marcador `DivIcon` com pictograma, contorno de 2 px em tinta. Nada focável dentro do `role="img"`; a atribuição fica numa `figcaption` sobreposta, fora dele. Nenhuma animação. "Ver o passo N no mapa" usa `aria-current`, com o mesmo sinal da placa pressionada: pressionar de novo não desliga, enquadra e fala de novo.
+
+### Resultado da rota
+Depois do formulário, em largura total: h2 com o resumo, ficha solta (nunca fixa em /rota) e mapa lado a lado a partir de 1024 px, tabela gravada em largura total abaixo.
+
 ### Região viva única
 Uma só região `role="status"` educada e atômica, montada no App; componentes anunciam por um hook. Anuncia estados ("Lendo a rota em voz alta.", "Leitura interrompida."), nunca o texto do passo, para não duplicar a voz.
 
@@ -296,4 +305,4 @@ Uma só região `role="status"` educada e atômica, montada no App; componentes 
 - Revisão minimalista de 13/10/2026 (pedido do dono), disposição final: ship. Capturas do estado atual em `.impeccable/review/` (desktop-dobra-light, desktop-light, desktop escuro, desktop-ativo-light, mobile-light, mobile-320, rota-desktop-light, rota-mobile-light).
 - Nenhum raster é entregue: toda imagem é CSS ou SVG autoral, então não há proveniência de raster a registrar.
 - Lighthouse depois desta revisão (build de produção, 13/10/2026, desempenho/acessibilidade/boas práticas/SEO): `/` celular 99/100/100/100, desktop 99/100/100/100; `/rota` celular 99/100/100/100.
-- Pendências abertas: a ficha fixa (sticky) deixa espaço nas capturas estáticas de página inteira (fica fixa num navegador real); voz real pt-BR não verificada; a variante `fachada` da Torre é usada só em teste; `Fontes.tsx` mantém `role="alert"` e `role="status"` próprios ao lado da região viva única (deriva antiga, fora do escopo); `frontend/public/icons.svg` e `frontend/src/assets/hero.png` são sobras do esqueleto Vite sem referência (`icons.svg` é copiado para o build); os pictogramas `guia-rebaixada`, `guia-alta`, `largura`, `rampa` e `degrau` ficaram sem uso.
+- Pendências abertas: a ficha fixa (sticky) deixa espaço nas capturas estáticas de página inteira (fica fixa num navegador real); voz real pt-BR não verificada; a variante `fachada` da Torre é usada só em teste; `frontend/public/icons.svg` e `frontend/src/assets/hero.png` são sobras do esqueleto Vite sem referência (`icons.svg` é copiado para o build); os pictogramas `guia-rebaixada`, `guia-alta`, `largura`, `rampa` e `degrau` ficaram sem uso.

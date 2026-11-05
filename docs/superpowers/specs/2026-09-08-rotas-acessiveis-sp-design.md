@@ -259,7 +259,7 @@ erDiagram
 1. Busca de origem/destino com autocomplete **local** (Photon como fallback, `lang=default`)
 2. Rota pedonal acessível em duas passadas, com fallback progressivo declarado
 3. **Lista textual de passos** com distância, direção, condição, fonte e data
-4. Mapa Leaflet redundante, com marcadores focáveis e `alt` descritivo
+4. Mapa Leaflet redundante, em `role="img"` com descrição em texto e nada focável dentro; "Ver o passo N no mapa", na lista de passos, liga os dois
 5. **Seed oficial** do GeoSampa + SP156, distinguindo "estreita" de "não medida"
 6. Cadastro colaborativo em 3 toques, foto opcional com descrição alternativa
 7. Moderação: 2 confirmações para validar, contestação, "resolvido", expiração
@@ -337,7 +337,7 @@ Mais `gitleaks` no pre-commit e Secret Scanning no repositório: chave vazada em
 | **LGPD** | Sem histórico de trajetos; consentimento granular para localização e microfone; SP156 agregado por face de quadra |
 | **500 MB do Supabase** | Área piloto decidida na semana 1; monitorar `pg_database_size()` |
 | **Viés geográfico da demo** | Incluir um distrito periférico e **declarar o viés** no relatório |
-| **Chave no bundle do React** | Nenhuma chave no frontend; tudo via backend |
+| **Chave no bundle do React** | Nenhuma chave secreta no frontend. A publishable key do Supabase é pública e usada só no login; o resto via backend |
 
 ---
 

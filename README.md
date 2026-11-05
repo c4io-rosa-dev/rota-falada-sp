@@ -95,7 +95,7 @@ Intransponível valida com 2 confirmações, dificulta com 1; 2 contestações o
 | Backend | Render Free (512 MB) | https://rota-falada-api.onrender.com |
 | Banco | Supabase Free (PostGIS 3.3 + pgRouting 3.4, região sa-east-1, RLS ligado: só o backend acessa) | painel do Supabase |
 
-Variáveis: `DATABASE_URL` e `CORS_ORIGINS` no Render; `VITE_API_URL` como variável de build no Cloudflare Workers; Secret `RENDER_HEALTH_URL` no GitHub para o keep-alive. O backend dorme após 15 min sem tráfego e leva ~1 min para voltar; o workflow `keep-alive` faz ping a cada 10 min das 7h às 3h. **Antes de qualquer demonstração, abra `/health` cinco minutos antes.**
+Variáveis: `DATABASE_URL` e `CORS_ORIGINS` no Render; `VITE_API_URL`, `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` como variáveis de build no Cloudflare Workers; Secret `RENDER_HEALTH_URL` no GitHub para o keep-alive. O backend dorme após 15 min sem tráfego e leva ~1 min para voltar; o workflow `keep-alive` faz ping a cada 10 min das 7h às 23h59 de Brasília. **Antes de qualquer demonstração, abra `/health` cinco minutos antes.**
 
 ## Armadilhas conhecidas
 
@@ -129,3 +129,9 @@ Do Plano 4 (roteamento acessível):
 16. `pgr_dijkstra` roda com `directed := false`: `via_pedestre` não tem sentido único (é malha de pedestre, não viária), e rodar `directed := true` por padrão silenciosamente perde metade das rotas possíveis sem erro nenhum — o caminho simplesmente não é encontrado.
 17. `EstadoCota` (a cota do ORS exposta em `/health`) precisa ser o **mesmo objeto** entre requisições — um `OrsClient` novo a cada chamada (por exemplo, criado dentro da própria função de rota em vez de guardado em `app.state`) sempre reporta cota "nunca observada", porque nada nunca atualizou aquele `EstadoCota` em particular.
 8. Cloudflare: o projeto é um **Worker com assets estáticos**, não Pages. O roteamento de SPA vem de `not_found_handling` em `frontend/wrangler.jsonc`; o arquivo `public/_redirects` no estilo Pages (regra coringa para index.html) é rejeitado com o erro Infinite loop detected.
+
+Dos Planos 5 e 6 (frontend):
+
+- Chunk antigo depois de um deploy: o Workers devolve `index.html` com 200, e `ErroDePagina` oferece recarregar, sem afirmar a causa, porque falta de sinal chega igual.
+- O código do login exige `{{ .Token }}` nos modelos Magic Link **e** de confirmação de cadastro no Supabase; sem isso chega um link, não o código.
+- `frontend/public/_headers` lista os hosts da API e do Supabase: mudou o host, muda a CSP.

@@ -163,6 +163,8 @@ O horário (`agora`) é parâmetro de todo o serviço, como em `services/rota.py
 3. Pôr `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no Render.
 4. Depois do deploy (migrations 006, 007 e 008 + ETL `tudo` do geocode): `caiorosa2006@gmail.com` entra uma vez pelo app e roda-se `promover_admin --email caiorosa2006@gmail.com` contra produção.
 
+Os passos do frontend estão na seção 16 de `2026-11-05-frontend-planos-5-6-design.md` (spec de 05/11/2026).
+
 ## 11. Fora de escopo
 
 Formulário no frontend; fila offline (Plano 7); SMTP próprio (passo de produção); notificações; edição da barreira pelo autor depois de criada (ele pode trocar a foto ou pedir ao admin).
