@@ -32,7 +32,7 @@ def geocode(
     db: Session = Depends(get_db),  # noqa: B008
 ) -> list[EnderecoOut]:
     texto = q.strip()
-    if not 3 <= len(texto) <= 100:
+    if "\x00" in texto or not 3 <= len(texto) <= 100:
         raise HTTPException(status_code=422, detail=MSG_TAMANHO_Q)
     try:
         resultado = buscar(db, texto, limite)

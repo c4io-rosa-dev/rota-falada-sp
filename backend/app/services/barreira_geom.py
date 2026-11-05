@@ -14,9 +14,9 @@ outra). Por isso `barreiras_no_corredor` usa só `ST_Intersects` (predicado,
 que funciona corretamente nesta instância) e os buffers de 8 m das barreiras
 são calculados aqui, em Shapely, nunca no banco.
 
-Regra de severidade efetiva (spec, seção 6, e Global Constraints do Plano
-4): uma barreira colaborativa só bloqueia (`intransponivel`) se `validada` e
-com pelo menos 2 confirmações; uma oficial só bloqueia se a categoria for
+Regra de severidade efetiva (spec colaborativo, D3 e 6.2): uma barreira
+colaborativa só bloqueia (`intransponivel`) se `validada`, seja pelos 2 votos
+do limiar, seja por decisão do admin; uma oficial só bloqueia se a categoria for
 `obstaculo_calcada`, `guia_sem_rebaixamento` ou `buraco`, aberta há menos de
 180 dias e sem `data_finalizacao`. Fora isso, colaborativas `validada` com
 severidade `dificulta` e oficiais das **demais** categorias (não as três de
@@ -96,7 +96,7 @@ _SQL_CANDIDATOS = text(
         SELECT
             id, 'colaborativa' AS origem, categoria,
             CASE
-                WHEN status = 'validada' AND confirmacoes >= 2 AND severidade = 'intransponivel'
+                WHEN status = 'validada' AND severidade = 'intransponivel'
                     THEN 'intransponivel'
                 WHEN status = 'validada' AND severidade = 'dificulta'
                     THEN 'dificulta'

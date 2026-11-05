@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AfterValidator, BaseModel, Field, StringConstraints, field_validator
 
 Categoria = Literal[
     "escada",
@@ -23,6 +23,13 @@ Categoria = Literal[
 StatusBarreira = Literal["pendente", "validada", "contestada", "resolvida", "expirada", "removida"]
 
 
+def _sem_nul(valor: str) -> str:
+    """O Postgres recusa U+0000 em texto; sem isto, sobe como 500 sem CORS."""
+    if "\x00" in valor:
+        raise ValueError("O texto tem um caractere inválido.")
+    return valor
+
+
 class BarreiraIn(BaseModel):
     categoria: Categoria
     lat: float = Field(ge=-90, le=90)
@@ -36,7 +43,7 @@ class BarreiraIn(BaseModel):
     def _em_branco_vira_nula(cls, valor: str | None) -> str | None:
         if not isinstance(valor, str):
             return valor
-        valor = valor.strip()
+        valor = _sem_nul(valor).strip()
         return valor or None
 
 
@@ -69,7 +76,18 @@ class VotoIn(BaseModel):
 
 class StatusAdminIn(BaseModel):
     status: StatusBarreira
-    motivo: str = Field(min_length=3, max_length=300)
+    # o strip vem antes do tamanho: "   " não pode virar motivo vazio na auditoria
+    motivo: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=3, max_length=300),
+        AfterValidator(_sem_nul),
+    ]
+
+
+class EuOut(BaseModel):
+    """Só o papel: id e e-mail a pessoa já tem pelo Supabase, e não voltam aqui."""
+
+    papel: Literal["colaborador", "admin"]
 
 
 class EventoOut(BaseModel):

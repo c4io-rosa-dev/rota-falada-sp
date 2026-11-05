@@ -9,6 +9,7 @@ pela CDN do Supabase, não pelo Render.
 from __future__ import annotations
 
 import io
+import threading
 import uuid
 from datetime import datetime
 from typing import Protocol
@@ -35,19 +36,40 @@ PIXELS_MAX = 40_000_000
 LADO_MAX = 1600
 _FORMATOS_ACEITOS = frozenset({"JPEG", "PNG", "WEBP"})
 _DESCRICAO_MIN, _DESCRICAO_MAX = 5, 300
+# um PNG de poucos KB pode descomprimir em 160 MB: uma imagem de cada vez, e a fila não é infinita
+_VAGA_REPROCESSAR = threading.BoundedSemaphore(1)
+ESPERA_VAGA_S = 30.0
 
 
 def reprocessar(conteudo: bytes) -> bytes:
     if len(conteudo) > TAMANHO_MAX_BYTES:
         raise FotoGrande()
+    if not _VAGA_REPROCESSAR.acquire(timeout=ESPERA_VAGA_S):
+        raise StorageIndisponivel()
+    try:
+        return _reprocessar(conteudo)
+    finally:
+        _VAGA_REPROCESSAR.release()
+
+
+def _reprocessar(conteudo: bytes) -> bytes:
+    """Sem cópias da imagem inteira: cada uma custa até 160 MB a 40 megapixels."""
     try:
         with Image.open(io.BytesIO(conteudo)) as imagem:
             if imagem.format not in _FORMATOS_ACEITOS:
                 raise FotoFormato()
             if imagem.width * imagem.height > PIXELS_MAX:
                 raise FotoFormato()
+            imagem.draft(None, (LADO_MAX, LADO_MAX))  # JPEG já decodifica reduzido
             imagem.load()
-            limpa = ImageOps.exif_transpose(imagem).convert("RGB")
+            ImageOps.exif_transpose(imagem, in_place=True)
+            limpa = imagem if imagem.mode == "RGB" else imagem.convert("RGB")
+            if limpa is not imagem:
+                imagem.close()  # o original sai da memória antes de reduzir
+            limpa.thumbnail((LADO_MAX, LADO_MAX))
+            saida = io.BytesIO()
+            limpa.save(saida, "WEBP", quality=80)  # sem exif=: nenhum metadado é gravado
+            return saida.getvalue()
     except (
         UnidentifiedImageError,
         Image.DecompressionBombError,
@@ -56,10 +78,6 @@ def reprocessar(conteudo: bytes) -> bytes:
         ValueError,
     ) as erro:
         raise FotoFormato() from erro
-    limpa.thumbnail((LADO_MAX, LADO_MAX))
-    saida = io.BytesIO()
-    limpa.save(saida, "WEBP", quality=80)  # sem exif=: nenhum metadado é gravado
-    return saida.getvalue()
 
 
 class ArmazenamentoFotos(Protocol):
@@ -183,7 +201,7 @@ def anexar_foto(
     if armazenamento is None:
         raise StorageIndisponivel()
     descricao = descricao.strip()
-    if not _DESCRICAO_MIN <= len(descricao) <= _DESCRICAO_MAX:
+    if "\x00" in descricao or not _DESCRICAO_MIN <= len(descricao) <= _DESCRICAO_MAX:
         raise DescricaoFotoInvalida()
     _checar_permissao(db, usuario, barreira_id)
     webp = reprocessar(conteudo)

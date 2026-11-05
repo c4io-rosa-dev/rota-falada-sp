@@ -2,6 +2,8 @@
 
 import io
 import json
+import threading
+import time
 import uuid
 from datetime import UTC, datetime
 
@@ -228,3 +230,68 @@ def test_foto_antiga_so_sai_do_storage_apos_commit(
     db_transacional.rollback()
     # sem commit a antiga continua lá (a nova fica órfã, o que é aceito)
     assert len(armazenamento_memoria.objetos) == 2
+
+
+# --- memória: o limite de 40 MP não pode custar várias cópias da imagem inteira -----
+
+
+def _png_rgba(largura=2000, altura=2000) -> bytes:
+    saida = io.BytesIO()
+    Image.new("RGBA", (largura, altura), (10, 20, 30, 255)).save(saida, "PNG")
+    return saida.getvalue()
+
+
+def test_reprocessar_nao_copia_a_imagem_inteira(monkeypatch):
+    copias = []
+    copiar = Image.Image.copy
+
+    def espiar(imagem):
+        copias.append(imagem.size)
+        return copiar(imagem)
+
+    monkeypatch.setattr(Image.Image, "copy", espiar)
+    fotos.reprocessar(_png_rgba())
+    assert (2000, 2000) not in copias
+
+
+def test_reprocessar_uma_imagem_de_cada_vez(monkeypatch):
+    conteudo = _jpeg()
+    agora = {"dentro": 0, "maximo": 0}
+    trava = threading.Lock()
+    original = fotos.ImageOps.exif_transpose
+
+    def lento(*args, **kwargs):
+        with trava:
+            agora["dentro"] += 1
+            agora["maximo"] = max(agora["maximo"], agora["dentro"])
+        time.sleep(0.05)
+        try:
+            return original(*args, **kwargs)
+        finally:
+            with trava:
+                agora["dentro"] -= 1
+
+    monkeypatch.setattr(fotos.ImageOps, "exif_transpose", lento)
+    tarefas = [threading.Thread(target=fotos.reprocessar, args=(conteudo,)) for _ in range(3)]
+    for tarefa in tarefas:
+        tarefa.start()
+    for tarefa in tarefas:
+        tarefa.join()
+    assert agora["maximo"] == 1
+
+
+def test_fila_de_reprocessamento_cheia_vira_503(monkeypatch):
+    monkeypatch.setattr(fotos, "ESPERA_VAGA_S", 0.01)
+    assert fotos._VAGA_REPROCESSAR.acquire(timeout=1)
+    try:
+        with pytest.raises(StorageIndisponivel):
+            fotos.reprocessar(_jpeg())
+    finally:
+        fotos._VAGA_REPROCESSAR.release()
+
+
+def test_reprocessar_mantem_rotacao_e_tira_transparencia():
+    com_exif = fotos.reprocessar(_jpeg(3000, 2000, orientacao=6))
+    assert max(Image.open(io.BytesIO(com_exif)).size) == fotos.LADO_MAX
+    assert Image.open(io.BytesIO(com_exif)).height > Image.open(io.BytesIO(com_exif)).width
+    assert Image.open(io.BytesIO(fotos.reprocessar(_png_rgba(40, 30)))).mode == "RGB"

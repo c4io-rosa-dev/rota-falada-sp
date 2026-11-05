@@ -59,6 +59,19 @@ _SQL_LISTAR = text(
     """
 )
 
+# fila de moderação: compara com o status EFETIVO, inclusive `removida`
+_SQL_FILA = text(
+    _SELECT_FICHA
+    + f"""
+    WHERE (CAST(:status AS text) IS NULL
+           OR {expressao_status_efetivo("b", ":agora")} = CAST(:status AS text))
+      AND (CAST(:antes_de AS bigint) IS NULL OR b.id < CAST(:antes_de AS bigint))
+    GROUP BY b.id
+    ORDER BY b.id DESC
+    LIMIT :limite
+    """
+)
+
 _SQL_POR_CHAVE = text(
     "SELECT id FROM barreira_colaborativa WHERE autor_id = :autor AND chave_idempotencia = :chave"
 )
@@ -168,6 +181,13 @@ def listar_proximas(
 ) -> list[BarreiraOut]:
     linhas = db.execute(_SQL_LISTAR, {"lat": lat, "lon": lon, "raio": raio_m, "agora": agora}).all()
     return [_ficha(linha) for linha in linhas]
+
+
+def listar_fila(
+    db: Session, agora: datetime, status: str | None, limite: int, antes_de: int | None
+) -> list[BarreiraOut]:
+    parametros = {"agora": agora, "status": status, "limite": limite, "antes_de": antes_de}
+    return [_ficha(linha) for linha in db.execute(_SQL_FILA, parametros).all()]
 
 
 def criar(

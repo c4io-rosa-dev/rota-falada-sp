@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import UsuarioAtual, usuario_atual
 from app.db import get_db
-from app.schemas.barreira import BarreiraIn, BarreiraOut, VotoIn
+from app.schemas.barreira import BarreiraIn, BarreiraOut, EuOut, VotoIn
 from app.services import barreiras, fotos, votacao
 from app.services.erros import ErroDominio
 from app.services.fotos import TAMANHO_MAX_BYTES, ArmazenamentoFotos
@@ -61,6 +61,11 @@ Db = Annotated[Session, Depends(get_db)]
 Agora = Annotated[datetime, Depends(obter_agora)]
 Usuario = Annotated[UsuarioAtual, Depends(usuario_atual)]
 Armazenamento = Annotated[ArmazenamentoFotos | None, Depends(obter_armazenamento)]
+
+
+@router.get("/eu", response_model=EuOut)
+def eu(usuario: Usuario) -> EuOut:
+    return EuOut(papel=usuario.papel)
 
 
 @router.get("/barreiras", response_model=list[BarreiraOut])

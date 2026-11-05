@@ -55,6 +55,15 @@ def obter(db: Session, chave_cache: str, agora: datetime) -> RotaOut | None:
     return saida.model_copy(update={"cache": True})
 
 
+# SKIP LOCKED: dois cálculos simultâneos não disputam as mesmas linhas vencidas
+_SQL_APAGAR_VENCIDAS = text(
+    """
+    DELETE FROM rota_cache WHERE chave IN (
+        SELECT chave FROM rota_cache WHERE expira_em <= :agora FOR UPDATE SKIP LOCKED
+    )
+    """
+)
+
 _SQL_GUARDAR = text(
     """
     INSERT INTO rota_cache (chave, resposta, regiao, motor, criado_em, expira_em)
@@ -82,7 +91,11 @@ def guardar(
     """Grava (ou substitui) a entrada de `chave_cache`. `saida` é gravada tal
     como calculada (`cache=False`) — é `obter()` que marca `cache=True` na
     leitura seguinte; `regiao` é o corredor da rota, usada só para
-    invalidação espacial (`invalidar_regiao`), nunca lida de volta."""
+    invalidação espacial (`invalidar_regiao`), nunca lida de volta.
+
+    A resposta tem o trajeto e a data: o que venceu não pode ficar guardado para
+    sempre. A limpeza roda a cada gravação, porque nenhum job apaga estas linhas."""
+    db.execute(_SQL_APAGAR_VENCIDAS, {"agora": agora})
     expira_em = agora + timedelta(hours=ttl_horas)
     db.execute(
         _SQL_GUARDAR,
