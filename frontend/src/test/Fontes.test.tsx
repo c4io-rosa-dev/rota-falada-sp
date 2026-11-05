@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { axe } from 'vitest-axe'
 import App from '../App'
@@ -55,12 +55,22 @@ describe('página /fontes', () => {
     vi.stubGlobal('fetch', fetchMock)
     renderizarFontes()
     await screen.findByRole('heading', { level: 1 })
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:8000/api/fontes')
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.map((c) => String((c as unknown[])[0]))).toContain('http://localhost:8000/api/fontes'),
+    )
   })
 
-  it('anuncia erro em role=alert quando a API falha', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('erro', { status: 503 })))
+  it('mostra o erro em texto e anuncia pela região única quando a API falha', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.endsWith('/health') ? Response.json({ banco: 'ok' }) : new Response('erro', { status: 503 }),
+      ),
+    )
     renderizarFontes()
-    expect(await screen.findByRole('alert')).toHaveTextContent('HTTP 503')
+    const texto = 'Instabilidade no sistema. Tente de novo em alguns minutos.'
+    expect(await screen.findByText(texto)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(texto))
+    expect(document.querySelectorAll('[aria-live],[role=status],[role=alert]')).toHaveLength(1)
   })
 })

@@ -1,0 +1,23 @@
+[
+  {"entrada": "Rua Vergueiro", "saida": "rua vergueiro"},
+  {"entrada": "R. Vergueiro, 1000", "saida": "rua vergueiro 1000"},
+  {"entrada": "Av. Brigadeiro Luís Antônio", "saida": "avenida brigadeiro luis antonio"},
+  {"entrada": "AVN. PAULISTA", "saida": "avenida paulista"},
+  {"entrada": "Pça. da Árvore", "saida": "praca da arvore"},
+  {"entrada": "Al. Santos", "saida": "alameda santos"},
+  {"entrada": "Estação Vila Mariana", "saida": "estacao vila mariana"},
+  {"entrada": "Est. Vila Mariana", "saida": "est vila mariana"},
+  {"entrada": "  FATEC   Ipiranga  ", "saida": "fatec ipiranga"},
+  {"entrada": "Rua Dr. Cesário Mota Jr.", "saida": "rua doutor cesario mota jr"},
+  {"entrada": "Av. Prof. Abraão de Morais", "saida": "avenida professor abraao de morais"},
+  {"entrada": "Rua Cel. Lisboa", "saida": "rua coronel lisboa"},
+  {"entrada": "Tv. São Joaquim", "saida": "travessa sao joaquim"},
+  {"entrada": "Lgo. São Bento", "saida": "largo sao bento"},
+  {"entrada": "Vd. do Chá", "saida": "viaduto do cha"},
+  {"entrada": "Rua Sta. Cruz", "saida": "rua santa cruz"},
+  {"entrada": "Gen. Jardim", "saida": "general jardim"},
+  {"entrada": "Rua 25 de Março", "saida": "rua 25 de marco"},
+  {"entrada": "Rua Vergueiro, 1000-A", "saida": "rua vergueiro 1000 a"},
+  {"entrada": "Rua Barão de Iguape", "saida": "rua barao de iguape"},
+  {"entrada": "!!!", "saida": ""}
+]

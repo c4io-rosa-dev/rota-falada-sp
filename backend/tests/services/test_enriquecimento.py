@@ -2,13 +2,18 @@
 `via_pedestre`/`conflacao_via_calcada`/`calcada_sp` já carregados pelo ETL) e
 um teste puro do mapa de classes de steepness do ORS.
 
-Os `via_pedestre.id` usados abaixo foram escolhidos consultando o banco
-(ver `docs/superpowers/plans/2026-09-13-plano-04-roteamento.md`, Tarefa 5):
-- `_VIA_COM_CONFLACAO_MEDIDA`: tem `conflacao_via_calcada` ligada a uma
-  `calcada_sp` com `largura_medida=true` (largura_min_m > 0).
-- `_VIA_SEM_CONFLACAO`: não aparece em `conflacao_via_calcada`.
-- `_VIA_KERB_NAO_TRANSPONIVEL`: `kerb_transponivel = false` (kerb='raised').
-- `_VIA_CONFLACAO_LARGURA_ZERO`: tem `conflacao_via_calcada`, mas a
+Os `via_pedestre.id` mudam a cada recarga completa do ETL (bigserial), então
+nenhum id é fixo: cada fixture abaixo localiza, de forma determinística
+(`ORDER BY osmid, source, target`), uma via com a PROPRIEDADE que o teste
+exige e que é a vizinha mais próxima do próprio ponto médio (é isso que
+`_via_mais_proxima` enxerga). Se nenhuma via tem a propriedade, a fixture
+falha (`pytest.fail`) em vez de pular:
+- `via_com_conflacao_medida`: tem `conflacao_via_calcada` ligada a uma
+  `calcada_sp` com `largura_medida=true` e `declividade_medida=true` (e
+  declividade diferente da classe 5 do ORS, para o teste de sobreposição).
+- `via_sem_conflacao`: não aparece em `conflacao_via_calcada`.
+- `via_kerb_nao_transponivel`: `kerb_transponivel = false` (kerb='raised').
+- `via_conflacao_largura_zero`: tem `conflacao_via_calcada`, mas a
   `calcada_sp` ligada tem `largura_min_m = 0` (⇒ `largura_medida=false` pela
   coluna gerada) — o caso real da regra inegociável do GeoSampa (zero é
   ausência de medição, nunca "calçada de largura zero").
@@ -20,6 +25,7 @@ o ponto médio cai a 0 m dela — bem dentro do raio de 10 m de
 from __future__ import annotations
 
 from datetime import date
+from typing import NamedTuple
 
 import pytest
 from shapely.geometry import LineString
@@ -29,15 +35,17 @@ from sqlalchemy import text
 from app.db import SessionLocal
 from app.schemas.rota import BarreiraResumo, Passo
 from app.services.barreira_geom import PROJ_4326_31983, BarreiraCandidata
-from app.services.enriquecimento import _distancia_m, _pct_da_classe_steepness, enriquecer_passos
+from app.services.enriquecimento import (
+    _distancia_m,
+    _pct_da_classe_steepness,
+    _via_mais_proxima,
+    enriquecer_passos,
+)
 from app.services.pgrouting import PassoBruto
 
 pytestmark = [pytest.mark.integration, pytest.mark.dados_reais]
 
-_VIA_COM_CONFLACAO_MEDIDA = 25041
-_VIA_SEM_CONFLACAO = 25044
-_VIA_KERB_NAO_TRANSPONIVEL = 26002
-_VIA_CONFLACAO_LARGURA_ZERO = 49085
+_LIMITE_CANDIDATAS = 500
 
 # bem fora das três area_piloto (mesmo ponto-base de test_barreira_geom_db.py
 # e test_pgrouting.py) — nenhuma via_pedestre real está a 10 m dali.
@@ -52,6 +60,75 @@ def db():
     finally:
         sessao.rollback()
         sessao.close()
+
+
+class _ViaEscolhida(NamedTuple):
+    id: int
+    data_referencia: date
+    declividade_max_pct: float | None  # da calcada_sp conflada (None se não há conflação)
+
+
+def _escolher_via(descricao: str, juncao_e_filtro: str) -> _ViaEscolhida:
+    """Primeira via (ordem estável por chaves OSM) que satisfaz `juncao_e_filtro`
+    e cuja vizinha mais próxima do próprio ponto médio é ela mesma."""
+    sessao = SessionLocal()
+    try:
+        candidatas = sessao.execute(
+            text(
+                "SELECT v.id, v.data_referencia, ST_AsText(v.geom) AS wkt, "
+                "(SELECT c.declividade_max_pct FROM conflacao_via_calcada cv "
+                " JOIN calcada_sp c ON c.id = cv.calcada_id WHERE cv.via_id = v.id) AS decl "
+                f"FROM via_pedestre v {juncao_e_filtro} "
+                "ORDER BY v.osmid, v.source, v.target, v.id "
+                f"LIMIT {_LIMITE_CANDIDATAS}"
+            )
+        ).all()
+        for via_id, data_ref, wkt, decl in candidatas:
+            ponto_medio = _carregar_wkt(wkt).interpolate(0.5, normalized=True)
+            vizinha = _via_mais_proxima(sessao, ponto_medio)
+            if vizinha is not None and vizinha["id"] == via_id:
+                return _ViaEscolhida(via_id, data_ref, None if decl is None else float(decl))
+    finally:
+        sessao.rollback()
+        sessao.close()
+    pytest.fail(
+        f"nenhuma via_pedestre com a propriedade '{descricao}' no banco local "
+        "(ETL carregado? o piloto mudou?)"
+    )
+
+
+@pytest.fixture(scope="module")
+def via_com_conflacao_medida() -> _ViaEscolhida:
+    return _escolher_via(
+        "conflação com largura e declividade medidas",
+        "JOIN conflacao_via_calcada cv ON cv.via_id = v.id "
+        "JOIN calcada_sp c ON c.id = cv.calcada_id "
+        "WHERE c.largura_medida AND c.declividade_medida "
+        "AND c.declividade_max_pct <> 20",
+    )
+
+
+@pytest.fixture(scope="module")
+def via_sem_conflacao() -> _ViaEscolhida:
+    return _escolher_via(
+        "sem conflação",
+        "WHERE NOT EXISTS (SELECT 1 FROM conflacao_via_calcada cv WHERE cv.via_id = v.id)",
+    )
+
+
+@pytest.fixture(scope="module")
+def via_kerb_nao_transponivel() -> _ViaEscolhida:
+    return _escolher_via("kerb_transponivel = false", "WHERE v.kerb_transponivel = false")
+
+
+@pytest.fixture(scope="module")
+def via_conflacao_largura_zero() -> _ViaEscolhida:
+    return _escolher_via(
+        "conflação com calçada de largura_min_m = 0",
+        "JOIN conflacao_via_calcada cv ON cv.via_id = v.id "
+        "JOIN calcada_sp c ON c.id = cv.calcada_id "
+        "WHERE c.largura_min_m = 0",
+    )
 
 
 def _geometria_da_via(db, via_id: int) -> LineString:
@@ -74,8 +151,8 @@ def _passo_bruto(ordem: int, geometria: LineString, *, distancia_m: float = 10.0
     )
 
 
-def test_passo_sobre_aresta_conflada_preenche_largura_medida(db):
-    geometria = _geometria_da_via(db, _VIA_COM_CONFLACAO_MEDIDA)
+def test_passo_sobre_aresta_conflada_preenche_largura_medida(db, via_com_conflacao_medida):
+    geometria = _geometria_da_via(db, via_com_conflacao_medida.id)
     bruto = _passo_bruto(1, geometria)
 
     passos, avisos, fontes = enriquecer_passos(db, [bruto], [], None)
@@ -87,14 +164,14 @@ def test_passo_sobre_aresta_conflada_preenche_largura_medida(db):
     assert passo.largura_m is not None
     assert passo.largura_m > 0
     assert passo.fonte == "osm"
-    assert passo.data_referencia == date(2026, 9, 13)
+    assert passo.data_referencia == via_com_conflacao_medida.data_referencia
     assert "geosampa" in fontes
     assert "osm" in fontes
     assert not any(aviso.tipo == "trecho_sem_dados" for aviso in avisos)
 
 
-def test_passo_sobre_aresta_sem_conflacao_devolve_none_e_aviso(db):
-    geometria = _geometria_da_via(db, _VIA_SEM_CONFLACAO)
+def test_passo_sobre_aresta_sem_conflacao_devolve_none_e_aviso(db, via_sem_conflacao):
+    geometria = _geometria_da_via(db, via_sem_conflacao.id)
     bruto = _passo_bruto(1, geometria)
 
     passos, avisos, _fontes = enriquecer_passos(db, [bruto], [], None)
@@ -105,8 +182,8 @@ def test_passo_sobre_aresta_sem_conflacao_devolve_none_e_aviso(db):
     assert sum(1 for aviso in avisos if aviso.tipo == "trecho_sem_dados") == 1
 
 
-def test_aviso_trecho_sem_dados_aparece_uma_unica_vez_por_rota(db):
-    geometria = _geometria_da_via(db, _VIA_SEM_CONFLACAO)
+def test_aviso_trecho_sem_dados_aparece_uma_unica_vez_por_rota(db, via_sem_conflacao):
+    geometria = _geometria_da_via(db, via_sem_conflacao.id)
     brutos = [_passo_bruto(1, geometria), _passo_bruto(2, geometria)]
 
     _passos, avisos, _fontes = enriquecer_passos(db, brutos, [], None)
@@ -114,8 +191,8 @@ def test_aviso_trecho_sem_dados_aparece_uma_unica_vez_por_rota(db):
     assert sum(1 for aviso in avisos if aviso.tipo == "trecho_sem_dados") == 1
 
 
-def test_aresta_com_kerb_nao_transponivel_vira_guia_nao_transponivel(db):
-    geometria = _geometria_da_via(db, _VIA_KERB_NAO_TRANSPONIVEL)
+def test_aresta_com_kerb_nao_transponivel_vira_guia_nao_transponivel(db, via_kerb_nao_transponivel):
+    geometria = _geometria_da_via(db, via_kerb_nao_transponivel.id)
     bruto = _passo_bruto(1, geometria)
 
     passos, _avisos, _fontes = enriquecer_passos(db, [bruto], [], None)
@@ -123,12 +200,14 @@ def test_aresta_com_kerb_nao_transponivel_vira_guia_nao_transponivel(db):
     assert passos[0].guia == "nao_transponivel"
 
 
-def test_regra_inegociavel_largura_medida_falsa_implica_largura_none(db):
+def test_regra_inegociavel_largura_medida_falsa_implica_largura_none(
+    db, via_conflacao_largura_zero
+):
     """Regra inegociável do projeto: mesmo quando a via TEM conflação, se a
     `calcada_sp` ligada tem `largura_medida=false` (GeoSampa zero = ausência,
     nunca "calçada de largura zero"), `largura_m` tem que vir `None` — nunca
     `0.0`."""
-    geometria = _geometria_da_via(db, _VIA_CONFLACAO_LARGURA_ZERO)
+    geometria = _geometria_da_via(db, via_conflacao_largura_zero.id)
     bruto = _passo_bruto(1, geometria)
 
     passos, _avisos, _fontes = enriquecer_passos(db, [bruto], [], None)
@@ -154,11 +233,11 @@ def test_via_nao_encontrada_a_10m_devolve_guia_desconhecida(db):
     assert sum(1 for aviso in avisos if aviso.tipo == "trecho_sem_dados") == 1
 
 
-def test_barreira_dificulta_proxima_vira_barreira_resumo_e_aviso(db):
+def test_barreira_dificulta_proxima_vira_barreira_resumo_e_aviso(db, via_com_conflacao_medida):
     from pyproj import Transformer
     from shapely.geometry import Point
 
-    geometria = _geometria_da_via(db, _VIA_COM_CONFLACAO_MEDIDA)
+    geometria = _geometria_da_via(db, via_com_conflacao_medida.id)
     bruto = _passo_bruto(1, geometria)
 
     # barreira 10 m (em 31983) ao lado do ponto médio do passo — dentro do
@@ -198,8 +277,8 @@ def test_barreira_dificulta_proxima_vira_barreira_resumo_e_aviso(db):
     assert "colaborativo" in fontes
 
 
-def test_barreira_dificulta_longe_nao_aparece(db):
-    geometria = _geometria_da_via(db, _VIA_COM_CONFLACAO_MEDIDA)
+def test_barreira_dificulta_longe_nao_aparece(db, via_com_conflacao_medida):
+    geometria = _geometria_da_via(db, via_com_conflacao_medida.id)
     bruto = _passo_bruto(1, geometria)
     from shapely.geometry import Point
 
@@ -219,8 +298,8 @@ def test_barreira_dificulta_longe_nao_aparece(db):
     assert not any(aviso.tipo == "barreira_dificulta" for aviso in avisos)
 
 
-def test_extras_steepness_sobrepoe_declividade_do_geosampa(db):
-    geometria = _geometria_da_via(db, _VIA_COM_CONFLACAO_MEDIDA)
+def test_extras_steepness_sobrepoe_declividade_do_geosampa(db, via_com_conflacao_medida):
+    geometria = _geometria_da_via(db, via_com_conflacao_medida.id)
     bruto = _passo_bruto(1, geometria)
 
     passos, _avisos, _fontes = enriquecer_passos(db, [bruto], [], [5])
@@ -228,18 +307,20 @@ def test_extras_steepness_sobrepoe_declividade_do_geosampa(db):
     passo = passos[0]
     assert passo.declividade_medida is True
     assert passo.declividade_pct == _pct_da_classe_steepness(5)
-    assert passo.declividade_pct != pytest.approx(1.5)  # valor real do GeoSampa p/ essa via
+    assert passo.declividade_pct != pytest.approx(
+        via_com_conflacao_medida.declividade_max_pct
+    )  # GeoSampa
 
 
-def test_extras_steepness_none_usa_geosampa(db):
-    geometria = _geometria_da_via(db, _VIA_COM_CONFLACAO_MEDIDA)
+def test_extras_steepness_none_usa_geosampa(db, via_com_conflacao_medida):
+    geometria = _geometria_da_via(db, via_com_conflacao_medida.id)
     bruto = _passo_bruto(1, geometria)
 
     passos, _avisos, _fontes = enriquecer_passos(db, [bruto], [], [None])
 
     passo = passos[0]
     assert passo.declividade_medida is True
-    assert passo.declividade_pct == pytest.approx(1.5)
+    assert passo.declividade_pct == pytest.approx(via_com_conflacao_medida.declividade_max_pct)
 
 
 @pytest.mark.parametrize(

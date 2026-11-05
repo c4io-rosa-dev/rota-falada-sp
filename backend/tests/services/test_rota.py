@@ -341,7 +341,7 @@ def test_barreira_intransponivel_no_corredor_aciona_segunda_passada_com_avoid_po
         text(
             "INSERT INTO barreira_colaborativa "
             "(id, categoria, severidade, status, confirmacoes, geom, fonte_id) VALUES "
-            "(:id, 'obstaculo_calcada', 'intransponivel', 'validada', 2, "
+            "(:id, 'obstaculo_bloqueando', 'intransponivel', 'validada', 2, "
             " ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :fonte_id)"
         ),
         {
@@ -420,7 +420,7 @@ def test_segunda_passada_sem_rota_tenta_o_proximo_nivel(db, tmp_path):
         text(
             "INSERT INTO barreira_colaborativa "
             "(id, categoria, severidade, status, confirmacoes, geom, fonte_id) VALUES "
-            "(:id, 'obstaculo_calcada', 'intransponivel', 'validada', 2, "
+            "(:id, 'obstaculo_bloqueando', 'intransponivel', 'validada', 2, "
             " ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :fonte_id)"
         ),
         {
@@ -476,7 +476,7 @@ def test_segunda_passada_com_cota_abandona_o_ors_e_usa_pgrouting(db, tmp_path):
         text(
             "INSERT INTO barreira_colaborativa "
             "(id, categoria, severidade, status, confirmacoes, geom, fonte_id) VALUES "
-            "(:id, 'obstaculo_calcada', 'intransponivel', 'validada', 2, "
+            "(:id, 'obstaculo_bloqueando', 'intransponivel', 'validada', 2, "
             " ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :fonte_id)"
         ),
         {
@@ -600,7 +600,7 @@ def test_regressao_poi_wheelchair_no_severidade_informativo_nao_bloqueia_rota(db
         text(
             "INSERT INTO barreira_colaborativa "
             "(id, categoria, severidade, status, confirmacoes, geom, fonte_id) VALUES "
-            "(:id, 'poi_inacessivel', 'informativo', 'validada', 5, "
+            "(:id, 'outro', 'informativo', 'validada', 5, "
             " ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :fonte_id)"
         ),
         {"id": _ID_POI_INFORMATIVO, "lng": lng_poi, "lat": lat_poi, "fonte_id": fid_colab},
@@ -617,6 +617,4 @@ def test_regressao_poi_wheelchair_no_severidade_informativo_nao_bloqueia_rota(db
 
     assert saida.motor == "pgrouting"
     assert saida.distancia_m == pytest.approx(rota_referencia.distancia_m, rel=0.01)
-    assert not any(
-        a.tipo == "barreira_dificulta" and "poi_inacessivel" in a.mensagem for a in saida.avisos
-    )
+    assert not any(a.tipo == "barreira_dificulta" and "outro" in a.mensagem for a in saida.avisos)

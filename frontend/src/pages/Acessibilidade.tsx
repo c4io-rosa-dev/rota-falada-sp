@@ -20,7 +20,11 @@ export function Acessibilidade() {
 
       <h2>Recursos disponíveis</h2>
       <ul>
+        <li>Cálculo de rota a pé entre dois endereços da área piloto, por autocomplete ou pela localização do aparelho.</li>
         <li>Toda rota é apresentada como lista de passos em texto; o mapa é uma ilustração opcional.</li>
+        <li>Leitura da rota em voz alta pelo botão &quot;Ouvir a rota&quot;.</li>
+        <li>Login por código enviado por e-mail, sem senha, em campo único.</li>
+        <li>Cadastro e votação de barreiras, com a foto sempre opcional.</li>
         <li>Navegação completa por teclado, com link para pular ao conteúdo e foco visível.</li>
         <li>Alvos de toque de no mínimo 44 por 44 pixels.</li>
         <li>Layout que se reorganiza sem rolagem horizontal a 320 pixels de largura e zoom de 400%.</li>
@@ -30,9 +34,8 @@ export function Acessibilidade() {
 
       <h2>Limitações conhecidas</h2>
       <ul>
-        <li>O cálculo de rotas e a leitura em voz alta ainda não estão disponíveis nesta versão.</li>
         <li>Os dados de calçadas cobrem apenas a área piloto (Vila Mariana, Lapa e Ipiranga) e são de 2021.</li>
-        <li>Testes manuais com VoiceOver foram feitos apenas no iPhone, não no macOS.</li>
+        <li>Os testes manuais com leitor de tela ainda não terminaram: NVDA é o próximo; TalkBack e VoiceOver vêm depois dele.</li>
       </ul>
 
       <h2>Como relatar um problema</h2>

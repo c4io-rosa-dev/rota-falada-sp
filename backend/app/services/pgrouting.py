@@ -13,6 +13,11 @@ custo de cada passo do caminho e descarta a rota inteira se algum for
 `>= BLOQUEIO` — do contrário devolveríamos "rota acessível" atravessando
 uma escada.
 
+Barreiras que bloqueiam (mesma classificação do ORS, `barreiras_no_corredor`)
+tiram do grafo as arestas a até `RAIO_BARREIRA_M`: o critério "a barreira
+validada muda a rota" vale também com o ORS fora do ar. Sem alternativa, não
+há rota, em vez de uma rota pela barreira.
+
 O SQL passado como primeiro argumento de `pgr_dijkstra` é uma *string*
 executada pela própria extensão: parâmetros ligados (`:nome`) não
 atravessam essa borda (o SQLAlchemy tenta resolvê-los antes de chegar ao
@@ -27,18 +32,24 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from shapely.geometry import LineString
+from shapely.geometry import LineString, MultiPoint, box
 from shapely.wkt import loads as _carregar_wkt
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.schemas.rota import Coordenada
+from app.services.barreira_geom import barreiras_no_corredor
 
 # mesmo limiar de bloqueio do ETL (etl/etl/osm_regras.py::BLOQUEIO).
 BLOQUEIO = 1_000_000.0
 
 # ~0.0001° por 10 m na latitude de São Paulo (spec da Tarefa 4).
 _GRAUS_POR_METRO = 0.00001
+
+# aresta a até esta distância de uma barreira que bloqueia sai do grafo. Maior
+# que o buffer de 8 m do ORS: a coordenada é GPS de rua, e aqui errar para mais
+# só alonga o caminho.
+RAIO_BARREIRA_M = 15.0
 
 
 @dataclass
@@ -94,11 +105,58 @@ def no_mais_proximo(db: Session, lat: float, lng: float, raio_m: float = 300.0) 
     return linha[0] if linha is not None else None
 
 
+_SQL_ARESTAS_PERTO = text(
+    """
+    SELECT id FROM via_pedestre
+    WHERE geom && ST_MakeEnvelope(:minx, :miny, :maxx, :maxy, 4326)
+      AND ST_DWithin(
+        geom::geography,
+        ST_SetSRID(ST_GeomFromText(:pontos_wkt), 4326)::geography,
+        :raio
+      )
+    """
+)
+
+
+def _arestas_bloqueadas(
+    db: Session, minx: float, miny: float, maxx: float, maxy: float
+) -> list[int]:
+    """Ids de `via_pedestre` na bbox a até `RAIO_BARREIRA_M` de uma barreira que bloqueia."""
+    pontos = [
+        b.geom
+        for b in barreiras_no_corredor(db, box(minx, miny, maxx, maxy))
+        if b.severidade == "intransponivel"
+    ]
+    if not pontos:
+        return []
+    linhas = db.execute(
+        _SQL_ARESTAS_PERTO,
+        {
+            "minx": minx,
+            "miny": miny,
+            "maxx": maxx,
+            "maxy": maxy,
+            "pontos_wkt": MultiPoint(pontos).wkt,
+            "raio": RAIO_BARREIRA_M,
+        },
+    )
+    return [linha[0] for linha in linhas]
+
+
 def _sql_dijkstra(
-    minx: float, miny: float, maxx: float, maxy: float, no_origem: int, no_destino: int
+    minx: float,
+    miny: float,
+    maxx: float,
+    maxy: float,
+    no_origem: int,
+    no_destino: int,
+    arestas_fora: list[int] | None = None,
 ) -> str:
     # ver docstring do módulo: nenhum destes valores é texto do usuário —
     # floats/ints já validados — então interpolar na string é seguro.
+    fora = ""
+    if arestas_fora:
+        fora = f" AND id NOT IN ({', '.join(str(int(a)) for a in arestas_fora)})"
     return (
         "SELECT d.seq, d.node, d.edge, d.cost, "
         "v.comprimento_m, v.is_degrau, v.kerb_transponivel, v.nome, "
@@ -106,7 +164,7 @@ def _sql_dijkstra(
         "FROM pgr_dijkstra("
         "'SELECT id, source, target, custo_acessivel AS cost, custo_reverso AS reverse_cost "
         "FROM via_pedestre "
-        f"WHERE geom && ST_MakeEnvelope({minx!r}, {miny!r}, {maxx!r}, {maxy!r}, 4326)', "
+        f"WHERE geom && ST_MakeEnvelope({minx!r}, {miny!r}, {maxx!r}, {maxy!r}, 4326){fora}', "
         f"{no_origem!r}, {no_destino!r}, directed := false"
         ") d "
         "LEFT JOIN via_pedestre v ON v.id = d.edge "
@@ -139,7 +197,8 @@ def rota_pgrouting(
     miny = min(origem.lat, destino.lat) - margem_graus
     maxy = max(origem.lat, destino.lat) + margem_graus
 
-    sql = _sql_dijkstra(minx, miny, maxx, maxy, no_origem, no_destino)
+    arestas_fora = _arestas_bloqueadas(db, minx, miny, maxx, maxy)
+    sql = _sql_dijkstra(minx, miny, maxx, maxy, no_origem, no_destino, arestas_fora)
     linhas = db.execute(text(sql)).mappings().all()
     if not linhas or linhas[-1]["node"] != no_destino:
         return None

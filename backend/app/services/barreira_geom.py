@@ -14,9 +14,9 @@ outra). Por isso `barreiras_no_corredor` usa só `ST_Intersects` (predicado,
 que funciona corretamente nesta instância) e os buffers de 8 m das barreiras
 são calculados aqui, em Shapely, nunca no banco.
 
-Regra de severidade efetiva (spec, seção 6, e Global Constraints do Plano
-4): uma barreira colaborativa só bloqueia (`intransponivel`) se `validada` e
-com pelo menos 2 confirmações; uma oficial só bloqueia se a categoria for
+Regra de severidade efetiva (spec colaborativo, D3 e 6.2): uma barreira
+colaborativa só bloqueia (`intransponivel`) se `validada`, seja pelos 2 votos
+do limiar, seja por decisão do admin; uma oficial só bloqueia se a categoria for
 `obstaculo_calcada`, `guia_sem_rebaixamento` ou `buraco`, aberta há menos de
 180 dias e sem `data_finalizacao`. Fora isso, colaborativas `validada` com
 severidade `dificulta` e oficiais das **demais** categorias (não as três de
@@ -41,6 +41,8 @@ from shapely.ops import unary_union
 from shapely.wkt import loads as _carregar_wkt
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from app.services.moderacao import expressao_status_efetivo
 
 PROJ_4326_31983 = Transformer.from_crs("EPSG:4326", "EPSG:31983", always_xy=True)
 PROJ_31983_4326 = Transformer.from_crs("EPSG:31983", "EPSG:4326", always_xy=True)
@@ -85,13 +87,16 @@ def corredor(linha_4326, largura_m: float = 50.0) -> Polygon:
     return _para_4326(buffer_31983)
 
 
+# mesma regra de expiração da leitura pública (moderacao.status_efetivo), com now()
+_STATUS_EFETIVO_COLABORATIVA = expressao_status_efetivo("barreira_colaborativa", "now()")
+
 _SQL_CANDIDATOS = text(
-    """
+    f"""
     WITH todas AS (
         SELECT
             id, 'colaborativa' AS origem, categoria,
             CASE
-                WHEN status = 'validada' AND confirmacoes >= 2 AND severidade = 'intransponivel'
+                WHEN status = 'validada' AND severidade = 'intransponivel'
                     THEN 'intransponivel'
                 WHEN status = 'validada' AND severidade = 'dificulta'
                     THEN 'dificulta'
@@ -100,6 +105,7 @@ _SQL_CANDIDATOS = text(
             geom, confirmacoes, data_referencia
         FROM barreira_colaborativa
         WHERE ST_Intersects(geom, ST_SetSRID(ST_GeomFromText(:corredor_wkt), 4326))
+          AND {_STATUS_EFETIVO_COLABORATIVA} <> 'expirada'
 
         UNION ALL
 

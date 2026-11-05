@@ -30,6 +30,9 @@
      aresta das torres #5b605c contra o chão 2,50 (a torre sozinha seria 1,17); cobertura 4,26
      faixa #141615: texto #e6e7e3 14,63 · óxido-faixa #cf6e55 5,21 · foco 14,63
      foco #e6e7e3      concreto 12,92 · torre 11,09 · placa 11,52 · vão 10,48
+   MAPA (Planos 5 e 6): nenhuma cor nova. Linha tinta sobre casing placa 13,37 (claro) e 11,52
+     (escuro); passo ativo óxido sobre casing placa 5,41 (claro) e 4,10 (escuro); marcador
+     tinta sobre placa, contorno de 2 px em tinta. Tiles em cinza por filtro CSS.
    TEXTURA do chão (tábuas de fôrma e furos de ancoragem, quase sumida):
      pior ponto contra a base 1,04:1 (claro) e 1,035:1 (escuro). Torres, janelas e
      lajes são lisas.
@@ -1012,9 +1015,18 @@ main {
   margin: var(--e-4) 0 0.75rem;
 }
 
+/* e-mail, link colado e descrição de quem usa não têm espaço onde quebrar */
 .folha p,
 .folha li {
   max-width: 68ch;
+  overflow-wrap: anywhere;
+}
+
+/* numa coluna de texto, o link de ação começa onde o texto começa; os 44 px continuam */
+.folha a.alvo,
+.colaborar__lista a.alvo {
+  justify-content: flex-start;
+  padding-inline: 0;
 }
 
 .folha li + li {
@@ -1070,6 +1082,7 @@ main {
 }
 
 .campo__dica {
+  overflow-wrap: anywhere;
   margin: 0;
   font-size: var(--t-1);
   color: var(--tinta-2);
@@ -1178,6 +1191,13 @@ main {
 
 .janela--aviso p:last-child {
   margin-bottom: 0;
+}
+
+.carregando-pagina {
+  max-width: var(--largura-max);
+  margin: var(--e-5) auto;
+  padding: var(--e-2) var(--calha);
+  background: var(--placa);
 }
 
 /* ---------- celular e tablet: patamares empilhados ---------- */

@@ -320,3 +320,45 @@ def test_gtfs_sem_campos_de_acessibilidade():
             cabecalho_routes = arquivo.readline().decode("utf-8-sig")
     assert "wheelchair_boarding" not in cabecalho_stops
     assert "wheelchair_accessible" not in cabecalho_routes
+
+
+# --- Endereços: geocode local (Plano 5a) ---------------------------------------
+
+
+def test_endereco_populado_por_tipo(engine):
+    with engine.connect() as conexao:
+        totais = dict(
+            conexao.execute(text("SELECT tipo, count(*) FROM endereco GROUP BY tipo")).all()
+        )
+    assert totais.get("endereco", 0) >= 10_000
+    assert totais.get("lugar", 0) >= 1_000
+    assert totais.get("logradouro", 0) >= 300
+
+
+def test_endereco_dentro_da_area_piloto(engine):
+    consulta = """
+        SELECT count(*) FROM endereco e
+        WHERE NOT EXISTS (SELECT 1 FROM area_piloto a WHERE ST_Covers(a.geom, e.geom))
+    """
+    with engine.connect() as conexao:
+        assert conexao.execute(text(consulta)).scalar_one() == 0
+
+
+def test_endereco_so_tem_dados_do_osm(engine):
+    consulta = """
+        SELECT count(*) FROM endereco e JOIN fonte_dados f ON f.id = e.fonte_id
+        WHERE f.chave <> 'osm'
+    """
+    with engine.connect() as conexao:
+        assert conexao.execute(text(consulta)).scalar_one() == 0
+
+
+def test_endereco_sem_duplicata_a_menos_de_15_m(engine):
+    consulta = """
+        SELECT count(*) FROM endereco a JOIN endereco b
+          ON a.id < b.id AND a.tipo = b.tipo AND a.texto_busca = b.texto_busca
+        WHERE a.tipo <> 'logradouro'
+          AND ST_DWithin(a.geom::geography, b.geom::geography, 15)
+    """
+    with engine.connect() as conexao:
+        assert conexao.execute(text(consulta)).scalar_one() == 0

@@ -1,0 +1,251 @@
+/* /rota: autocomplete, resultado e mapa. Tokens do DESIGN.md; nada de tamanho ou peso novo. */
+
+.campo-endereco {
+  min-width: 0;
+}
+
+/* "Licenças" fica depois da lista de fontes, com 44 px e alinhado ao texto */
+.ficha__dados a.alvo {
+  padding-inline: 0;
+}
+
+.campo__retorno {
+  overflow-wrap: anywhere;
+  display: flex;
+  gap: var(--e-1);
+  align-items: flex-start;
+  margin: 0.25rem 0 0;
+  font-size: var(--t-1);
+  color: var(--tinta-2);
+}
+
+.campo__retorno p {
+  margin: 0 0 var(--e-1);
+}
+
+.campo__retorno:empty,
+.campo__retorno > span:empty {
+  display: none;
+}
+
+/* erro: borda de 2 px em tinta e pictograma; óxido não marca erro (DESIGN.md, Óxido de Estado) */
+.campo__retorno--erro {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+.campo [aria-invalid='true'] {
+  border: 2px solid var(--tinta);
+}
+
+/* a lista em fluxo: empurra o conteúdo, nunca flutua */
+.sugestoes {
+  list-style: none;
+  margin: var(--e-1) 0 0;
+  padding: 0;
+  max-height: 24rem;
+  overflow-y: auto;
+  border: 1px solid var(--junta);
+}
+
+.sugestoes[hidden] {
+  display: none;
+}
+
+.sugestao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-1);
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  background: var(--vao);
+  cursor: pointer;
+}
+
+.sugestao + .sugestao {
+  border-top: 1px solid var(--junta);
+}
+
+.sugestao:hover {
+  outline: 1px solid var(--tinta);
+  outline-offset: -1px;
+}
+
+/* ativa: borda óxido (estado ativo) e pictograma como segundo sinal */
+.sugestao[aria-selected='true'] {
+  outline: 2px solid var(--oxido);
+  outline-offset: -2px;
+  font-weight: 600;
+}
+
+.sugestao__nota {
+  flex-basis: 100%;
+  font-size: var(--t-1);
+  color: var(--tinta-2);
+}
+
+.sugestao__marca {
+  margin-left: auto;
+}
+
+.localizacao {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+  margin-top: var(--e-2);
+}
+
+.estado-calculo,
+.formulario__limpar {
+  display: grid;
+  gap: var(--e-1);
+  justify-items: start;
+  margin-top: var(--e-2);
+}
+
+.estado-calculo p {
+  margin: 0;
+}
+
+.rota__aviso {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--e-2);
+  background: var(--vao);
+  font-weight: 600;
+}
+
+/* resultado: largura total depois do formulário, ordem do DOM = ordem visual */
+.resultado {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--e-4);
+  min-width: 0;
+}
+
+.resultado__titulo {
+  display: grid;
+  gap: var(--e-1);
+  margin: 0;
+  font-size: var(--t-3);
+  font-weight: 800;
+}
+
+.resultado__titulo .medida {
+  font-size: var(--t-2);
+  font-weight: 600;
+}
+
+h2.resultado__titulo.letreiro {
+  font-size: var(--t-3);
+}
+
+.resultado--falha {
+  gap: var(--e-2);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  justify-items: start;
+}
+
+.resultado--falha p {
+  margin: 0;
+  max-width: 68ch;
+}
+
+.resultado__topo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-4);
+  align-items: start;
+}
+
+.resultado__topo > .ficha {
+  max-width: 48rem;
+}
+
+.ficha.ficha--solta {
+  position: static;
+}
+
+.mapa-rota,
+.mapa-rota__corpo {
+  display: grid;
+  gap: var(--e-2);
+  min-width: 0;
+  justify-items: stretch;
+}
+
+.mapa-rota > .placa {
+  justify-self: start;
+}
+
+.mapa-rota__titulo {
+  margin: 0;
+  font-size: var(--t-2);
+}
+
+.mapa-rota__controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1);
+}
+
+.mapa-rota__legenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mapa-rota__volta {
+  margin: 0;
+}
+
+.placa-passo__acoes {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-1) var(--e-3);
+  margin-top: 0.75rem;
+}
+
+.barreiras-passo {
+  grid-column: 2;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--t-1);
+  font-weight: 600;
+}
+
+.barreiras-passo li + li {
+  margin-top: var(--e-1);
+}
+
+/* ação isolada, não link de frase: 44 px, em bloco próprio */
+.barreiras-passo__link {
+  display: flex;
+  width: fit-content;
+  padding-left: 0;
+}
+
+/* o passo que o mapa está mostrando: mesmo sinal da placa pressionada */
+.placa[aria-current='true'] {
+  background: var(--vao);
+  border-color: var(--tinta);
+}
+
+@media (min-width: 1024px) {
+  .resultado__topo--mapa {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .placa-passo__acoes,
+  .barreiras-passo {
+    grid-column: 2 / -1;
+  }
+}

@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     ors_base_url: str = "https://api.openrouteservice.org"
     ors_timeout_s: float = 15.0
 
+    # URL do projeto Supabase (pública); habilita o login. Sem ela, rotas com login dão 503.
+    supabase_url: str | None = None
+    # chave de serviço do Supabase, só para o Storage das fotos (segredo; só no Render)
+    supabase_service_role_key: str | None = None
+
     @field_validator("database_url")
     @classmethod
     def _driver_psycopg(cls, valor: str) -> str:

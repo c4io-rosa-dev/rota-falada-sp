@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import { RegiaoViva } from '../componentes/RegiaoViva'
-import { useAnuncio } from '../componentes/useAnuncio'
+import { useAnuncio, useCancelarAnuncio } from '../componentes/useAnuncio'
 
 function Anunciante({ texto }: { texto: string }) {
   const anunciar = useAnuncio()
@@ -47,5 +47,82 @@ describe('RegiaoViva', () => {
     render(<Anunciante texto="nada" />)
     await userEvent.click(screen.getByRole('button', { name: 'Anunciar' }))
     expect(screen.queryByRole('status')).toBeNull()
+  })
+})
+
+describe('RegiaoViva com chave', () => {
+  afterEach(() => vi.useRealTimers())
+
+  function Contagem() {
+    const anunciar = useAnuncio()
+    const cancelar = useCancelarAnuncio()
+    return (
+      <>
+        <button type="button" onClick={() => anunciar('sem chave')}>
+          sem chave
+        </button>
+        <button type="button" onClick={() => cancelar('c')}>
+          cancelar
+        </button>
+        <button type="button" onClick={() => anunciar('um', { chave: 'c', intervaloMs: 3000 })}>
+          um
+        </button>
+        <button type="button" onClick={() => anunciar('dois', { chave: 'c', intervaloMs: 3000 })}>
+          dois
+        </button>
+      </>
+    )
+  }
+
+  it('no máximo um anúncio por intervalo, e vale o último', () => {
+    vi.useFakeTimers()
+    render(
+      <RegiaoViva>
+        <Contagem />
+      </RegiaoViva>,
+    )
+    const regiao = screen.getByRole('status')
+    fireEvent.click(screen.getByRole('button', { name: 'um' }))
+    act(() => void vi.advanceTimersByTime(150))
+    expect(regiao).toHaveTextContent('um')
+    fireEvent.click(screen.getByRole('button', { name: 'dois' }))
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(regiao).toHaveTextContent('um')
+    act(() => void vi.advanceTimersByTime(2100))
+    expect(regiao).toHaveTextContent('dois')
+  })
+
+  it('anúncio sem chave cancela a contagem pendente: nada de lista depois da escolha', () => {
+    vi.useFakeTimers()
+    render(
+      <RegiaoViva>
+        <Contagem />
+      </RegiaoViva>,
+    )
+    const regiao = screen.getByRole('status')
+    fireEvent.click(screen.getByRole('button', { name: 'um' }))
+    act(() => void vi.advanceTimersByTime(150))
+    fireEvent.click(screen.getByRole('button', { name: 'dois' }))
+    fireEvent.click(screen.getByRole('button', { name: 'sem chave' }))
+    act(() => void vi.advanceTimersByTime(4000))
+    expect(regiao).toHaveTextContent('sem chave')
+  })
+
+  it('cancelar a chave cala o pendente, inclusive o que estava na pausa antes de escrever', () => {
+    vi.useFakeTimers()
+    render(
+      <RegiaoViva>
+        <Contagem />
+      </RegiaoViva>,
+    )
+    const regiao = screen.getByRole('status')
+    fireEvent.click(screen.getByRole('button', { name: 'um' }))
+    fireEvent.click(screen.getByRole('button', { name: 'cancelar' }))
+    act(() => void vi.advanceTimersByTime(4000))
+    expect(regiao.textContent).toBe('')
+    fireEvent.click(screen.getByRole('button', { name: 'dois' }))
+    fireEvent.click(screen.getByRole('button', { name: 'cancelar' }))
+    act(() => void vi.advanceTimersByTime(4000))
+    expect(regiao.textContent).toBe('')
   })
 })

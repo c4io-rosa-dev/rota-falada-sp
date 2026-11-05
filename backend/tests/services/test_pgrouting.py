@@ -39,11 +39,12 @@ _DESTINO = Coordenada(lat=-23.6040364, lng=-46.6446546)  # == geom de _NO_DESTIN
 # não há nenhum no_pedestre a 300 m dali.
 _FORA_DO_PILOTO = Coordenada(lat=-24.048988029889923, lng=-45.98351729900837)
 
-# via_pedestre.id de uma única aresta ligando dois nós adjacentes (sem nó
-# intermediário) — usada para travar a orientação de PassoBruto.geometria
-# quando a rota tem exatamente uma aresta (ver revisão da Tarefa 4,
-# Tentativa 2). source=_NO_ARESTA_UNICA_A, target=_NO_ARESTA_UNICA_B.
-_ARESTA_UNICA_ID = 26204
+# Aresta única ligando dois nós adjacentes (sem nó intermediário) — usada
+# para travar a orientação de PassoBruto.geometria quando a rota tem
+# exatamente uma aresta (ver revisão da Tarefa 4, Tentativa 2).
+# source=_NO_ARESTA_UNICA_A, target=_NO_ARESTA_UNICA_B. Os nós são ids OSM
+# (estáveis entre recargas do ETL); o `via_pedestre.id` da aresta (bigserial)
+# NÃO é estável, então a fixture `aresta_unica_id` o descobre pelos nós.
 _NO_ARESTA_UNICA_A = 298815396
 _NO_ARESTA_UNICA_B = 5756707479
 _PONTO_ARESTA_UNICA_A = Coordenada(lat=-23.5257843, lng=-46.7169169)  # == geom do source
@@ -58,6 +59,34 @@ def db():
     finally:
         sessao.rollback()
         sessao.close()
+
+
+@pytest.fixture(scope="module")
+def aresta_unica_id() -> int:
+    """`via_pedestre.id` da aresta que liga `_NO_ARESTA_UNICA_A` ->
+    `_NO_ARESTA_UNICA_B` (source -> target), achada pelos nós OSM."""
+    sessao = SessionLocal()
+    try:
+        ids = (
+            sessao.execute(
+                text(
+                    "SELECT id FROM via_pedestre WHERE source = :a AND target = :b "
+                    "ORDER BY osmid, source, target, id"
+                ),
+                {"a": _NO_ARESTA_UNICA_A, "b": _NO_ARESTA_UNICA_B},
+            )
+            .scalars()
+            .all()
+        )
+    finally:
+        sessao.rollback()
+        sessao.close()
+    if len(ids) != 1:
+        pytest.fail(
+            f"esperava exatamente 1 via_pedestre de {_NO_ARESTA_UNICA_A} a "
+            f"{_NO_ARESTA_UNICA_B}, achei {len(ids)} (ETL carregado? piloto mudou?)"
+        )
+    return ids[0]
 
 
 def test_no_mais_proximo_acha_o_no_real_na_propria_coordenada(db):
@@ -139,17 +168,20 @@ def test_instrucoes_agrupa_por_nome_de_via_e_soma_a_mesma_distancia(db):
     ],
     ids=["entra_pelo_source", "entra_pelo_target"],
 )
-def test_instrucoes_de_caminho_com_uma_unica_aresta_preserva_a_orientacao(db, origem, destino):
+def test_instrucoes_de_caminho_com_uma_unica_aresta_preserva_a_orientacao(
+    db, origem, destino, aresta_unica_id
+):
     """Regressão (revisão da Tarefa 4, Tentativa 2): quando o caminho tem
     exatamente uma aresta, `instrucoes` desambiguava a orientação olhando a
     2ª aresta — que não existe nesse caso — e caía num `else` que assumia
     cegamente `no_atual = source`, invertendo a geometria do único
     `PassoBruto` sempre que a rota de fato entrava pelo `target`. Testa os
-    dois sentidos da mesma aresta real (`via_pedestre.id` = 26204) para
+    dois sentidos da mesma aresta real (a que liga `_NO_ARESTA_UNICA_A` a
+    `_NO_ARESTA_UNICA_B`, achada pela fixture `aresta_unica_id`) para
     travar os dois casos."""
     rota = rota_pgrouting(db, origem, destino)
     assert rota is not None
-    assert rota.arestas == [_ARESTA_UNICA_ID]
+    assert rota.arestas == [aresta_unica_id]
 
     passos = instrucoes(db, rota)
 

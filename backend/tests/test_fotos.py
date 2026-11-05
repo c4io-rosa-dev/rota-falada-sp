@@ -1,0 +1,387 @@
+"""Foto da barreira (spec 2026-11-02-colaborativo-design.md, 7)."""
+
+import io
+import json
+import threading
+import time
+import uuid
+from datetime import UTC, datetime, timedelta
+
+import httpx
+import pytest
+import respx
+from PIL import Image
+
+from app.config import settings
+from app.schemas.barreira import BarreiraIn
+from app.services import barreiras, fotos, votacao
+from app.services.erros import (
+    DescricaoFotoInvalida,
+    FotoFormato,
+    FotoGrande,
+    LimiteFotos,
+    SemPermissao,
+    StorageIndisponivel,
+)
+
+AGORA = datetime(2026, 11, 2, 12, 0, tzinfo=UTC)
+DESCRICAO = "Escada de três degraus na entrada"
+
+
+def _jpeg(largura=300, altura=200, orientacao=None) -> bytes:
+    imagem = Image.new("RGB", (largura, altura), (120, 80, 40))
+    exif = Image.Exif()
+    exif[0x010F] = "CameraTeste"  # Make
+    if orientacao is not None:
+        exif[0x0112] = orientacao  # Orientation
+    saida = io.BytesIO()
+    imagem.save(saida, "JPEG", exif=exif.tobytes())
+    return saida.getvalue()
+
+
+def _png(largura, altura) -> bytes:
+    saida = io.BytesIO()
+    Image.new("1", (largura, altura)).save(saida, "PNG")  # 1 bit: barato de gerar
+    return saida.getvalue()
+
+
+# --- reprocessar (puro) ---------------------------------------------------------
+
+
+def test_reprocessar_remove_metadados_e_gera_webp():
+    original = _jpeg()
+    assert Image.open(io.BytesIO(original)).info.get("exif")
+    resultado = Image.open(io.BytesIO(fotos.reprocessar(original)))
+    assert resultado.format == "WEBP"
+    assert not resultado.info.get("exif")
+    assert len(resultado.getexif()) == 0
+
+
+def test_reprocessar_aplica_a_rotacao_do_exif():
+    resultado = Image.open(io.BytesIO(fotos.reprocessar(_jpeg(300, 200, orientacao=6))))
+    assert resultado.size == (200, 300)
+
+
+def test_reprocessar_reduz_para_1600_px():
+    resultado = Image.open(io.BytesIO(fotos.reprocessar(_jpeg(4000, 3000))))
+    assert resultado.size == (1600, 1200)
+
+
+def test_arquivo_maior_que_5_mb():
+    with pytest.raises(FotoGrande):
+        fotos.reprocessar(b"0" * (fotos.TAMANHO_MAX_BYTES + 1))
+
+
+@pytest.mark.parametrize(
+    "conteudo",
+    [b"isto nao e imagem", None],
+    ids=["texto", "gif"],
+)
+def test_formato_nao_suportado(conteudo):
+    if conteudo is None:
+        saida = io.BytesIO()
+        Image.new("RGB", (10, 10)).save(saida, "GIF")
+        conteudo = saida.getvalue()
+    with pytest.raises(FotoFormato):
+        fotos.reprocessar(conteudo)
+
+
+def test_imagem_muito_acima_do_limite_de_megapixels():
+    with pytest.raises(FotoFormato):
+        fotos.reprocessar(_png(8000, 6000))
+
+
+# --- ArmazenamentoSupabase (HTTP simulado com respx) -----------------------------
+
+
+@respx.mock
+def test_supabase_envia_com_chave_de_servico():
+    rota = respx.post("https://abc.supabase.co/storage/v1/object/fotos-barreiras/7/x.webp").mock(
+        return_value=httpx.Response(200, json={"Key": "fotos-barreiras/7/x.webp"})
+    )
+    fotos.ArmazenamentoSupabase("https://abc.supabase.co/", "segredo").enviar("7/x.webp", b"img")
+    pedido = rota.calls.last.request
+    assert pedido.headers["authorization"] == "Bearer segredo"
+    assert pedido.headers["content-type"] == "image/webp"
+    assert pedido.content == b"img"
+
+
+@respx.mock
+def test_supabase_fora_do_ar_vira_storage_indisponivel():
+    respx.post(url__startswith="https://abc.supabase.co/storage/").mock(
+        return_value=httpx.Response(500)
+    )
+    with pytest.raises(StorageIndisponivel):
+        fotos.ArmazenamentoSupabase("https://abc.supabase.co", "segredo").enviar("7/x.webp", b"i")
+
+
+@respx.mock
+def test_supabase_remove_pelo_prefixo():
+    rota = respx.delete("https://abc.supabase.co/storage/v1/object/fotos-barreiras").mock(
+        return_value=httpx.Response(200, json=[])
+    )
+    fotos.ArmazenamentoSupabase("https://abc.supabase.co", "segredo").remover("7/x.webp")
+    assert json.loads(rota.calls.last.request.content) == {"prefixes": ["7/x.webp"]}
+
+
+def test_criar_armazenamento():
+    assert fotos.criar_armazenamento(None, "x") is None
+    assert fotos.criar_armazenamento("https://abc.supabase.co", None) is None
+    assert isinstance(
+        fotos.criar_armazenamento("https://abc.supabase.co", "x"), fotos.ArmazenamentoSupabase
+    )
+
+
+# --- anexar/remover (com banco) ---------------------------------------------------
+
+
+@pytest.fixture
+def barreira(db_transacional, criar_usuario):
+    autor = criar_usuario()
+    entrada = BarreiraIn(
+        categoria="escada", lat=-23.59, lon=-46.635, chave_idempotencia=uuid.uuid4()
+    )
+    return autor, barreiras.criar(db_transacional, autor, entrada, AGORA)[0]
+
+
+@pytest.mark.integration
+def test_autor_anexa_e_troca_foto(db_transacional, barreira, armazenamento_memoria, monkeypatch):
+    monkeypatch.setattr(settings, "supabase_url", "https://abc.supabase.co")
+    autor, b = barreira
+    primeira = fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    assert primeira.foto_descricao == DESCRICAO
+    assert primeira.foto_url.startswith(
+        f"https://abc.supabase.co/storage/v1/object/public/fotos-barreiras/{b.id}/"
+    )
+    assert len(armazenamento_memoria.objetos) == 1
+    segunda = fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    assert segunda.foto_url != primeira.foto_url
+    db_transacional.commit()  # a foto antiga só sai do Storage depois do commit
+    assert len(armazenamento_memoria.objetos) == 1  # a anterior foi apagada
+    tipos = [e.tipo for e in barreiras.listar_eventos(db_transacional, b.id)]
+    assert tipos.count("foto") == 2
+
+
+@pytest.mark.integration
+def test_outra_pessoa_nao_anexa_mas_admin_anexa(
+    db_transacional, barreira, armazenamento_memoria, criar_usuario
+):
+    _, b = barreira
+    with pytest.raises(SemPermissao):
+        fotos.anexar_foto(
+            db_transacional, criar_usuario(), b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+        )
+    resultado = fotos.anexar_foto(
+        db_transacional,
+        criar_usuario("admin"),
+        b.id,
+        _jpeg(),
+        DESCRICAO,
+        armazenamento_memoria,
+        AGORA,
+    )
+    assert resultado.foto_descricao == DESCRICAO
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("descricao", ["abcd", "x" * 301, "    "])
+def test_descricao_da_foto_invalida(db_transacional, barreira, armazenamento_memoria, descricao):
+    autor, b = barreira
+    with pytest.raises(DescricaoFotoInvalida):
+        fotos.anexar_foto(
+            db_transacional, autor, b.id, _jpeg(), descricao, armazenamento_memoria, AGORA
+        )
+
+
+@pytest.mark.integration
+def test_sem_armazenamento_configurado(db_transacional, barreira):
+    autor, b = barreira
+    with pytest.raises(StorageIndisponivel):
+        fotos.anexar_foto(db_transacional, autor, b.id, _jpeg(), DESCRICAO, None, AGORA)
+
+
+@pytest.mark.integration
+def test_remover_foto(db_transacional, barreira, armazenamento_memoria):
+    autor, b = barreira
+    fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    resultado = fotos.remover_foto(db_transacional, autor, b.id, armazenamento_memoria, AGORA)
+    assert (resultado.foto_url, resultado.foto_descricao) == (None, None)
+    db_transacional.commit()
+    assert armazenamento_memoria.objetos == {}
+
+
+@pytest.mark.integration
+def test_foto_antiga_so_sai_do_storage_apos_commit(
+    db_transacional, barreira, armazenamento_memoria
+):
+    autor, b = barreira
+    fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    db_transacional.commit()
+    fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    db_transacional.rollback()
+    # sem commit a antiga continua lá (a nova fica órfã, o que é aceito)
+    assert len(armazenamento_memoria.objetos) == 2
+
+
+# --- memória: o limite de megapixels não pode custar várias cópias da imagem inteira -----
+
+
+def _png_rgba(largura=2000, altura=2000) -> bytes:
+    saida = io.BytesIO()
+    Image.new("RGBA", (largura, altura), (10, 20, 30, 255)).save(saida, "PNG")
+    return saida.getvalue()
+
+
+def test_reprocessar_nao_copia_a_imagem_inteira(monkeypatch):
+    copias = []
+    copiar = Image.Image.copy
+
+    def espiar(imagem):
+        copias.append(imagem.size)
+        return copiar(imagem)
+
+    monkeypatch.setattr(Image.Image, "copy", espiar)
+    fotos.reprocessar(_png_rgba())
+    assert (2000, 2000) not in copias
+
+
+def test_reprocessar_uma_imagem_de_cada_vez(monkeypatch):
+    conteudo = _jpeg()
+    agora = {"dentro": 0, "maximo": 0}
+    trava = threading.Lock()
+    original = fotos.ImageOps.exif_transpose
+
+    def lento(*args, **kwargs):
+        with trava:
+            agora["dentro"] += 1
+            agora["maximo"] = max(agora["maximo"], agora["dentro"])
+        time.sleep(0.05)
+        try:
+            return original(*args, **kwargs)
+        finally:
+            with trava:
+                agora["dentro"] -= 1
+
+    monkeypatch.setattr(fotos.ImageOps, "exif_transpose", lento)
+    tarefas = [threading.Thread(target=fotos.reprocessar, args=(conteudo,)) for _ in range(3)]
+    for tarefa in tarefas:
+        tarefa.start()
+    for tarefa in tarefas:
+        tarefa.join()
+    assert agora["maximo"] == 1
+
+
+def test_fila_de_reprocessamento_cheia_vira_503(monkeypatch):
+    monkeypatch.setattr(fotos, "ESPERA_VAGA_S", 0.01)
+    assert fotos._VAGA_REPROCESSAR.acquire(timeout=1)
+    try:
+        with pytest.raises(StorageIndisponivel):
+            fotos.reprocessar(_jpeg())
+    finally:
+        fotos._VAGA_REPROCESSAR.release()
+
+
+def test_reprocessar_mantem_rotacao_e_tira_transparencia():
+    com_exif = fotos.reprocessar(_jpeg(3000, 2000, orientacao=6))
+    assert max(Image.open(io.BytesIO(com_exif)).size) == fotos.LADO_MAX
+    assert Image.open(io.BytesIO(com_exif)).height > Image.open(io.BytesIO(com_exif)).width
+    assert Image.open(io.BytesIO(fotos.reprocessar(_png_rgba(40, 30)))).mode == "RGB"
+
+
+# --- decisões do dono de 05/11/2026 -------------------------------------------------
+
+
+def test_imagem_acima_de_12_megapixels():
+    with pytest.raises(FotoFormato):
+        fotos.reprocessar(_png(4000, 3001))
+
+
+@pytest.mark.integration
+def test_limite_de_10_fotos_por_dia(db_transacional, barreira, armazenamento_memoria):
+    autor, b = barreira
+    for _ in range(fotos.LIMITE_FOTOS_DIA):
+        fotos.anexar_foto(
+            db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+        )
+    with pytest.raises(LimiteFotos):
+        fotos.anexar_foto(
+            db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+        )
+
+
+@pytest.mark.integration
+def test_limite_de_fotos_conta_so_as_ultimas_24_horas(
+    db_transacional, barreira, armazenamento_memoria
+):
+    autor, b = barreira
+    ontem = AGORA - timedelta(hours=25)
+    for _ in range(fotos.LIMITE_FOTOS_DIA):
+        fotos.anexar_foto(
+            db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, ontem
+        )
+    resultado = fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    assert resultado.foto_descricao == DESCRICAO
+
+
+@pytest.mark.integration
+def test_remover_barreira_apaga_a_foto_so_depois_do_commit(
+    db_transacional, barreira, armazenamento_memoria, criar_usuario
+):
+    autor, b = barreira
+    fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    db_transacional.commit()
+    resultado = votacao.mudar_status_admin(
+        db_transacional,
+        criar_usuario("admin"),
+        b.id,
+        "removida",
+        "barreira falsa",
+        AGORA,
+        armazenamento=armazenamento_memoria,
+    )
+    assert (resultado.foto_url, resultado.foto_descricao) == (None, None)
+    assert len(armazenamento_memoria.objetos) == 1  # ainda não houve commit
+    db_transacional.commit()
+    assert armazenamento_memoria.objetos == {}
+    eventos = barreiras.listar_eventos(db_transacional, b.id)
+    assert [e.detalhe.get("acao") for e in eventos if e.tipo == "foto"] == [
+        "anexada",
+        "apagada_com_a_barreira",
+    ]
+
+
+@pytest.mark.integration
+def test_outro_status_nao_apaga_a_foto(
+    db_transacional, barreira, armazenamento_memoria, criar_usuario
+):
+    autor, b = barreira
+    fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    db_transacional.commit()
+    resultado = votacao.mudar_status_admin(
+        db_transacional,
+        criar_usuario("admin"),
+        b.id,
+        "validada",
+        "conferido no local",
+        AGORA,
+        armazenamento=armazenamento_memoria,
+    )
+    db_transacional.commit()
+    assert resultado.foto_descricao == DESCRICAO
+    assert len(armazenamento_memoria.objetos) == 1
