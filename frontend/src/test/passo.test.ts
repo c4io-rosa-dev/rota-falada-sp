@@ -29,7 +29,7 @@ describe('formatação de um passo', () => {
     expect(formatarDistancia(48)).toBe('48,0 m')
     expect(formatarDistancia(750.7)).toBe('750,7 m')
     expect(textoLargura(p4)).toBe('1,67 m')
-    expect(textoDeclividade(p4)).toBe('3%')
+    expect(textoDeclividade(p4)).toBe('cerca de 3%')
   })
 
   it('diz "sem dado" quando o dado não existe, em vez de inventar', () => {
@@ -50,7 +50,7 @@ describe('formatação de um passo', () => {
 
   it('monta o texto falado de cada passo em pt-BR', () => {
     expect(textoFalado(p4)).toBe(
-      'Passo 4. Vire à direita. 13,1 metros. Largura da calçada: 1,67 metro. Declividade: 3 por cento. Guia não rebaixada.',
+      'Passo 4. Vire à direita. 13,1 metros. Largura da calçada: 1,67 metro. Declividade: cerca de 3 por cento. Guia não rebaixada.',
     )
     expect(textoFalado(p2)).toContain('Largura da calçada: sem dado.')
   })

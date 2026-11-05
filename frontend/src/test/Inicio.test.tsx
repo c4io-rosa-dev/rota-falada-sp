@@ -25,7 +25,7 @@ describe('página inicial', () => {
         'Rotas a pé em São Paulo que evitam escadas, calçadas estreitas e guias altas, descritas passo a passo com fonte e data.',
       ),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Planejar rota' })).toHaveAttribute('href', '/rota')
+    expect(within(screen.getByRole('main')).getByRole('link', { name: 'Planejar rota' })).toHaveAttribute('href', '/rota')
     const elevacao = screen.getByRole('list', { name: 'Passos da rota de exemplo, em elevação' })
     expect(within(elevacao).getAllByRole('listitem')).toHaveLength(11)
     expect(within(elevacao).getAllByRole('listitem')[1]).toHaveTextContent('Rua Helen Keller')

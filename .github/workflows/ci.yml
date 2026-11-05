@@ -53,6 +53,33 @@ jobs:
       - run: npm run lint
       - run: npm test -- --run
       - run: npm run build
+      - run: npm run orcamento
+      # o gitleaks olha o repositório; o que vai ao ar é o dist
+      - name: Nenhum segredo no bundle
+        run: |
+          if grep -rEl 'sb_secret_|eyJ[A-Za-z0-9_-]{10,}\.' dist; then
+            echo "Segredo no bundle: confira as variáveis VITE_ do build."
+            exit 1
+          fi
+
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx tsc -p tsconfig.e2e.json
+      - run: npx playwright test
 
   gitleaks:
     runs-on: ubuntu-latest

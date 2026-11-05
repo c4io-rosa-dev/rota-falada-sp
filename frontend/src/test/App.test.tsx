@@ -51,6 +51,7 @@ describe('layout acessível', () => {
     const nav = screen.getByRole('navigation', { name: 'Principal' })
     expect(within(nav).getByRole('link', { name: 'Início' })).toHaveAttribute('href', '/')
     expect(within(nav).getByRole('link', { name: 'Início' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: 'Planejar rota' })).toHaveAttribute('href', '/rota')
     expect(within(nav).getByRole('link', { name: 'Fontes' })).toHaveAttribute('href', '/fontes')
     expect(within(nav).getByRole('link', { name: 'Acessibilidade' })).toHaveAttribute('href', '/acessibilidade')
   })
@@ -65,8 +66,14 @@ describe('layout acessível', () => {
 
   it('abre /rota pelo CTA da página inicial', async () => {
     renderizar('/')
-    await userEvent.click(screen.getByRole('link', { name: 'Planejar rota' }))
+    await userEvent.click(within(screen.getByRole('main')).getByRole('link', { name: 'Planejar rota' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Planejar rota' })).toHaveFocus()
+  })
+
+  it('endereço inexistente tem página própria com h1', async () => {
+    renderizar('/nao-existe')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Página não encontrada' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Planejar uma rota' })).toHaveAttribute('href', '/rota')
   })
 
   it('não tem violações de acessibilidade na página inicial', async () => {

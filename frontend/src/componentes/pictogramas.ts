@@ -15,6 +15,15 @@ export const DESENHOS = {
   parar: ['M6 6H18V18H6Z'],
   siga: ['M3 12H20', 'M14 6L20 12L14 18'],
   fonte: ['M6 3H14L19 8V21H6Z', 'M14 3V8H19', 'M9 13H16', 'M9 17H16'],
+  // mira: o ponto onde o GPS colocou a pessoa
+  localizacao: ['M12 2V7', 'M12 17V22', 'M2 12H7', 'M17 12H22', 'M8 8H16V16H8Z'],
+  alerta: ['M12 3L22 21H2Z', 'M12 10V15', 'M12 17V19'],
+  mais: ['M5 12H19', 'M12 5V19'],
+  menos: ['M5 12H19'],
+  enquadrar: ['M3 9V3H9', 'M15 3H21V9', 'M21 15V21H15', 'M9 21H3V15'],
+  origem: ['M5 5H19V19H5Z', 'M10 10H14V14H10Z'],
+  destino: ['M6 3V21', 'M6 4H19L15 9L19 14H6'],
+  foto: ['M3 7H21V20H3Z', 'M8 7V4H16V7', 'M9 11H15V16H9Z'],
   // duas torres e a passarela entre elas: a marca do Rota Falada SP
   marca: ['M3 21V4H9V21', 'M15 21V9H21V21', 'M9 12H15', 'M2 21H22'],
 } as const

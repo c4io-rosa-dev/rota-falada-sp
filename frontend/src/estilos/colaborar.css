@@ -1,0 +1,284 @@
+/* Login, barreiras e moderação. Tokens do DESIGN.md; nada de tamanho ou peso novo. */
+
+.colaborar {
+  max-width: var(--largura-max);
+  margin: 0 auto;
+  padding: var(--e-5) var(--calha) var(--e-6);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-4);
+}
+
+.colaborar__titulo {
+  margin: 0 0 var(--e-1);
+  font-size: var(--t-2);
+}
+
+.colaborar__lista,
+.portao {
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  min-width: 0;
+}
+
+/* só posiciona o portão: laje sempre leva junta, e este invólucro não tem nenhuma */
+.colaborar__portao {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.colaborar__lista p,
+.escolha-local__escolhido p {
+  overflow-wrap: anywhere;
+}
+
+.portao {
+  display: grid;
+  gap: var(--e-2);
+  justify-items: start;
+  margin-top: var(--e-3);
+}
+
+.portao p {
+  margin: 0;
+}
+
+/* dentro de uma folha ou da lista, nada de caixa dentro de caixa: abre com a junta, sobre a própria laje */
+.folha .portao,
+.colaborar__lista .portao {
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--junta);
+  padding: var(--e-3) 0 0;
+}
+
+.portao__titulo {
+  margin: 0;
+  font-size: var(--t-2);
+}
+
+/* texto corrido em página de leitura: mesmo campo do formulário */
+.campo textarea {
+  min-height: 48px;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--vao);
+  border: 1px solid var(--junta-forte);
+  border-radius: 0;
+  max-width: 100%;
+  resize: vertical;
+}
+
+.campo textarea:hover {
+  border-color: var(--tinta);
+}
+
+.campo input[type='file'] {
+  width: 100%;
+  padding: 0.5rem 0;
+  background: transparent;
+  border: 0;
+  max-width: 100%;
+}
+
+/* o botão nativo fura o sistema: vira placa neutra de canto vivo, com a paleta e os 44 px */
+.campo input[type='file']::file-selector-button {
+  appearance: none;
+  min-height: 44px;
+  margin-inline-end: var(--e-2);
+  padding: 0.5rem 1rem;
+  background: var(--placa);
+  color: var(--tinta);
+  border: 1px solid var(--junta-forte);
+  border-radius: 0;
+  font: inherit;
+  font-size: var(--t-1);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.campo input[type='file']::file-selector-button:hover {
+  background: var(--vao);
+  border-color: var(--tinta);
+}
+
+.fluxo-codigo,
+.fluxo-codigo form,
+.foto__form,
+.decisao {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-3);
+  justify-items: stretch;
+  min-width: 0;
+}
+
+.fluxo-codigo .placa,
+.foto__form .placa,
+.decisao > .placa {
+  justify-self: start;
+}
+
+/* a frase troca de duas linhas para uma sem empurrar "Cancelar" (seção 8.1 do spec) */
+@media (max-width: 480px) {
+  .fluxo-codigo__reenvio {
+    min-height: 3.1em;
+  }
+}
+
+.fluxo-codigo__apoio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1);
+}
+
+.opcao--dupla {
+  align-items: flex-start;
+}
+
+.opcao__dica {
+  display: block;
+  font-size: var(--t-1);
+  color: var(--tinta-2);
+}
+
+.escolha-local {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: var(--e-2);
+  justify-items: start;
+  min-width: 0;
+}
+
+.escolha-local > * {
+  max-width: 100%;
+}
+
+.escolha-local legend {
+  padding: 0;
+  font-weight: 600;
+}
+
+.escolha-local .campo-endereco,
+.escolha-local .mapa-rota__corpo {
+  width: 100%;
+}
+
+.escolha-local__escolhido {
+  display: grid;
+  gap: var(--e-1);
+  justify-items: start;
+}
+
+.escolha-local__escolhido p {
+  margin: 0;
+}
+
+.escolha-local__rotulo {
+  font-weight: 600;
+}
+
+/* como o nome da rua no vão: "MODERAÇÃO" em largura 125 não cabe a 320 px */
+@media (max-width: 400px) {
+  .colaborar .display {
+    font-stretch: 100%;
+  }
+}
+
+/* lista sem caixa: régua de 1 px, como a tabela gravada */
+.lista-gravada {
+  list-style: none;
+  margin: 0 0 var(--e-3);
+  padding: 0;
+  border-top: 1px solid var(--junta-forte);
+}
+
+.lista-gravada li {
+  padding: var(--e-3) 0;
+  border-bottom: 1px solid var(--junta);
+}
+
+.lista-gravada h3 {
+  margin: 0 0 var(--e-1);
+  font-size: var(--t-2);
+}
+
+.lista-gravada p {
+  margin: 0 0 var(--e-1);
+}
+
+.lista-gravada__link {
+  justify-content: flex-start;
+  padding-inline: 0;
+}
+
+.filtros {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-2);
+}
+
+.filtros a {
+  font-weight: 600;
+  font-size: var(--t-1);
+  border-bottom: 2px solid transparent;
+}
+
+/* filtro atual: estado ativo */
+.filtros a[aria-current='page'] {
+  border-bottom-color: var(--oxido);
+}
+
+.votacao,
+.foto {
+  display: grid;
+  gap: var(--e-2);
+  margin-top: var(--e-4);
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--junta);
+}
+
+.votacao__opcoes {
+  display: grid;
+  gap: var(--e-2);
+}
+
+.votacao__opcao {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+}
+
+.votacao__opcao p,
+.votacao > p {
+  margin: 0;
+}
+
+.foto__previa {
+  display: block;
+  max-height: 20rem;
+  margin: var(--e-2) 0;
+  border: 1px solid var(--junta);
+}
+
+.decisao {
+  margin-top: var(--e-3);
+}
+
+.decisao__opcoes {
+  display: grid;
+  gap: var(--e-1);
+  margin-top: var(--e-1);
+}
+
+.auditoria {
+  margin: 0;
+  padding: 0 0 0 var(--e-3);
+}

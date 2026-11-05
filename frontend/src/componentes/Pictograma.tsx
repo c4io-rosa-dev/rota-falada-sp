@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import { DESENHOS, type NomePictograma } from './pictogramas'
 
-/** Pictograma autoral: grade 24, um só peso de traço (2), canto vivo. */
+/** Pictograma autoral: grade 24, um só peso de traço (2 px na tela, em qualquer tamanho), canto vivo. */
 
 type Props = {
   nome: NomePictograma
@@ -21,7 +21,7 @@ export function Pictograma({ nome, titulo, tamanho = 24, className }: Props) {
     viewBox: '0 0 24 24',
     fill: 'none',
     stroke: 'currentColor',
-    strokeWidth: 2,
+    strokeWidth: 48 / tamanho,
     strokeLinecap: 'butt' as const,
     strokeLinejoin: 'miter' as const,
     focusable: 'false' as const,

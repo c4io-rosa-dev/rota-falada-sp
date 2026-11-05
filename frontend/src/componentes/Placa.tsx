@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react'
 import { Link } from 'react-router'
 import { Pictograma } from './Pictograma'
 import type { NomePictograma } from './pictogramas'
@@ -12,7 +12,7 @@ type Comum = {
 }
 
 type PlacaLink = Comum & { para: string }
-type PlacaBotao = Comum & { para?: undefined } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'className'>
+type PlacaBotao = Comum & { para?: undefined; ref?: Ref<HTMLButtonElement> } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'className'>
 
 /** Laje de concreto com caixilho de 2 px e canto vivo. Vira Link com `para`, senão botão. */
 export function Placa(props: PlacaLink | PlacaBotao) {

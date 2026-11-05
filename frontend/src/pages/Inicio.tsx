@@ -6,23 +6,16 @@ import { Passarela } from '../componentes/Passarela'
 import { Pictograma } from '../componentes/Pictograma'
 import { Placa } from '../componentes/Placa'
 import { Janela } from '../componentes/Torre'
-import {
-  formatarData,
-  formatarDistancia,
-  nomeFonte,
-  textoDeclividade,
-  textoFalado,
-  textoGuia,
-  textoLargura,
-} from '../dados/passo'
+import { FichaRota } from '../componentes/FichaRota'
+import { TabelaPassos } from '../componentes/TabelaPassos'
+import { formatarData, formatarDistancia, nomeFonte, textoExigencia, textoFalado, textosDeAviso } from '../dados/passo'
 import { ROTA_EXEMPLO, ROTA_EXEMPLO_META } from '../dados/rotaExemplo'
 
 const PASSOS = ROTA_EXEMPLO.passos
 const DISTANCIA = formatarDistancia(ROTA_EXEMPLO.distancia_m)
 const MINUTOS = Math.round(ROTA_EXEMPLO.duracao_s / 60)
 const PROVENIENCIA = `${ROTA_EXEMPLO_META.rotulo} · ${ROTA_EXEMPLO_META.bairro} · fontes: ${ROTA_EXEMPLO_META.fontes.join(', ')}`
-const EXIGENCIA = ROTA_EXEMPLO.nivel_exigencia_atendido === 'any' ? 'qualquer inclinação' : `até ${ROTA_EXEMPLO.nivel_exigencia_atendido}%`
-const CAMPOS = ['Distância', 'Largura', 'Declividade', 'Guia', 'Degrau', 'Fonte', 'Data']
+const EXIGENCIA = textoExigencia(ROTA_EXEMPLO.nivel_exigencia_atendido)
 const MOTOR = ROTA_EXEMPLO.motor === 'ors' ? 'openrouteservice' : ROTA_EXEMPLO.motor
 
 export function Inicio() {
@@ -170,84 +163,24 @@ export function Inicio() {
           Exemplo de rota real
         </h2>
         <div className="exemplo">
-          <div className="ficha">
-            <p className="ficha__resumo">
-              {ROTA_EXEMPLO_META.origem} até {ROTA_EXEMPLO_META.destino}, em {ROTA_EXEMPLO_META.bairro}:{' '}
-              <span className="medida">{DISTANCIA}</span> em {PASSOS.length} passos, cerca de {MINUTOS} minutos a pé.
-            </p>
-            <dl className="ficha__dados">
-              <dt>Calculada por</dt>
-              <dd>{MOTOR}, em produção</dd>
-              <dt>Exigência atendida</dt>
-              <dd>{EXIGENCIA}</dd>
-              <dt>Fontes</dt>
-              <dd>{ROTA_EXEMPLO.fontes.map(nomeFonte).join(', ')}</dd>
-              <dt>Gravada em</dt>
-              <dd>{formatarData('2026-10-12')}</dd>
-            </dl>
-            {ROTA_EXEMPLO.avisos.map((a) => (
-              <p key={a.tipo} className="aviso">
-                <Pictograma nome="fonte" />
-                <span>{a.mensagem}</span>
-              </p>
-            ))}
+          <FichaRota
+            resumo={
+              <>
+                {ROTA_EXEMPLO_META.origem} até {ROTA_EXEMPLO_META.destino}, em {ROTA_EXEMPLO_META.bairro}:{' '}
+                <span className="medida">{DISTANCIA}</span> em {PASSOS.length} passos, cerca de {MINUTOS} minutos a pé.
+              </>
+            }
+            dados={[
+              { rotulo: 'Calculada por', valor: `${MOTOR}, em produção` },
+              { rotulo: 'Exigência atendida', valor: EXIGENCIA },
+              { rotulo: 'Fontes', valor: ROTA_EXEMPLO.fontes.map(nomeFonte).join(', ') },
+              { rotulo: 'Gravada em', valor: formatarData('2026-10-12') },
+            ]}
+            avisos={textosDeAviso(ROTA_EXEMPLO)}
+          >
             <BotaoOuvir passos={PASSOS} aoMudarPasso={setPassoAtivo} />
-          </div>
-
-          <div className="tabela-passos">
-            {/* cabeçalho só visual, alinhado pelo subgrid; cada linha mantém seus <dt> para o leitor de tela */}
-            <div className="tabela-passos__cabecalho" aria-hidden="true">
-              <span />
-              {CAMPOS.map((c) => (
-                <span key={c}>{c}</span>
-              ))}
-            </div>
-          <ol className="placas" aria-label="Os 11 passos da rota de exemplo">
-            {PASSOS.map((p) => {
-              const ativo = p.ordem === passoAtivo
-              return (
-                <li
-                  key={p.ordem}
-                  className={ativo ? 'placa-passo placa-passo--ativa' : 'placa-passo'}
-                  aria-current={ativo ? 'step' : undefined}
-                >
-                  <span className="placa-passo__ordem letreiro">{p.ordem}</span>
-                  <p className="placa-passo__instrucao">{p.instrucao}</p>
-                  <dl className="placa-passo__dados">
-                    <div>
-                      <dt className="rotulo-campo">Distância</dt>
-                      <dd className="medida">{formatarDistancia(p.distancia_m)}</dd>
-                    </div>
-                    <div>
-                      <dt className="rotulo-campo">Largura</dt>
-                      <dd className="medida">{textoLargura(p)}</dd>
-                    </div>
-                    <div>
-                      <dt className="rotulo-campo">Declividade</dt>
-                      <dd className="medida">{textoDeclividade(p)}</dd>
-                    </div>
-                    <div>
-                      <dt className="rotulo-campo">Guia</dt>
-                      <dd className={p.guia === 'nao_transponivel' ? 'alerta' : undefined}>{textoGuia(p.guia)}</dd>
-                    </div>
-                    <div>
-                      <dt className="rotulo-campo">Degrau</dt>
-                      <dd>{p.is_degrau ? 'sim' : 'não'}</dd>
-                    </div>
-                    <div>
-                      <dt className="rotulo-campo">Fonte</dt>
-                      <dd>{nomeFonte(p.fonte)}</dd>
-                    </div>
-                    <div>
-                      <dt className="rotulo-campo">Data</dt>
-                      <dd className="medida">{formatarData(p.data_referencia)}</dd>
-                    </div>
-                  </dl>
-                </li>
-              )
-            })}
-          </ol>
-          </div>
+          </FichaRota>
+          <TabelaPassos passos={PASSOS} passoAtivo={passoAtivo} rotulo="Os 11 passos da rota de exemplo" />
         </div>
       </section>
     </>

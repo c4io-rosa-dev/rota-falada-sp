@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/eu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Eu */
+        get: operations["eu_api_eu_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/barreiras": {
         parameters: {
             query?: never;
@@ -154,6 +171,40 @@ export interface paths {
         post: operations["anexar_foto_api_barreiras__barreira_id__foto_post"];
         /** Remover Foto */
         delete: operations["remover_foto_api_barreiras__barreira_id__foto_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/barreiras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fila */
+        get: operations["fila_api_admin_barreiras_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/barreiras/{barreira_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obter */
+        get: operations["obter_api_admin_barreiras__barreira_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -318,6 +369,17 @@ export interface components {
              * @default false
              */
             aproximado: boolean;
+        };
+        /**
+         * EuOut
+         * @description Só o papel: id e e-mail a pessoa já tem pelo Supabase, e não voltam aqui.
+         */
+        EuOut: {
+            /**
+             * Papel
+             * @enum {string}
+             */
+            papel: "colaborador" | "admin";
         };
         /** EventoOut */
         EventoOut: {
@@ -686,6 +748,37 @@ export interface operations {
             };
         };
     };
+    eu_api_eu_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EuOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     listar_api_barreiras_get: {
         parameters: {
             query: {
@@ -860,6 +953,74 @@ export interface operations {
         };
     };
     remover_foto_api_barreiras__barreira_id__foto_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                barreira_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BarreiraOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fila_api_admin_barreiras_get: {
+        parameters: {
+            query?: {
+                status?: ("pendente" | "validada" | "contestada" | "resolvida" | "expirada" | "removida") | null;
+                limite?: number;
+                antes_de?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BarreiraOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obter_api_admin_barreiras__barreira_id__get: {
         parameters: {
             query?: never;
             header?: {

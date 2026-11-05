@@ -1,0 +1,101 @@
+/* Mapa redundante: tokens do DESIGN.md, nenhum tamanho de fonte novo, canto vivo, sem sombra.
+   Contrastes novos anotados em index.css. */
+
+.mapa {
+  position: relative;
+  margin: 0;
+  border: 1px solid var(--junta);
+  background: var(--vao);
+}
+
+.mapa__leaflet {
+  height: clamp(16rem, 50svh, 32rem);
+  background: var(--vao);
+  font-family: var(--fonte);
+  font-size: var(--t-1);
+}
+
+.mapa__leaflet.leaflet-container {
+  background: var(--vao);
+  font: inherit;
+  font-size: var(--t-1);
+}
+
+/* fundo apagado: conforto sensorial; fatores de partida, ajustar contra captura real */
+.mapa__leaflet .leaflet-tile-pane {
+  filter: grayscale(1) contrast(0.9);
+}
+
+@media (prefers-color-scheme: dark) {
+  .mapa__leaflet .leaflet-tile-pane {
+    filter: grayscale(1) invert(1) brightness(0.85) contrast(0.85);
+  }
+}
+
+.mapa__leaflet path.mapa__casing {
+  stroke: var(--placa);
+  stroke-width: 8;
+  stroke-opacity: 1;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  fill: none;
+}
+
+.mapa__leaflet path.mapa__linha {
+  stroke: var(--tinta);
+  stroke-width: 4;
+  stroke-opacity: 1;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  fill: none;
+}
+
+/* óxido só no passo ativo; o segundo sinal é o número na legenda */
+.mapa__leaflet path.mapa__linha--ativa {
+  stroke: var(--oxido);
+  stroke-width: 6;
+}
+
+.mapa__leaflet path.mapa__casing--ativo {
+  stroke-width: 10;
+}
+
+.mapa__marcador {
+  display: grid;
+  place-items: center;
+  color: var(--tinta);
+  background: var(--placa);
+  border: 2px solid var(--tinta);
+}
+
+/* sobre o mapa, como a política de tiles pede; fora do role="img", legível por leitor de tela */
+.mapa__atribuicao {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  max-width: 100%;
+  padding: 0.25rem 0.5rem;
+  background: var(--placa);
+  border-top: 1px solid var(--junta);
+  border-left: 1px solid var(--junta);
+  font-size: var(--t-1);
+}
+
+@media (forced-colors: active) {
+  .mapa__leaflet path.mapa__linha,
+  .mapa__leaflet path.mapa__linha--ativa {
+    stroke: CanvasText;
+  }
+}
+
+/* escolher um ponto: mira fixa no centro, nunca marcador arrastável */
+.mapa__mira {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 500;
+  transform: translate(-50%, -50%);
+  color: var(--tinta);
+  pointer-events: none;
+}
