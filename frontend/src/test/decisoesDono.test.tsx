@@ -27,13 +27,14 @@ describe('decisões do dono de 05/11/2026', () => {
     expect(textoSobreARota('pgrouting')).not.toContain('não desvia')
   })
 
-  it('/conta explica a exclusão e dá o contato configurado', async () => {
-    vi.stubEnv('VITE_CONTATO_PRIVACIDADE', 'privacidade@exemplo.org')
+  it('/conta explica suporte e exclusão e dá o contato configurado', async () => {
+    vi.stubEnv('VITE_CONTATO_PRIVACIDADE', 'suporte@exemplo.org')
     apiFalsa(logar())
     abrir('/conta')
-    const link = await screen.findByRole('link', { name: 'privacidade@exemplo.org' })
-    expect(link).toHaveAttribute('href', 'mailto:privacidade@exemplo.org')
-    expect(screen.getByText(/As barreiras que você registrou continuam públicas, sem autor/)).toBeInTheDocument()
+    const link = await screen.findByRole('link', { name: 'suporte@exemplo.org' })
+    expect(link).toHaveAttribute('href', 'mailto:suporte@exemplo.org')
+    expect(screen.getByText(/Para tirar dúvidas, pedir suporte ou apagar sua conta/)).toBeInTheDocument()
+    expect(screen.getByText(/as barreiras que você registrou continuam públicas, sem autor/)).toBeInTheDocument()
   })
 
   it('/conta sem contato configurado não mostra link quebrado', async () => {

@@ -68,7 +68,7 @@ export function Conta() {
         registrou ou votou; a moderação vê um código da conta, nunca o e-mail, para auditoria.
       </p>
       <p>
-        Para apagar sua conta,{' '}
+        Para tirar dúvidas, pedir suporte ou apagar sua conta,{' '}
         {contato ? (
           <>
             escreva para <a href={`mailto:${contato}`}>{contato}</a>
@@ -76,7 +76,7 @@ export function Conta() {
         ) : (
           'fale com a equipe do projeto'
         )}
-        . As barreiras que você registrou continuam públicas, sem autor.
+        . Se a conta for apagada, as barreiras que você registrou continuam públicas, sem autor.
       </p>
       <Placa onClick={encerrar}>Sair</Placa>
       {/* tudo o que chega depois de GET /api/eu fica abaixo de "Sair", para ele não pular sozinho (D3, D19) */}
