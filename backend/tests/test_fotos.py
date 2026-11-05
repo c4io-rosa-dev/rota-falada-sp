@@ -5,7 +5,7 @@ import json
 import threading
 import time
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -14,11 +14,12 @@ from PIL import Image
 
 from app.config import settings
 from app.schemas.barreira import BarreiraIn
-from app.services import barreiras, fotos
+from app.services import barreiras, fotos, votacao
 from app.services.erros import (
     DescricaoFotoInvalida,
     FotoFormato,
     FotoGrande,
+    LimiteFotos,
     SemPermissao,
     StorageIndisponivel,
 )
@@ -85,7 +86,7 @@ def test_formato_nao_suportado(conteudo):
         fotos.reprocessar(conteudo)
 
 
-def test_imagem_acima_de_40_megapixels():
+def test_imagem_muito_acima_do_limite_de_megapixels():
     with pytest.raises(FotoFormato):
         fotos.reprocessar(_png(8000, 6000))
 
@@ -232,7 +233,7 @@ def test_foto_antiga_so_sai_do_storage_apos_commit(
     assert len(armazenamento_memoria.objetos) == 2
 
 
-# --- memória: o limite de 40 MP não pode custar várias cópias da imagem inteira -----
+# --- memória: o limite de megapixels não pode custar várias cópias da imagem inteira -----
 
 
 def _png_rgba(largura=2000, altura=2000) -> bytes:
@@ -295,3 +296,92 @@ def test_reprocessar_mantem_rotacao_e_tira_transparencia():
     assert max(Image.open(io.BytesIO(com_exif)).size) == fotos.LADO_MAX
     assert Image.open(io.BytesIO(com_exif)).height > Image.open(io.BytesIO(com_exif)).width
     assert Image.open(io.BytesIO(fotos.reprocessar(_png_rgba(40, 30)))).mode == "RGB"
+
+
+# --- decisões do dono de 05/11/2026 -------------------------------------------------
+
+
+def test_imagem_acima_de_12_megapixels():
+    with pytest.raises(FotoFormato):
+        fotos.reprocessar(_png(4000, 3001))
+
+
+@pytest.mark.integration
+def test_limite_de_10_fotos_por_dia(db_transacional, barreira, armazenamento_memoria):
+    autor, b = barreira
+    for _ in range(fotos.LIMITE_FOTOS_DIA):
+        fotos.anexar_foto(
+            db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+        )
+    with pytest.raises(LimiteFotos):
+        fotos.anexar_foto(
+            db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+        )
+
+
+@pytest.mark.integration
+def test_limite_de_fotos_conta_so_as_ultimas_24_horas(
+    db_transacional, barreira, armazenamento_memoria
+):
+    autor, b = barreira
+    ontem = AGORA - timedelta(hours=25)
+    for _ in range(fotos.LIMITE_FOTOS_DIA):
+        fotos.anexar_foto(
+            db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, ontem
+        )
+    resultado = fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    assert resultado.foto_descricao == DESCRICAO
+
+
+@pytest.mark.integration
+def test_remover_barreira_apaga_a_foto_so_depois_do_commit(
+    db_transacional, barreira, armazenamento_memoria, criar_usuario
+):
+    autor, b = barreira
+    fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    db_transacional.commit()
+    resultado = votacao.mudar_status_admin(
+        db_transacional,
+        criar_usuario("admin"),
+        b.id,
+        "removida",
+        "barreira falsa",
+        AGORA,
+        armazenamento=armazenamento_memoria,
+    )
+    assert (resultado.foto_url, resultado.foto_descricao) == (None, None)
+    assert len(armazenamento_memoria.objetos) == 1  # ainda não houve commit
+    db_transacional.commit()
+    assert armazenamento_memoria.objetos == {}
+    eventos = barreiras.listar_eventos(db_transacional, b.id)
+    assert [e.detalhe.get("acao") for e in eventos if e.tipo == "foto"] == [
+        "anexada",
+        "apagada_com_a_barreira",
+    ]
+
+
+@pytest.mark.integration
+def test_outro_status_nao_apaga_a_foto(
+    db_transacional, barreira, armazenamento_memoria, criar_usuario
+):
+    autor, b = barreira
+    fotos.anexar_foto(
+        db_transacional, autor, b.id, _jpeg(), DESCRICAO, armazenamento_memoria, AGORA
+    )
+    db_transacional.commit()
+    resultado = votacao.mudar_status_admin(
+        db_transacional,
+        criar_usuario("admin"),
+        b.id,
+        "validada",
+        "conferido no local",
+        AGORA,
+        armazenamento=armazenamento_memoria,
+    )
+    db_transacional.commit()
+    assert resultado.foto_descricao == DESCRICAO
+    assert len(armazenamento_memoria.objetos) == 1

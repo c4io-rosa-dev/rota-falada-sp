@@ -6,7 +6,14 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy import text
 
-from app.services.admin import UsuarioNaoEncontrado, buscar_id_por_email, promover_admin
+from app.schemas.barreira import BarreiraIn
+from app.services import barreiras
+from app.services.admin import (
+    UsuarioNaoEncontrado,
+    anonimizar_conta,
+    buscar_id_por_email,
+    promover_admin,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -44,3 +51,23 @@ def test_buscar_por_email_sem_auth_users_explica_o_que_fazer(db_transacional):
         pytest.skip("este banco tem auth.users (Supabase); o teste é para o banco local")
     with pytest.raises(UsuarioNaoEncontrado, match="--id"):
         buscar_id_por_email(db_transacional, "caiorosa2006@gmail.com")
+
+
+def test_excluir_conta_mantem_a_barreira_sem_autor(db_transacional, criar_usuario):
+    autor = criar_usuario()
+    entrada = BarreiraIn(
+        categoria="escada", lat=-23.59, lon=-46.635, chave_idempotencia=uuid.uuid4()
+    )
+    barreira, _ = barreiras.criar(db_transacional, autor, entrada, AGORA)
+    assert anonimizar_conta(db_transacional, autor.id, AGORA) == 1
+    autor_id, chave = db_transacional.execute(
+        text("SELECT autor_id, chave_idempotencia FROM barreira_colaborativa WHERE id = :id"),
+        {"id": barreira.id},
+    ).one()
+    assert (autor_id, chave) == (None, None)
+    assert barreiras.obter(db_transacional, barreira.id, AGORA).id == barreira.id
+    detalhe = db_transacional.execute(
+        text("SELECT detalhe FROM barreira_evento WHERE usuario_id = :id AND tipo = 'admin'"),
+        {"id": autor.id},
+    ).scalar_one()
+    assert detalhe == {"acao": "conta_excluida", "barreiras_sem_autor": 1}

@@ -43,3 +43,25 @@ def promover_admin(db: Session, usuario_id: uuid.UUID, agora: datetime) -> None:
     registrar_evento(
         db, tipo="promocao", agora=agora, usuario_id=usuario_id, detalhe={"papel": "admin"}
     )
+
+
+def anonimizar_conta(db: Session, usuario_id: uuid.UUID, agora: datetime) -> int:
+    """Exclusão de conta (LGPD): as barreiras continuam públicas, sem autor. A linha de
+    `usuario`, os votos e a auditoria (imutável) ficam só com o id, que deixa de levar a
+    alguém quando a conta é apagada no Supabase Auth. Devolve quantas barreiras ficaram
+    sem autor."""
+    barreiras = db.execute(
+        text(
+            "UPDATE barreira_colaborativa SET autor_id = NULL, chave_idempotencia = NULL "
+            "WHERE autor_id = :id"
+        ),
+        {"id": usuario_id},
+    ).rowcount
+    registrar_evento(
+        db,
+        tipo="admin",
+        agora=agora,
+        usuario_id=usuario_id,
+        detalhe={"acao": "conta_excluida", "barreiras_sem_autor": barreiras},
+    )
+    return barreiras

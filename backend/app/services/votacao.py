@@ -20,6 +20,7 @@ from app.schemas.barreira import BarreiraOut
 from app.services.barreiras import obter, registrar_evento
 from app.services.cache_rota import invalidar_regiao
 from app.services.erros import AutorNaoVota, BarreiraEncerrada, NaoEncontrada
+from app.services.fotos import ArmazenamentoFotos, apagar_foto_da_barreira_removida
 from app.services.moderacao import (
     STATUS_ENCERRADOS,
     Contagem,
@@ -148,6 +149,8 @@ def mudar_status_admin(
     status: str,
     motivo: str,
     agora: datetime,
+    *,
+    armazenamento: ArmazenamentoFotos | None = None,
 ) -> BarreiraOut:
     linha = _travar(db, barreira_id)
     atual = status_efetivo(linha.status, linha.criado_em, linha.ultima_confirmacao_em, agora)
@@ -174,6 +177,8 @@ def mudar_status_admin(
         para_status=status,
         detalhe={"motivo": motivo},
     )
+    if status == "removida":
+        apagar_foto_da_barreira_removida(db, admin, barreira_id, armazenamento, agora)
     _invalidar_se_mudou(db, linha, atual, status)
     return obter(db, barreira_id, agora, incluir_removida=True)
 

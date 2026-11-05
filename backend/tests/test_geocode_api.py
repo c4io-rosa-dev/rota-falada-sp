@@ -6,7 +6,12 @@ from sqlalchemy.exc import OperationalError
 
 from app.db import get_db
 from app.main import create_app
-from app.routers.geocode import CACHE_CONTROL, CACHE_CONTROL_VAZIO, MSG_INDISPONIVEL
+from app.routers.geocode import (
+    CACHE_CONTROL,
+    CACHE_CONTROL_REVERSO,
+    CACHE_CONTROL_VAZIO,
+    MSG_INDISPONIVEL,
+)
 from app.services.geocode import MSG_FORA_DA_AREA
 
 pytestmark = pytest.mark.integration
@@ -64,7 +69,7 @@ def test_reverso_devolve_endereco_com_cache(cliente, area_teste, semear_endereco
     )
     resposta = cliente.get("/api/geocode/reverso", params={"lat": lat, "lon": lon})
     assert resposta.status_code == 200
-    assert resposta.headers["cache-control"] == CACHE_CONTROL
+    assert resposta.headers["cache-control"] == CACHE_CONTROL_REVERSO
     assert resposta.json()["rotulo"] == "Rua Perto, 20 · Teste"
 
 

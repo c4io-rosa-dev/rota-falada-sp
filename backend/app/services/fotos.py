@@ -26,13 +26,15 @@ from app.services.erros import (
     DescricaoFotoInvalida,
     FotoFormato,
     FotoGrande,
+    LimiteFotos,
     NaoEncontrada,
     SemPermissao,
     StorageIndisponivel,
 )
 
 TAMANHO_MAX_BYTES = 5 * 1024 * 1024
-PIXELS_MAX = 40_000_000
+PIXELS_MAX = 12_000_000
+LIMITE_FOTOS_DIA = 10
 LADO_MAX = 1600
 _FORMATOS_ACEITOS = frozenset({"JPEG", "PNG", "WEBP"})
 _DESCRICAO_MIN, _DESCRICAO_MAX = 5, 300
@@ -176,6 +178,14 @@ def _remover_sem_falhar(armazenamento: ArmazenamentoFotos, caminho: str | None) 
         pass
 
 
+_SQL_FOTOS_24H = text(
+    "SELECT count(*) FROM barreira_evento "
+    "WHERE tipo = 'foto' AND usuario_id = :usuario AND detalhe->>'acao' = 'anexada' "
+    "AND criado_em > CAST(:agora AS timestamptz) - interval '24 hours' "
+    "AND criado_em <= CAST(:agora AS timestamptz)"
+)
+
+
 def _remover_apos_commit(db: Session, armazenamento: ArmazenamentoFotos, caminho: str | None):
     """Só apaga o objeto antigo depois que a transação confirma; se o commit
     falhar, o banco ainda aponta para ele."""
@@ -204,6 +214,9 @@ def anexar_foto(
     if "\x00" in descricao or not _DESCRICAO_MIN <= len(descricao) <= _DESCRICAO_MAX:
         raise DescricaoFotoInvalida()
     _checar_permissao(db, usuario, barreira_id)
+    enviadas = db.execute(_SQL_FOTOS_24H, {"usuario": usuario.id, "agora": agora}).scalar_one()
+    if enviadas >= LIMITE_FOTOS_DIA:
+        raise LimiteFotos()
     webp = reprocessar(conteudo)
     caminho = f"{barreira_id}/{uuid.uuid4().hex}.webp"
     armazenamento.enviar(caminho, webp)
@@ -248,3 +261,33 @@ def remover_foto(
     )
     _remover_apos_commit(db, armazenamento, linha.foto_caminho)
     return obter(db, barreira_id, agora)
+
+
+def apagar_foto_da_barreira_removida(
+    db: Session,
+    admin: UsuarioAtual,
+    barreira_id: int,
+    armazenamento: ArmazenamentoFotos | None,
+    agora: datetime,
+) -> None:
+    """Barreira removida não deixa foto pública para trás. Roda com a linha já
+    travada pelo chamador; o objeto só sai do Storage depois do commit, e restaurar
+    a barreira não traz a foto de volta."""
+    caminho = db.execute(
+        text("SELECT foto_caminho FROM barreira_colaborativa WHERE id = :id"), {"id": barreira_id}
+    ).scalar_one()
+    if caminho is None:
+        return
+    db.execute(
+        _SQL_GRAVAR_FOTO, {"id": barreira_id, "caminho": None, "descricao": None, "agora": agora}
+    )
+    registrar_evento(
+        db,
+        tipo="foto",
+        agora=agora,
+        barreira_id=barreira_id,
+        usuario_id=admin.id,
+        detalhe={"acao": "apagada_com_a_barreira"},
+    )
+    if armazenamento is not None:
+        _remover_apos_commit(db, armazenamento, caminho)

@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from app.auth import UsuarioAtual, exigir_admin
-from app.routers.barreiras import Agora, Db, transacao
+from app.routers.barreiras import Agora, Armazenamento, Db, transacao
 from app.schemas.barreira import BarreiraOut, EventoOut, StatusAdminIn, StatusBarreira
 from app.services import barreiras, votacao
 
@@ -39,11 +39,22 @@ def obter(barreira_id: int, db: Db, agora: Agora, admin: Admin) -> BarreiraOut:
 
 @router.post("/barreiras/{barreira_id}/status", response_model=BarreiraOut)
 def mudar_status(
-    barreira_id: int, entrada: StatusAdminIn, db: Db, agora: Agora, admin: Admin
+    barreira_id: int,
+    entrada: StatusAdminIn,
+    db: Db,
+    agora: Agora,
+    admin: Admin,
+    armazenamento: Armazenamento,
 ) -> BarreiraOut:
     with transacao(db):
         return votacao.mudar_status_admin(
-            db, admin, barreira_id, entrada.status, entrada.motivo.strip(), agora
+            db,
+            admin,
+            barreira_id,
+            entrada.status,
+            entrada.motivo.strip(),
+            agora,
+            armazenamento=armazenamento,
         )
 
 

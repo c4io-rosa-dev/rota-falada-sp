@@ -20,6 +20,8 @@ router = APIRouter(prefix="/api", tags=["geocode"])
 CACHE_CONTROL = "public, max-age=86400"
 # após um deploy `endereco` pode estar vazia até o ETL rodar; [] em cache a esconderia por 24 h
 CACHE_CONTROL_VAZIO = "no-store"
+# o reverso leva a posição da pessoa: nenhum cache compartilhado guarda a resposta
+CACHE_CONTROL_REVERSO = "private, max-age=86400"
 MSG_INDISPONIVEL = "Busca de endereços indisponível no momento."
 MSG_TAMANHO_Q = "O texto da busca precisa ter de 3 a 100 caracteres."
 
@@ -55,5 +57,5 @@ def geocode_reverso(
         raise HTTPException(status_code=404, detail=str(erro)) from erro
     except OperationalError as erro:
         raise HTTPException(status_code=503, detail=MSG_INDISPONIVEL) from erro
-    response.headers["Cache-Control"] = CACHE_CONTROL
+    response.headers["Cache-Control"] = CACHE_CONTROL_REVERSO
     return resultado

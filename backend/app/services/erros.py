@@ -49,7 +49,12 @@ class FotoGrande(ErroDominio):
 
 class FotoFormato(ErroDominio):
     status_http = 415
-    mensagem = "Envie uma foto JPEG, PNG ou WebP de até 40 megapixels."
+    mensagem = "Envie uma foto JPEG, PNG ou WebP de até 12 megapixels."
+
+
+class LimiteFotos(ErroDominio):
+    status_http = 429
+    mensagem = "Limite de 10 fotos por dia atingido. Tente de novo amanhã."
 
 
 class DescricaoFotoInvalida(ErroDominio):
