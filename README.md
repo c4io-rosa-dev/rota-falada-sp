@@ -77,7 +77,7 @@ Login por código de 6 dígitos no e-mail (Supabase Auth); o backend confere o J
 - `POST`/`DELETE /api/barreiras/{id}/foto` — foto opcional com texto alternativo; reprocessada sem metadados.
 - `POST /api/admin/barreiras/{id}/status` e `GET /api/admin/barreiras/{id}/eventos` — só admin.
 
-Intransponível valida com 2 confirmações, dificulta com 1; 2 contestações ou 2 "resolvida" encerram. Pendente expira em 30 dias e validada em 180 dias sem confirmação. Promover admin: `python scripts/promover_admin.py --email <e-mail>` (em `backend/`, contra o Supabase). Gravar expirações: `python scripts/expirar.py`.
+Intransponível valida com 2 confirmações, dificulta com 1; 2 contestações ou 2 "resolvida" encerram. Pendente expira em 30 dias e validada em 180 dias sem confirmação. Promover admin: `python scripts/promover_admin.py --email <e-mail>` (em `backend/`, contra o Supabase). Gravar expirações: `python scripts/expirar.py`. Atender pedido de exclusão de conta: `python scripts/excluir_conta.py --email <e-mail>`, depois apagar a conta no painel do Supabase Auth.
 
 ## Comandos
 

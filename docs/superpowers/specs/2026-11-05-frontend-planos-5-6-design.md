@@ -467,3 +467,19 @@ O plano segue a recomendação de cada uma até ordem em contrário; nenhuma blo
 11. **Passos de produção da seção 16**, cada um só com sua ordem. Sem SMTP próprio, a demonstração com outra conta não funciona.
 12. **pgRouting não lê barreira registrada.** Se o OpenRouteService cair ou estourar a cota, uma intransponível confirmada não muda a rota nem aparece nos passos, e o critério "a rota muda" falha na banca. O plano não mexe no backend: a ficha diz isso. **Recomendo corrigir depois desta entrega**, excluindo do `pgr_dijkstra` as arestas a até 15 m de intransponível confirmada e devolvendo essas barreiras em aviso. Até lá, confira o ORS antes da banca.
 13. **Código da conta na auditoria.** "conta 3f2a91b0" é estável entre barreiras, então a moderação consegue ligar os votos e cadastros de uma conta, cada um com localização. Segue D9 do spec colaborativo, e as telas agora dizem isso. **Recomendo manter**, porque é o que permite achar abuso, e citar na política de privacidade junto com a decisão 10.
+
+### Respostas do dono (05/11/2026)
+
+Valem sobre o texto acima e sobre os specs anteriores onde divergirem.
+
+- **pgRouting (item 12):** corrigido. Aresta a até 15 m de barreira que bloqueia sai do grafo; sem alternativa, não há rota.
+- **Foto:** limite de 12 megapixels (era 40) e 10 envios por conta em 24 h (429).
+- **Voto depois do admin (item 3):** fica como está, sem regra especial. Um único voto recalcula o status, e a validação do admin faz a rota desviar com qualquer número de votos.
+- **Tela de erro:** falhas de rede, tempo e 5xx dizem só "Instabilidade no sistema. Tente de novo em alguns minutos.", sem apontar causa.
+- **Barreira removida:** a foto é apagada depois do commit, e restaurar a barreira não a traz de volta.
+- **Log de acesso (item 5):** `--no-access-log` no `render.yaml` e `private` no `Cache-Control` do reverso.
+- **Exclusão de conta (item 10):** a barreira fica sem autor (`scripts/excluir_conta.py`) e a conta é apagada à mão no Supabase Auth. O contato em `/conta` vem de `VITE_CONTATO_PRIVACIDADE`; o endereço ainda não foi definido.
+- **Licença (item 9):** ODbL para os dados e CC BY-SA 4.0 para as fotos.
+- **Produção (item 11):** Pull Request antes do merge; Resend como SMTP.
+- **Demais itens:** seguem as recomendações acima.
+
