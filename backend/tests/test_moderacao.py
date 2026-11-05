@@ -78,6 +78,21 @@ def test_decidir_status(atual, severidade, contagem, esperado):
 
 
 @pytest.mark.parametrize(
+    ("atual", "contagem", "voto", "esperado"),
+    [
+        ("validada", Contagem(confirma=1), "confirma", "validada"),
+        ("validada", Contagem(confirma=1, contesta=2), "confirma", "validada"),
+        ("validada", Contagem(contesta=1), "contesta", "pendente"),
+        ("validada", Contagem(resolvida=1), "resolvida", "pendente"),
+        ("pendente", Contagem(confirma=1), "confirma", "pendente"),
+        ("contestada", Contagem(confirma=9), "confirma", "contestada"),
+    ],
+)
+def test_confirmar_nao_rebaixa_validada(atual, contagem, voto, esperado):
+    assert decidir_status(atual, "intransponivel", contagem, voto) == esperado
+
+
+@pytest.mark.parametrize(
     ("status", "criado_dias", "ultima_dias", "esperado"),
     [
         ("pendente", 30, None, "pendente"),

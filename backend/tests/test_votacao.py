@@ -130,6 +130,45 @@ def test_cache_so_e_invalidado_quando_passa_a_afetar_a_rota(db_transacional, cri
     assert not _cache_existe(db_transacional, chave)  # validada: rota precisa mudar
 
 
+def test_confirmacao_nao_desfaz_validacao_do_admin(db_transacional, criar_usuario):
+    barreira = _criar(db_transacional, criar_usuario())
+    votacao.mudar_status_admin(
+        db_transacional, criar_usuario("admin"), barreira.id, "validada", "conferido", AGORA
+    )
+    chave = _rota_em_cache_sobre_o_ponto(db_transacional)
+    depois_do_voto = AGORA + timedelta(days=1)
+    resultado = votacao.votar(
+        db_transacional, criar_usuario(), barreira.id, "confirma", depois_do_voto
+    )
+    assert resultado.status == "validada"
+    assert resultado.votos.confirma == 1
+    assert resultado.ultima_confirmacao_em == depois_do_voto
+    assert _cache_existe(db_transacional, chave)  # continua afetando a rota: nada a recalcular
+    assert ("status", "validada", "pendente") not in _tipos_de_evento(db_transacional, barreira.id)
+
+
+def test_confirmacao_nao_desfaz_restauracao_com_contestacoes_antigas(
+    db_transacional, criar_usuario
+):
+    barreira = _criar(db_transacional, criar_usuario(), "buraco")
+    for _ in range(2):
+        votacao.votar(db_transacional, criar_usuario(), barreira.id, "contesta", AGORA)
+    votacao.mudar_status_admin(
+        db_transacional, criar_usuario("admin"), barreira.id, "validada", "conferido", AGORA
+    )
+    resultado = votacao.votar(db_transacional, criar_usuario(), barreira.id, "confirma", AGORA)
+    assert resultado.status == "validada"
+
+
+def test_contestacao_ainda_recalcula_validacao_do_admin(db_transacional, criar_usuario):
+    barreira = _criar(db_transacional, criar_usuario())
+    votacao.mudar_status_admin(
+        db_transacional, criar_usuario("admin"), barreira.id, "validada", "conferido", AGORA
+    )
+    resultado = votacao.votar(db_transacional, criar_usuario(), barreira.id, "contesta", AGORA)
+    assert resultado.status == "pendente"
+
+
 def test_admin_remove_e_restaura_com_auditoria(db_transacional, criar_usuario):
     barreira = _criar(db_transacional, criar_usuario())
     admin = criar_usuario("admin")

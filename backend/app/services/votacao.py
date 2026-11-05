@@ -108,7 +108,7 @@ def votar(
     anterior = db.execute(_SQL_VOTO_ANTERIOR, parametros).scalar_one_or_none()
     db.execute(_SQL_GRAVAR_VOTO, {**parametros, "voto": voto, "agora": agora})
     contagem = Contagem(**db.execute(_SQL_CONTAGEM, {"b": barreira_id}).one()._mapping)
-    novo = decidir_status(atual, linha.severidade, contagem)
+    novo = decidir_status(atual, linha.severidade, contagem, voto)
     ultima = agora if voto == "confirma" else linha.ultima_confirmacao_em
     db.execute(
         _SQL_ATUALIZAR,

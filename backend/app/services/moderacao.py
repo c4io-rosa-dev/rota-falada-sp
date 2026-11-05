@@ -58,10 +58,16 @@ def status_inicial(severidade: Severidade) -> Status:
     return "validada" if LIMIAR_VALIDACAO[severidade] == 0 else "pendente"
 
 
-def decidir_status(status_atual: str, severidade: Severidade, contagem: Contagem) -> Status:
-    """Novo status depois de um voto, na ordem da seção 6.2 do spec."""
+def decidir_status(
+    status_atual: str, severidade: Severidade, contagem: Contagem, voto: Voto | None = None
+) -> Status:
+    """Novo status depois de um voto, na ordem da seção 6.2 do spec. Confirmar
+    nunca rebaixa uma barreira validada, mesmo abaixo do limiar: o admin pode
+    tê-la validado sem votos (decisão do dono, 05/11/2026)."""
     if status_atual in STATUS_ENCERRADOS:
         return status_atual  # type: ignore[return-value]
+    if status_atual == "validada" and voto == "confirma":
+        return "validada"
     if contagem.contesta >= VOTOS_PARA_CONTESTAR:
         return "contestada"
     if contagem.resolvida >= VOTOS_PARA_RESOLVER:

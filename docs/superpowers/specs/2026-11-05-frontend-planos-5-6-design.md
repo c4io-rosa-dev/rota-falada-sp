@@ -474,11 +474,11 @@ Valem sobre o texto acima e sobre os specs anteriores onde divergirem.
 
 - **pgRouting (item 12):** corrigido. Aresta a até 15 m de barreira que bloqueia sai do grafo; sem alternativa, não há rota.
 - **Foto:** limite de 12 megapixels (era 40) e 10 envios por conta em 24 h (429).
-- **Voto depois do admin (item 3):** fica como está, sem regra especial. Um único voto recalcula o status, e a validação do admin faz a rota desviar com qualquer número de votos.
+- **Voto depois do admin (item 3):** a validação do admin faz a rota desviar com qualquer número de votos. Uma confirmação nunca rebaixa uma barreira validada; um único voto de contestação ou de resolvida ainda recalcula o status.
 - **Tela de erro:** falhas de rede, tempo e 5xx dizem só "Instabilidade no sistema. Tente de novo em alguns minutos.", sem apontar causa.
 - **Barreira removida:** a foto é apagada depois do commit, e restaurar a barreira não a traz de volta.
 - **Log de acesso (item 5):** `--no-access-log` no `render.yaml` e `private` no `Cache-Control` do reverso.
-- **Exclusão de conta (item 10):** a barreira fica sem autor (`scripts/excluir_conta.py`) e a conta é apagada à mão no Supabase Auth. O contato em `/conta` vem de `VITE_CONTATO_PRIVACIDADE`; o endereço ainda não foi definido.
+- **Exclusão de conta (item 10):** a barreira fica sem autor (`scripts/excluir_conta.py`) e a conta é apagada à mão no Supabase Auth. O contato em `/conta`, de suporte e exclusão, vem de `VITE_CONTATO_PRIVACIDADE`; o dono escolheu `rotafaladasp@gmail.com` como endereço de exemplo, sem caixa de entrada do projeto.
 - **Licença (item 9):** ODbL para os dados e CC BY-SA 4.0 para as fotos.
 - **Produção (item 11):** Pull Request antes do merge; Resend como SMTP.
 - **Demais itens:** seguem as recomendações acima.

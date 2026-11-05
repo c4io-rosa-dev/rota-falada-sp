@@ -172,7 +172,7 @@ export function Decisao() {
                 ))}
               </div>
             </fieldset>
-            <p className="campo__dica">Enquanto a votação estiver aberta, um voto novo pode recalcular o status.</p>
+            <p className="campo__dica">Enquanto a votação estiver aberta, um voto de contestação ou de resolvida pode recalcular o status. Uma confirmação não desfaz a validação.</p>
             <div className="campo">
               <label htmlFor="motivo">Motivo</label>
               <p id="motivo-dica" className="campo__dica">
