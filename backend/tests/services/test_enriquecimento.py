@@ -38,7 +38,7 @@ from app.services.barreira_geom import PROJ_4326_31983, BarreiraCandidata
 from app.services.enriquecimento import (
     _distancia_m,
     _pct_da_classe_steepness,
-    _via_mais_proxima,
+    _vias_mais_proximas,
     enriquecer_passos,
 )
 from app.services.pgrouting import PassoBruto
@@ -76,7 +76,7 @@ def _escolher_via(descricao: str, juncao_e_filtro: str) -> _ViaEscolhida:
         candidatas = sessao.execute(
             text(
                 "SELECT v.id, v.data_referencia, ST_AsText(v.geom) AS wkt, "
-                "(SELECT c.declividade_max_pct FROM conflacao_via_calcada cv "
+                "(SELECT max(c.declividade_max_pct) FROM conflacao_via_calcada cv "
                 " JOIN calcada_sp c ON c.id = cv.calcada_id WHERE cv.via_id = v.id) AS decl "
                 f"FROM via_pedestre v {juncao_e_filtro} "
                 "ORDER BY v.osmid, v.source, v.target, v.id "
@@ -85,8 +85,8 @@ def _escolher_via(descricao: str, juncao_e_filtro: str) -> _ViaEscolhida:
         ).all()
         for via_id, data_ref, wkt, decl in candidatas:
             ponto_medio = _carregar_wkt(wkt).interpolate(0.5, normalized=True)
-            vizinha = _via_mais_proxima(sessao, ponto_medio)
-            if vizinha is not None and vizinha["id"] == via_id:
+            vizinhas = _vias_mais_proximas(sessao, [ponto_medio])
+            if vizinhas and vizinhas[0]["id"] == via_id:
                 return _ViaEscolhida(via_id, data_ref, None if decl is None else float(decl))
     finally:
         sessao.rollback()
@@ -103,7 +103,7 @@ def via_com_conflacao_medida() -> _ViaEscolhida:
         "conflação com largura e declividade medidas",
         "JOIN conflacao_via_calcada cv ON cv.via_id = v.id "
         "JOIN calcada_sp c ON c.id = cv.calcada_id "
-        "WHERE c.largura_medida AND c.declividade_medida "
+        "WHERE cv.metodo <> 'dois_lados' AND c.largura_medida AND c.declividade_medida "
         "AND c.declividade_max_pct <> 20",
     )
 
@@ -127,7 +127,7 @@ def via_conflacao_largura_zero() -> _ViaEscolhida:
         "conflação com calçada de largura_min_m = 0",
         "JOIN conflacao_via_calcada cv ON cv.via_id = v.id "
         "JOIN calcada_sp c ON c.id = cv.calcada_id "
-        "WHERE c.largura_min_m = 0",
+        "WHERE cv.metodo <> 'dois_lados' AND c.largura_min_m = 0",
     )
 
 
@@ -298,18 +298,36 @@ def test_barreira_dificulta_longe_nao_aparece(db, via_com_conflacao_medida):
     assert not any(aviso.tipo == "barreira_dificulta" for aviso in avisos)
 
 
-def test_extras_steepness_sobrepoe_declividade_do_geosampa(db, via_com_conflacao_medida):
+def test_classe_do_ors_maior_que_o_geosampa_vira_estimativa(db, via_com_conflacao_medida):
     geometria = _geometria_da_via(db, via_com_conflacao_medida.id)
     bruto = _passo_bruto(1, geometria)
 
     passos, _avisos, _fontes = enriquecer_passos(db, [bruto], [], [5])
 
     passo = passos[0]
-    assert passo.declividade_medida is True
     assert passo.declividade_pct == _pct_da_classe_steepness(5)
-    assert passo.declividade_pct != pytest.approx(
-        via_com_conflacao_medida.declividade_max_pct
-    )  # GeoSampa
+    assert passo.declividade_medida is False  # classe do ORS é faixa, não medição
+
+
+def test_classe_do_ors_menor_nao_esconde_o_geosampa(db, via_com_conflacao_medida):
+    geometria = _geometria_da_via(db, via_com_conflacao_medida.id)
+    bruto = _passo_bruto(1, geometria)
+
+    passos, _avisos, _fontes = enriquecer_passos(db, [bruto], [], [0])
+
+    passo = passos[0]
+    assert passo.declividade_medida is True
+    assert passo.declividade_pct == pytest.approx(via_com_conflacao_medida.declividade_max_pct)
+
+
+def test_so_a_classe_do_ors_nunca_conta_como_medida(db, via_sem_conflacao):
+    geometria = _geometria_da_via(db, via_sem_conflacao.id)
+    bruto = _passo_bruto(1, geometria)
+
+    passos, _avisos, _fontes = enriquecer_passos(db, [bruto], [], [1])
+
+    assert passos[0].declividade_pct == 3.0
+    assert passos[0].declividade_medida is False
 
 
 def test_extras_steepness_none_usa_geosampa(db, via_com_conflacao_medida):

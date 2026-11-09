@@ -86,7 +86,7 @@ export function Inicio() {
                 <span>evitar degraus</span>
               </span>
             </p>
-            <p>Por enquanto, só na área piloto: Vila Mariana, Lapa e Ipiranga.</p>
+            <p>Por enquanto, só na área piloto: centro expandido, Lapa e Ipiranga.</p>
           </li>
           <li className="laje laje--2">
             <span className="laje__numero letreiro" aria-hidden="true">

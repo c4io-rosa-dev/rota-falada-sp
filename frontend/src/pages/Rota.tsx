@@ -297,7 +297,7 @@ export function Rota() {
         <Janela area="aviso">
           <h2 className="letreiro">Área piloto</h2>
           <p>
-            Os dados de calçada cobrem Vila Mariana, Lapa e Ipiranga. Fora dessa área a rota não existe, e o Rota Falada
+            Os dados de calçada cobrem a maior parte do centro expandido, a Lapa e o Ipiranga. Fora dessa área a rota não existe, e o Rota Falada
             SP diz isso em vez de inventar um caminho.
           </p>
           <p>

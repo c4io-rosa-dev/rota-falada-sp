@@ -10,7 +10,7 @@ from datetime import date
 
 import pytest
 from etl.config import DATABASE_URL
-from etl.conflacao import _candidatos
+from etl.conflacao import _candidatos, _linhas_para_gravar
 from etl.db import fonte_id
 from etl.geo import comprimento_m
 from pyproj import Transformer
@@ -65,7 +65,7 @@ def test_regras_de_desempate_da_conflacao(engine):
     calcada_a = _poligono_31983(x0 - 20, y0 - 20, x0 + 20, y0 + 20)
 
     # (b) aresta no eixo da rua (não é a própria calçada), um polígono a 4 m
-    # de cada lado → empate: não liga com 'mesmo_lado', liga com 'mais_proximo'
+    # de cada lado → empate: 'mesmo_lado' liga aos dois lados ('dois_lados')
     bx, by = x0, y0 + 2000
     via_b = _linha_31983([(bx, by), (bx, by + 20)])
     calcada_b1 = _poligono_31983(bx - 9, by, bx - 4, by + 20)  # 4 m à esquerda
@@ -167,11 +167,16 @@ def test_regras_de_desempate_da_conflacao(engine):
             assert float(linha_a["confianca"]) == 1.0
             assert float(linha_a["distancia_m"]) == 0.0
 
-            # (b) empate: 'mesmo_lado' não liga (ambígua), 'mais_proximo' liga
-            assert not mesmo_lado[VIA_B]["ligada"]
+            # (b) empate: 'mesmo_lado' liga aos dois lados; 'mais_proximo' só a um
+            empate = mesmo_lado[VIA_B]
+            assert empate["ligada"]
+            assert empate["metodo"] == "dois_lados"
+            assert {empate["calcada_id"], empate["segunda_calcada_id"]} == {CAL_B1, CAL_B2}
+            assert float(empate["distancia_segundo"]) == pytest.approx(4.0, abs=1e-3)
             linha_b = mais_proximo[VIA_B]
             assert linha_b["ligada"]
             assert linha_b["calcada_id"] in (CAL_B1, CAL_B2)
+            assert linha_b["segunda_calcada_id"] is None
 
             # (c) segundo candidato fora do buffer → liga ao mais próximo
             # mesmo com 'mesmo_lado'; confianca = 1 - 3/5 = 0.4
@@ -179,10 +184,45 @@ def test_regras_de_desempate_da_conflacao(engine):
             assert linha_c["ligada"]
             assert linha_c["calcada_id"] == CAL_C1
             assert linha_c["metodo"] == "mesmo_lado"
+            assert linha_c["segunda_calcada_id"] is None
             assert float(linha_c["confianca"]) == pytest.approx(0.4, abs=1e-3)
             assert float(linha_c["distancia_m"]) == pytest.approx(3.0, abs=1e-3)
         finally:
             transacao.rollback()
+
+
+def test_linhas_para_gravar_expande_o_empate_em_duas_linhas():
+    linhas = [
+        {
+            "via_id": 1,
+            "calcada_id": 10,
+            "distancia_m": 2.0,
+            "confianca": 0.6,
+            "metodo": "dois_lados",
+            "ligada": True,
+            "segunda_calcada_id": 11,
+            "distancia_segundo": 2.5,
+        },
+        {
+            "via_id": 2,
+            "calcada_id": 20,
+            "distancia_m": 0.0,
+            "confianca": 1.0,
+            "metodo": "contido",
+            "ligada": True,
+            "segunda_calcada_id": None,
+            "distancia_segundo": None,
+        },
+    ]
+    gravadas = _linhas_para_gravar(linhas, buffer_m=5.0)
+    assert [(g["via_id"], g["calcada_id"], g["metodo"]) for g in gravadas] == [
+        (1, 10, "dois_lados"),
+        (1, 11, "dois_lados"),
+        (2, 20, "contido"),
+    ]
+    assert gravadas[1]["distancia_m"] == 2.5
+    assert gravadas[1]["confianca"] == pytest.approx(0.5)
+    assert all(g["buffer_m"] == 5.0 for g in gravadas)
 
 
 def test_metodo_invalido_recusado(engine):

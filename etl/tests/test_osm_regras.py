@@ -1,6 +1,7 @@
 from etl.osm_regras import (
     BLOQUEIO,
     classificar_kerb,
+    custo_aresta,
     eh_via_de_pedestre,
     esquema_calcada,
     fator_custo,
@@ -108,3 +109,17 @@ class TestEhViaDePedestre:
 
     def test_trunk_link_e_falso(self):
         assert eh_via_de_pedestre({"highway": "trunk_link"}) is False
+
+
+class TestCustoAresta:
+    def test_aresta_bloqueada_com_menos_de_1_m_continua_bloqueada(self):
+        """Regressão: escada de 0,53 m na área ampliada custava 526 mil, abaixo
+        do limiar que `rota_pgrouting` usa para recusar a rota."""
+        assert custo_aresta(0.53, {"highway": "steps"}, None) == BLOQUEIO
+        assert custo_aresta(0.0, {"highway": "footway", "wheelchair": "no"}, True) == BLOQUEIO
+
+    def test_aresta_bloqueada_longa_escala_com_o_comprimento(self):
+        assert custo_aresta(10.0, {"highway": "steps"}, None) == 10.0 * BLOQUEIO
+
+    def test_aresta_livre_e_comprimento_vezes_fator(self):
+        assert custo_aresta(10.0, {"highway": "footway"}, False) == 250.0

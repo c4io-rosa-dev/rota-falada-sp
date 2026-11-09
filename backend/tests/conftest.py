@@ -52,7 +52,7 @@ def pytest_collection_modifyitems(config, items):
 # Tudo roda dentro de uma transação revertida no fim: nada é commitado e os
 # dados reais de `endereco`/`area_piloto` voltam intactos.
 
-# bem fora das três area_piloto reais (mesmo ponto-base de test_rotas_api.py)
+# bem fora das area_piloto reais (mesmo ponto-base de test_rotas_api.py)
 CENTRO_AREA_TESTE = (-45.98351729900837, -24.048988029889923)
 
 

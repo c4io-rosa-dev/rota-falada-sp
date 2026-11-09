@@ -94,8 +94,8 @@ class Registro:
 
 def bairro_de(lon: float, lat: float) -> str | None:
     """Nome da área piloto que contém o ponto (borda inclusive). Na
-    sobreposição (Vila Mariana x Ipiranga), vence a primeira de `AREA_PILOTO`,
-    que é a mesma ordem dos ids de `area_piloto` (migration 002)."""
+    sobreposição, vence a primeira de `AREA_PILOTO`, que é a mesma ordem dos ids
+    de `area_piloto` (migrations 002 e 009)."""
     for nome, (oeste, sul, leste, norte) in AREA_PILOTO.items():
         if oeste <= lon <= leste and sul <= lat <= norte:
             return nome

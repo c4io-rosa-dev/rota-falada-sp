@@ -1,6 +1,6 @@
 # ETL — Rota Falada SP
 
-Pacote Python independente do backend que popula o PostGIS da área piloto (Vila Mariana, Lapa, Ipiranga/FATEC) com o grafo de pedestres do OSM, as calçadas do GeoSampa, as reclamações do SP156 e as paradas/linhas do GTFS da SPTrans. O esquema das tabelas é criado pelas migrations do Alembic do backend (`backend/alembic/versions/002_fontes_oficiais.py`); este pacote só lê fontes externas e grava linhas.
+Pacote Python independente do backend que popula o PostGIS da área piloto (a maior parte do centro expandido, a Lapa e o Ipiranga/FATEC, cerca de 149 km²; retângulos em `etl/config.py`) com o grafo de pedestres do OSM, as calçadas do GeoSampa, as reclamações do SP156 e as paradas/linhas do GTFS da SPTrans. O esquema das tabelas é criado pelas migrations do Alembic do backend (`backend/alembic/versions/002_fontes_oficiais.py`); este pacote só lê fontes externas e grava linhas.
 
 Ver `docs/adr/002-grafo-com-osmnx.md` para a decisão de usar `osmium` + `osmnx` em vez de `osm2pgsql`.
 
@@ -136,3 +136,10 @@ Preenchido conforme cada fonte é implementada (Tasks 3–7):
   - Nesta data a área piloto do Ipiranga foi estendida ao sul até a latitude -23,615 para incluir a FATEC Ipiranga (migration 007, `etl/etl/config.py`), o que exigiu uma recarga completa (`tudo`).
   - `endereco`: **13.476** `endereco`, **3.974** `lugar`, **2.062** `logradouro`. Demais fontes: `osm` 19.212 nós / 26.291 vias; `geosampa` 24.408 calçadas; `sp156` 2.041; `gtfs` 1.244 paradas / 1.364 linhas; `conflacao` 11.251 vias ligadas (cobertura 42,8%).
   - `pytest tests -q` do ETL (container): **122 passed**. Backend: **208 passed**. Latência da busca local (`buscar`, 50 consultas sobre vias reais): p95 de ~5 ms, bem abaixo do orçamento de 300 ms.
+
+- **Área ampliada, `tudo` completo** (medido em 05/11/2026 no banco local, `docker compose --profile etl run --rm etl tudo`, downloads em cache, migrations até a 009):
+  - Área: sete retângulos contínuos, 149,0 km² de união (os três antigos somavam 48 km² de união).
+  - Tempo total **5min25s**: `osm` 2min53s, `enderecos` 29s, `geosampa` 1min40s, `sp156` 5s, `gtfs` 1s, `conflacao` 13s. Pico de memória do container: 3,9 GiB.
+  - `osm` 54.845 nós / 78.379 vias; `geosampa` 68.694 calçadas (86.402 feições recebidas, igual a `numberMatched`); `sp156` 5.720; `gtfs` 3.547 paradas / 1.364 linhas; `endereco` 78.903 `endereco`, 17.708 `lugar`, 6.053 `logradouro`; `conflacao` 32.623 vias ligadas (cobertura 41,6%).
+  - Banco: 176 MiB logo depois da carga sobre os dados antigos; 135 MiB depois de `VACUUM FULL`.
+  - A carga expôs uma escada de 0,53 m com custo 526 mil, abaixo do limiar `BLOQUEIO`; o custo mínimo de aresta bloqueada agora é `BLOQUEIO` (`osm_regras.custo_aresta`). Esses números são da carga anterior à correção; a correção só muda o custo de três arestas com menos de 1 m.

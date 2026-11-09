@@ -79,7 +79,7 @@ export function escolhaDoCampo(estado: EstadoCampo): Endereco | null {
 }
 
 export function textoForaDaArea(texto: string): string {
-  return `Não encontramos "${texto.trim()}" na área piloto (Vila Mariana, Lapa e Ipiranga). Confira a grafia; fora dessa área o Rota Falada SP ainda não atende.`
+  return `Não encontramos "${texto.trim()}" na área piloto (centro expandido, Lapa e Ipiranga). Confira a grafia; fora dessa área o Rota Falada SP ainda não atende.`
 }
 
 /** A linha de retorno visível do campo, ligada por aria-describedby. */

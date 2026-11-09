@@ -34,7 +34,7 @@ export function Acessibilidade() {
 
       <h2>Limitações conhecidas</h2>
       <ul>
-        <li>Os dados de calçadas cobrem apenas a área piloto (Vila Mariana, Lapa e Ipiranga) e são de 2021.</li>
+        <li>Os dados de calçadas cobrem apenas a área piloto (a maior parte do centro expandido, a Lapa e o Ipiranga) e são de 2021.</li>
         <li>Os testes manuais com leitor de tela ainda não terminaram: NVDA é o próximo; TalkBack e VoiceOver vêm depois dele.</li>
       </ul>
 

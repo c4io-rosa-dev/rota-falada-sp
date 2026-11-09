@@ -35,7 +35,7 @@ def test_conflacao_via_calcada_existe_com_chave_primaria_em_via_id(db):
             )
         )
     ]
-    assert colunas_pk == ["via_id"]
+    assert colunas_pk == ["via_id", "calcada_id"]
 
 
 def test_conflacao_via_calcada_sem_geometria_nem_atributos_de_licenca_cruzada(db):

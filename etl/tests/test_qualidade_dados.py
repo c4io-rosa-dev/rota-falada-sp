@@ -249,7 +249,7 @@ def test_conflacao_cobertura_minima(engine):
             text("SELECT count(*) FROM via_pedestre")
         ).scalar_one()
         ligadas = conexao.execute(
-            text("SELECT count(*) FROM conflacao_via_calcada")
+            text("SELECT count(DISTINCT via_id) FROM conflacao_via_calcada")
         ).scalar_one()
     cobertura = ligadas / arestas if arestas else 0.0
     assert cobertura >= 0.30, (
@@ -296,11 +296,18 @@ def test_conflacao_confianca_coerente(engine):
     assert demais_incoerente == 0
 
 
-def test_conflacao_uma_calcada_por_aresta(engine):
-    consulta = "SELECT count(*), count(DISTINCT via_id) FROM conflacao_via_calcada"
+def test_conflacao_duas_calcadas_so_em_empate(engine):
+    """Uma aresta tem uma calçada, ou duas quando os dois lados empatam."""
+    consulta = """
+        SELECT via_id FROM conflacao_via_calcada
+        GROUP BY via_id
+        HAVING count(*) > 2
+            OR (count(*) = 2 AND bool_or(metodo <> 'dois_lados'))
+            OR (count(*) = 1 AND bool_or(metodo = 'dois_lados'))
+    """
     with engine.connect() as conexao:
-        total, distintos = conexao.execute(text(consulta)).one()
-    assert total == distintos
+        incoerentes = conexao.execute(text(consulta)).all()
+    assert incoerentes == []
 
 
 def test_gtfs_sem_campos_de_acessibilidade():
@@ -362,3 +369,43 @@ def test_endereco_sem_duplicata_a_menos_de_15_m(engine):
     """
     with engine.connect() as conexao:
         assert conexao.execute(text(consulta)).scalar_one() == 0
+
+
+# --- Cobertura: área piloto ampliada (migration 009) ---------------------------
+
+
+@pytest.mark.parametrize(
+    ("lon", "lat", "texto"),
+    [
+        (-46.6082618, -23.609669, "%fatec ipiranga%"),
+        (-46.6124857, -23.6022366, "%alto do ipiranga%"),
+    ],
+    ids=["fatec", "metro"],
+)
+def test_trajeto_da_apresentacao_tem_dados(engine, lon, lat, texto):
+    consulta = """
+        WITH p AS (SELECT ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography AS g)
+        SELECT
+          (SELECT count(*) FROM no_pedestre n, p WHERE ST_DWithin(n.geom::geography, p.g, 300)),
+          (SELECT count(*) FROM calcada_sp c, p WHERE ST_DWithin(c.geom::geography, p.g, 300)),
+          (SELECT count(*) FROM endereco e, p
+           WHERE e.tipo = 'lugar' AND e.texto_busca LIKE :texto
+             AND ST_DWithin(e.geom::geography, p.g, 300))
+    """
+    with engine.connect() as conexao:
+        nos, calcadas, lugares = conexao.execute(
+            text(consulta), {"lon": lon, "lat": lat, "texto": texto}
+        ).one()
+    assert nos > 0
+    assert calcadas > 0
+    assert lugares > 0
+
+
+def test_toda_area_piloto_tem_vias_e_calcadas(engine):
+    consulta = """
+        SELECT a.nome FROM area_piloto a
+        WHERE NOT EXISTS (SELECT 1 FROM via_pedestre v WHERE ST_Intersects(v.geom, a.geom))
+           OR NOT EXISTS (SELECT 1 FROM calcada_sp c WHERE ST_Intersects(c.geom, a.geom))
+    """
+    with engine.connect() as conexao:
+        assert conexao.execute(text(consulta)).scalars().all() == []

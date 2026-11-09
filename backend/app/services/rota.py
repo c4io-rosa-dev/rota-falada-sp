@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any
 
 from shapely.geometry import LineString, mapping
 
-from app.schemas.rota import Aviso, RotaOut
+from app.schemas.rota import Aviso, Passo, RotaOut
 from app.services import cache_rota
 from app.services.barreira_geom import (
     barreiras_no_corredor,
@@ -238,24 +238,22 @@ def _passos_brutos_do_ors(
 def _extras_steepness_do_ors(
     resposta: dict[str, Any], faixas: list[tuple[int, int]]
 ) -> list[int | None]:
-    """Classe de steepness (-5..5) dominante de cada passo — a faixa de
-    `extras.steepness.values` (índices na geometria completa da rota) com
-    maior sobreposição com a faixa `(inicio, fim)` do passo. `None` quando o
-    ORS não devolveu `extras.steepness` (fixture sem esse campo) ou nenhuma
-    faixa sobrepõe — `enriquecer_passos` cai para o GeoSampa nesse caso."""
+    """Pior classe de steepness (-5..5, em módulo) que cada passo toca em
+    `extras.steepness.values` (índices na geometria completa da rota): a classe
+    dominante esconderia um pico curto. `None` quando o ORS não devolveu
+    `extras.steepness` (fixture sem esse campo) ou nenhuma faixa sobrepõe —
+    `enriquecer_passos` cai para o GeoSampa nesse caso."""
     extras = resposta["features"][0]["properties"].get("extras", {})
     valores = extras.get("steepness", {}).get("values", [])
 
     resultado: list[int | None] = []
     for inicio, fim in faixas:
-        melhor_classe: int | None = None
-        melhor_sobreposicao = 0
+        pior_classe: int | None = None
         for v_inicio, v_fim, classe in valores:
-            sobreposicao = min(fim, v_fim) - max(inicio, v_inicio)
-            if sobreposicao > melhor_sobreposicao:
-                melhor_sobreposicao = sobreposicao
-                melhor_classe = classe
-        resultado.append(melhor_classe)
+            toca = min(fim, v_fim) > max(inicio, v_inicio)
+            if toca and (pior_classe is None or abs(classe) > abs(pior_classe)):
+                pior_classe = classe
+        resultado.append(pior_classe)
     return resultado
 
 
@@ -267,7 +265,21 @@ def _mensagem_exigencia_relaxada(pedido: int | str, atendido: int | str) -> str:
         )
     return (
         f"Não encontramos rota com inclinação até {pedido}%. "
-        f"Esta rota tem trechos de até {atendido}%."
+        f"Nos dados disponíveis, esta rota chega a até {atendido}%."
+    )
+
+
+def _passos_acima(passos: list[Passo], limite: int) -> list[Passo]:
+    return [p for p in passos if p.declividade_pct is not None and p.declividade_pct > limite]
+
+
+def _mensagem_trecho_ingreme(pedido: int, acima: list[Passo]) -> str:
+    ordens = ", ".join(str(p.ordem) for p in acima)
+    onde = f"no passo {ordens}" if len(acima) == 1 else f"nos passos {ordens}"
+    maior = f"{max(p.declividade_pct for p in acima):g}".replace(".", ",")
+    return (
+        f"Inclinação acima do pedido (até {pedido}%) {onde}. O maior valor é de cerca de "
+        f"{maior}%. Pode ser íngreme demais para fazer sem ajuda."
     )
 
 
@@ -332,6 +344,14 @@ def calcular(db: Session, entrada: RotaIn, cliente: OrsClient, agora: datetime) 
         db, passos_brutos, barreiras_dificulta, extras_steepness
     )
     avisos.extend(avisos_enriquecimento)
+
+    # o nível do ORS vale pela estimativa dele: um passo acima dele tira a garantia
+    if isinstance(nivel_atendido, int) and _passos_acima(passos, nivel_atendido):
+        nivel_atendido = "any"
+    if isinstance(pedido, int) and (acima := _passos_acima(passos, pedido)):
+        avisos.append(
+            Aviso(tipo="trecho_ingreme", mensagem=_mensagem_trecho_ingreme(pedido, acima))
+        )
 
     if nivel_atendido != pedido:
         avisos.append(

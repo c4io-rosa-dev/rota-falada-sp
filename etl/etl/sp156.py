@@ -125,7 +125,7 @@ def ler(caminho) -> pd.DataFrame:
 
 def _dentro_da_area_piloto(df: pd.DataFrame) -> pd.DataFrame:
     """Mantém só as linhas cujo ponto (`Longitude`, `Latitude`) cai dentro da
-    união das três `area_piloto`; feito em Python com Shapely, pois os
+    união das `area_piloto`; feito em Python com Shapely, pois os
     registros ainda não foram inseridos no banco nesta etapa."""
     uniao_piloto = unary_union(
         [bbox_para_poligono(bbox) for bbox in AREA_PILOTO.values()]

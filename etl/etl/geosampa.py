@@ -143,7 +143,7 @@ def _multipoligono(geometria: dict) -> MultiPolygon:
 
 
 def _dentro_da_area_piloto(registros: list[dict]) -> list[dict]:
-    """Mantém só registros cuja geometria de fato intersecta a união das três
+    """Mantém só registros cuja geometria de fato intersecta a união das
     `area_piloto`. O filtro `bbox` do WFS testa a caixa delimitadora da
     feição contra a bbox pedida (não a geometria exata): um polígono cuja
     borda fica fora do recorte, mas cuja bbox toca a bbox da consulta, ainda
@@ -173,13 +173,12 @@ def _mapear_feature(feature: dict) -> dict:
 
 
 def executar(engine: Engine) -> dict:
-    """Baixa (via WFS paginado) e carrega as calçadas do GeoSampa das três
+    """Baixa (via WFS paginado) e carrega as calçadas do GeoSampa das
     áreas piloto em `calcada_sp`.
 
-    Deduplica por `cd_identificador_calcada`: as bboxes de Ipiranga e Vila
-    Mariana se sobrepõem num pequeno canto (definidas de forma independente
-    no Plano 2), então a mesma calçada é devolvida por mais de uma consulta
-    de bbox nessa faixa — sem dedup ela entraria duas vezes em `calcada_sp`.
+    Deduplica por `cd_identificador_calcada`: as bboxes se sobrepõem (ver
+    `AREA_PILOTO`), então a mesma calçada é devolvida por mais de uma consulta
+    de bbox nessas faixas — sem dedup ela entraria duas vezes em `calcada_sp`.
     `linhas`, gravado em `etl_execucao`, é a contagem **bruta** (antes do
     dedup): o que valida a ausência de truncamento do WFS é a soma de
     feições recebidas bater com `numberMatched`, não o total após dedup.

@@ -95,6 +95,17 @@ def fator_custo(tags: dict, kerb_transponivel: bool | None) -> float:
     return fator
 
 
+def custo_aresta(
+    comprimento_m: float, tags: dict, kerb_transponivel: bool | None
+) -> float:
+    """Comprimento vezes `fator_custo`. Aresta bloqueada nunca custa menos que
+    BLOQUEIO: com menos de 1 m o produto ficaria abaixo do limiar que o backend
+    usa para recusar a rota, e o caminho poderia atravessar a escada."""
+    fator = fator_custo(tags, kerb_transponivel)
+    custo = comprimento_m * fator
+    return max(custo, BLOQUEIO) if fator >= BLOQUEIO else custo
+
+
 def eh_via_de_pedestre(tags: dict) -> bool:
     """Diz se a via deve entrar no grafo de pedestres.
 

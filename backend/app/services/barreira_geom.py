@@ -19,10 +19,10 @@ colaborativa só bloqueia (`intransponivel`) se `validada`, seja pelos 2 votos
 do limiar, seja por decisão do admin; uma oficial só bloqueia se a categoria for
 `obstaculo_calcada`, `guia_sem_rebaixamento` ou `buraco`, aberta há menos de
 180 dias e sem `data_finalizacao`. Fora isso, colaborativas `validada` com
-severidade `dificulta` e oficiais das **demais** categorias (não as três de
-cima) viram aviso `dificulta`; uma oficial das três categorias porém já
-expirada (>180 dias ou finalizada) não aparece — nem bloqueia nem avisa,
-como um problema presumidamente resolvido.
+severidade `dificulta` e oficiais não finalizadas das **demais** categorias
+viram aviso `dificulta`; uma oficial finalizada, ou das três categorias já
+expirada (>180 dias), não aparece — nem bloqueia nem avisa, como um problema
+presumidamente resolvido.
 """
 
 from __future__ import annotations
@@ -117,6 +117,7 @@ _SQL_CANDIDATOS = text(
                      AND data_finalizacao IS NULL
                     THEN 'intransponivel'
                 WHEN categoria != ALL(:categorias_intransponiveis)
+                     AND data_finalizacao IS NULL
                     THEN 'dificulta'
                 ELSE NULL
             END AS severidade_efetiva,

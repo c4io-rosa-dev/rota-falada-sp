@@ -29,13 +29,15 @@ Regras de desempate (prioridade, em ordem):
    (`fracao_dentro`); `distancia_m = 0`, `confianca = 1.0`. Sempre vence,
    independente do `metodo` pedido.
 2. `mesmo_lado` (quando `metodo='mesmo_lado'`) — entre os candidatos a até
-   `buffer_m` metros, liga ao mais próximo só quando ele não é ambíguo: a
+   `buffer_m` metros, liga ao mais próximo quando ele não é ambíguo: a
    aresta já é a própria geometria da calçada (`esquema_calcada =
    'geometria_propria'`), ou não há segundo candidato dentro do buffer, ou o
-   segundo candidato está a mais de 1,5× a distância do primeiro. Empate
-   (dois lados da rua igualmente próximos) não liga — fica só em
-   `ambiguas`, para não inventar um lado. `confianca = 1 - distancia_m /
-   buffer_m`.
+   segundo candidato está a mais de 1,5× a distância do primeiro. `confianca =
+   1 - distancia_m / buffer_m`.
+   Empate (dois lados da rua igualmente próximos) liga aos dois, com método
+   `dois_lados`: o OSM não diz de que lado a pessoa está, então não se inventa
+   um lado, e a API mostra o pior valor dos dois. Continuam só chaves e
+   distância; nenhum atributo do GeoSampa vem para esta tabela.
 3. `mais_proximo` (quando `metodo='mais_proximo'`) — liga sempre ao mais
    próximo dentro do buffer, sem regra de desempate; é a linha de base
    usada só pela calibração (Task 3), nunca o método de produção.
@@ -51,7 +53,8 @@ METODOS_VALIDOS = {"mesmo_lado", "mais_proximo"}
 # `ranqueado` ordena os candidatos de cada via e calcula a distância do
 # segundo colocado (para a regra de empate), e a query final aplica as
 # regras de desempate e devolve **uma linha por via com pelo menos um
-# candidato no buffer**, com `ligada` dizendo se ela venceu a regra.
+# candidato no buffer**. No empate, `segunda_calcada_id` e `distancia_segundo`
+# trazem o outro lado (`_linhas_para_gravar` o transforma em outra linha).
 _SQL_CANDIDATOS = text(
     """
     WITH v AS (
@@ -84,24 +87,38 @@ _SQL_CANDIDATOS = text(
             *,
             row_number() OVER (PARTITION BY via_id ORDER BY distancia_m, calcada_id) AS pos,
             lead(distancia_m) OVER (PARTITION BY via_id ORDER BY distancia_m, calcada_id)
-                AS distancia_segundo
+                AS distancia_segundo,
+            lead(calcada_id) OVER (PARTITION BY via_id ORDER BY distancia_m, calcada_id)
+                AS calcada_segundo
         FROM cand
+    ),
+    decidido AS (
+        SELECT
+            *,
+            (
+                fracao_dentro < 0.8
+                AND :metodo = 'mesmo_lado'
+                AND esquema_calcada <> 'geometria_propria'
+                AND distancia_segundo IS NOT NULL
+                AND distancia_segundo <= 1.5 * GREATEST(distancia_m, 0.5)
+            ) AS empate
+        FROM ranqueado
+        WHERE pos = 1
     )
     SELECT
         via_id,
         calcada_id,
         distancia_m,
-        CASE WHEN fracao_dentro >= 0.8 THEN 'contido' ELSE :metodo END AS metodo,
+        CASE
+            WHEN fracao_dentro >= 0.8 THEN 'contido'
+            WHEN empate THEN 'dois_lados'
+            ELSE :metodo
+        END AS metodo,
         CASE WHEN fracao_dentro >= 0.8 THEN 1.0 ELSE 1 - distancia_m / :buffer END AS confianca,
-        (
-            fracao_dentro >= 0.8
-            OR :metodo = 'mais_proximo'
-            OR esquema_calcada = 'geometria_propria'
-            OR distancia_segundo IS NULL
-            OR distancia_segundo > 1.5 * GREATEST(distancia_m, 0.5)
-        ) AS ligada
-    FROM ranqueado
-    WHERE pos = 1
+        TRUE AS ligada,
+        CASE WHEN empate THEN calcada_segundo END AS segunda_calcada_id,
+        CASE WHEN empate THEN distancia_segundo END AS distancia_segundo
+    FROM decidido
     """
 )
 
@@ -143,11 +160,42 @@ def _metricas(linhas: list, total_arestas: int) -> dict:
         "cobertura": len(ligadas) / total_arestas if total_arestas else 0.0,
         "distancia_media_m": distancia_media_m,
         "por_metodo": por_metodo,
-        # candidato(s) existia(m) no buffer, mas a regra de desempate do
-        # 'mesmo_lado' recusou ligar (empate entre os dois lados da rua) —
-        # usado pela calibração (Task 3) para reportar "% ambíguas".
+        # candidato(s) no buffer sem ligação. Desde o método 'dois_lados' o
+        # empate liga, então fica em zero; a calibração ainda lê o campo.
         "ambiguas": len(linhas) - len(ligadas),
     }
+
+
+def _linhas_para_gravar(linhas: list, buffer_m: float) -> list[dict]:
+    """Uma linha por par via-calçada: o empate vira duas, uma para cada lado."""
+    gravar: list[dict] = []
+    for linha in linhas:
+        if not linha["ligada"]:
+            continue
+        base = {
+            "via_id": linha["via_id"],
+            "metodo": linha["metodo"],
+            "buffer_m": buffer_m,
+        }
+        gravar.append(
+            {
+                **base,
+                "calcada_id": linha["calcada_id"],
+                "distancia_m": linha["distancia_m"],
+                "confianca": linha["confianca"],
+            }
+        )
+        if linha["segunda_calcada_id"] is not None:
+            distancia = float(linha["distancia_segundo"])
+            gravar.append(
+                {
+                    **base,
+                    "calcada_id": linha["segunda_calcada_id"],
+                    "distancia_m": distancia,
+                    "confianca": max(0.0, 1 - distancia / buffer_m),
+                }
+            )
+    return gravar
 
 
 def executar(
@@ -187,22 +235,9 @@ def executar(
             resultado = _metricas(linhas, total_arestas)
 
             conexao.execute(_SQL_LIMPAR)
-            ligadas = [linha for linha in linhas if linha["ligada"]]
-            if ligadas:
-                conexao.execute(
-                    _SQL_INSERIR,
-                    [
-                        {
-                            "via_id": linha["via_id"],
-                            "calcada_id": linha["calcada_id"],
-                            "distancia_m": linha["distancia_m"],
-                            "confianca": linha["confianca"],
-                            "metodo": linha["metodo"],
-                            "buffer_m": buffer_m,
-                        }
-                        for linha in ligadas
-                    ],
-                )
+            gravar = _linhas_para_gravar(linhas, buffer_m)
+            if gravar:
+                conexao.execute(_SQL_INSERIR, gravar)
 
         concluir_execucao(engine, execucao_id, "ok", linhas=resultado["ligadas"])
         return resultado

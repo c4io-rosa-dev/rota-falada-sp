@@ -61,27 +61,31 @@ export function textoMotor(motor: RotaOut['motor']): string {
   return 'rota gravada para demonstração, não calculada agora'
 }
 
+const PIOR_VALOR = 'A largura e a inclinação de cada passo são o pior valor conhecido no trecho, nos dois lados da rua.'
+
 /**
  * A frase fixa da ficha. Só diz o que o motor faz: o ORS e o pgRouting desviam das barreiras
  * confirmadas que bloqueiam; o pgRouting também evita as escadas da base de ruas.
  */
 export function textoSobreARota(motor: RotaOut['motor']): string {
   if (motor === 'pgrouting') {
-    return 'Rota sugerida pelo roteamento local de reserva. Ela evita as escadas da base de ruas e as barreiras confirmadas que bloqueiam a passagem, e avisa das que só dificultam. Relatos ainda sem confirmação não mudam a rota, e não sabemos o que não foi registrado.'
+    return `Rota sugerida pelo roteamento local de reserva. Ela evita as escadas da base de ruas e as barreiras confirmadas que bloqueiam a passagem, e avisa das que só dificultam. Relatos ainda sem confirmação não mudam a rota, e não sabemos o que não foi registrado. ${PIOR_VALOR}`
   }
   if (motor === 'fixture') {
     return 'Rota gravada para demonstração. Ela não muda com as barreiras registradas, e não sabemos o que não foi registrado.'
   }
-  return 'Rota sugerida com os dados disponíveis. Ela evita as barreiras confirmadas que bloqueiam a passagem e avisa das que só dificultam. Relatos ainda sem confirmação não mudam a rota, e não sabemos o que não foi registrado.'
+  return `Rota sugerida com os dados disponíveis. Ela evita as barreiras confirmadas que bloqueiam a passagem e avisa das que só dificultam. Relatos ainda sem confirmação não mudam a rota, e não sabemos o que não foi registrado. ${PIOR_VALOR}`
 }
 
 export function textoLargura(passo: Passo): string {
   return passo.largura_m === null || !passo.largura_medida ? SEM_DADO : `${ateDuasCasas.format(passo.largura_m)} m`
 }
 
-/** Sob o ORS o valor representa uma classe de inclinação, não uma medição: daí o "cerca de". */
+/** A medida vem do diagnóstico do GeoSampa e não é um limite máximo; a classe do ORS é só uma estimativa. */
 export function textoDeclividade(passo: Passo): string {
-  return passo.declividade_pct === null ? SEM_DADO : `cerca de ${ateDuasCasas.format(passo.declividade_pct)}%`
+  if (passo.declividade_pct === null) return SEM_DADO
+  const valor = ateDuasCasas.format(passo.declividade_pct)
+  return passo.declividade_medida ? `${valor}% (GeoSampa)` : `cerca de ${valor}% (estimativa)`
 }
 
 export function textoGuia(guia: Guia): string {
@@ -122,10 +126,13 @@ export function nomesDasFontes(rota: Pick<RotaOut, 'fontes' | 'passos'>): string
   return chaves.length > 0 ? chaves.map(nomeFonte).join(', ') : 'sem fonte associada'
 }
 
-/** `fonte` é a da via; a largura medida só pode ter vindo do GeoSampa e a lista diz isso. */
+/** `fonte` é a da via; largura e declividade medidas só podem ter vindo do GeoSampa e a lista diz isso. */
 export function textoFontePasso(passo: Passo): string {
   const base = nomeFonte(passo.fonte)
-  return passo.largura_medida && passo.fonte !== 'geosampa' ? `${base}; largura: GeoSampa` : base
+  if (passo.fonte === 'geosampa') return base
+  if (passo.largura_medida && passo.declividade_medida) return `${base}; largura e declividade: GeoSampa`
+  if (passo.largura_medida) return `${base}; largura: GeoSampa`
+  return passo.declividade_medida ? `${base}; declividade: GeoSampa` : base
 }
 
 /** ISO "2026-10-12" → "12/10/2026", sem passar por Date (evita deslocamento de fuso). */
@@ -161,6 +168,12 @@ export function textosDeAviso(rota: Pick<RotaOut, 'avisos' | 'passos'>): string[
   return [...gerais, ...new Set(barreiras)]
 }
 
+function textoDeclividadeFalada(passo: Passo): string {
+  if (passo.declividade_pct === null) return SEM_DADO
+  const valor = ateDuasCasas.format(passo.declividade_pct)
+  return passo.declividade_medida ? `${valor} por cento, segundo o GeoSampa` : `cerca de ${valor} por cento, estimativa`
+}
+
 /** Texto lido pela síntese de voz. Determinístico: só dados do passo. */
 export function textoFalado(passo: Passo): string {
   const partes = [
@@ -168,7 +181,7 @@ export function textoFalado(passo: Passo): string {
     `${textoInstrucao(passo)}.`,
     `${metros(passo.distancia_m)}.`,
     `Largura da calçada: ${passo.largura_m === null || !passo.largura_medida ? SEM_DADO : metros(passo.largura_m)}.`,
-    `Declividade: ${passo.declividade_pct === null ? SEM_DADO : `cerca de ${ateDuasCasas.format(passo.declividade_pct)} por cento`}.`,
+    `Declividade: ${textoDeclividadeFalada(passo)}.`,
     `Guia ${textoGuia(passo.guia)}.`,
   ]
   if (passo.is_degrau) partes.push('Atenção: degrau.')

@@ -14,10 +14,20 @@ usadas (para o rodapé de proveniência).
 esses dois campos em `PassoBruto` só existem de fato para o fallback
 pgRouting — uma rota do ORS não tem `via_pedestre` nenhuma associada, só uma
 geometria. Para tratar os dois motores com o mesmo código, este módulo
-sempre busca a `via_pedestre` mais próxima (≤ 10 m, EPSG:31983, do ponto
-médio do passo) e usa **essa** leitura como fonte da verdade; os campos de
+sempre busca as `via_pedestre` mais próximas (≤ 10 m, EPSG:31983) de pontos
+a cada 25 m do passo e usa **essa** leitura como fonte da verdade; os campos de
 `PassoBruto` só entram como reserva quando nenhuma via é encontrada a 10 m
 (rota fora da malha mapeada, ou passo cuja geometria não é de calçada).
+
+**O passo mostra o pior valor conhecido ao longo dele:** menor largura, maior
+declividade, qualquer degrau. Um passo pode ter centenas de metros, e uma média
+ou só o ponto do meio esconderia a ladeira ou o degrau que importam a quem usa
+cadeira de rodas. A via com calçada nos dois lados (`dois_lados`) segue a mesma
+regra.
+
+**`declividade_medida` só é verdadeira para valor medido no GeoSampa.** A classe
+de steepness do ORS é uma faixa calculada sobre elevação de baixa resolução:
+entra como estimativa e só vence se for maior que o valor medido.
 
 **Regra inegociável do projeto** (zeros do GeoSampa são ausência de
 medição, nunca "calçada de largura/declividade zero"): a coluna gerada
@@ -47,6 +57,11 @@ if TYPE_CHECKING:
 # raio de busca da via_pedestre mais próxima do ponto médio de cada passo
 # (spec da Tarefa 5), medido em EPSG:31983.
 _RAIO_VIA_M = 10.0
+
+# um ponto de amostra a cada tantos metros do passo, até o teto (15 km de rota
+# têm dezenas de passos: o teto segura o custo das consultas).
+_AMOSTRA_M = 25.0
+_AMOSTRAS_MAX = 40
 
 # raio dentro do qual uma barreira 'dificulta' entra em barreiras_proximas
 # do passo (spec da Tarefa 5).
@@ -86,20 +101,27 @@ def _pct_da_classe_steepness(classe: int) -> float | None:
     return _PCT_POR_CLASSE_STEEPNESS.get(abs(classe))
 
 
-_SQL_VIA_MAIS_PROXIMA = text(
+_SQL_VIAS_MAIS_PROXIMAS = text(
     """
-    SELECT v.id, v.is_degrau, v.kerb_transponivel, v.data_referencia, f.chave AS fonte_chave
-    FROM via_pedestre v
-    JOIN fonte_dados f ON f.id = v.fonte_id
-    WHERE ST_DWithin(
-        ST_Transform(v.geom, 31983),
-        ST_Transform(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), 31983),
-        :raio_m
-    )
-    ORDER BY
-        ST_Transform(v.geom, 31983)
-        <-> ST_Transform(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), 31983)
-    LIMIT 1
+    SELECT v.id, v.is_degrau, v.kerb_transponivel, v.data_referencia, v.fonte_chave
+    FROM unnest(CAST(:lngs AS double precision[]), CAST(:lats AS double precision[]))
+        WITH ORDINALITY AS p(lng, lat, i)
+    CROSS JOIN LATERAL (
+        SELECT via.id, via.is_degrau, via.kerb_transponivel, via.data_referencia,
+               f.chave AS fonte_chave
+        FROM via_pedestre via
+        JOIN fonte_dados f ON f.id = via.fonte_id
+        WHERE ST_DWithin(
+            ST_Transform(via.geom, 31983),
+            ST_Transform(ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326), 31983),
+            :raio_m
+        )
+        ORDER BY
+            ST_Transform(via.geom, 31983)
+            <-> ST_Transform(ST_SetSRID(ST_MakePoint(p.lng, p.lat), 4326), 31983)
+        LIMIT 1
+    ) v
+    ORDER BY p.i
     """
 )
 
@@ -110,26 +132,49 @@ _SQL_CONFLACAO = text(
     FROM conflacao_via_calcada cv
     JOIN calcada_sp c ON c.id = cv.calcada_id
     JOIN fonte_dados f ON f.id = c.fonte_id
-    WHERE cv.via_id = :via_id
+    WHERE cv.via_id = ANY(:via_ids)
     """
 )
 
 
-def _via_mais_proxima(db: Session, ponto_4326: Point) -> dict | None:
-    linha = (
+def _pontos_do_passo(geometria) -> list[Point]:
+    """Pontos no meio de intervalos iguais do passo, um a cada `_AMOSTRA_M`.
+    Fogem das pontas, onde a via mais próxima pode ser a rua transversal."""
+    comprimento = _transformar_geometria(PROJ_4326_31983.transform, geometria).length
+    quantidade = max(1, min(_AMOSTRAS_MAX, round(comprimento / _AMOSTRA_M)))
+    return [
+        geometria.interpolate((i + 0.5) / quantidade, normalized=True) for i in range(quantidade)
+    ]
+
+
+def _vias_mais_proximas(db: Session, pontos: list[Point]) -> list[dict]:
+    """A via mais próxima de cada ponto, a até `_RAIO_VIA_M`, sem repetir."""
+    linhas = (
         db.execute(
-            _SQL_VIA_MAIS_PROXIMA,
-            {"lng": ponto_4326.x, "lat": ponto_4326.y, "raio_m": _RAIO_VIA_M},
+            _SQL_VIAS_MAIS_PROXIMAS,
+            {
+                "lngs": [ponto.x for ponto in pontos],
+                "lats": [ponto.y for ponto in pontos],
+                "raio_m": _RAIO_VIA_M,
+            },
         )
         .mappings()
-        .first()
+        .all()
     )
-    return dict(linha) if linha is not None else None
+    return list({linha["id"]: dict(linha) for linha in linhas}.values())
 
 
-def _conflacao_da_via(db: Session, via_id: int) -> dict | None:
-    linha = db.execute(_SQL_CONFLACAO, {"via_id": via_id}).mappings().first()
-    return dict(linha) if linha is not None else None
+def _conflacoes_das_vias(db: Session, via_ids: list[int]) -> list[dict]:
+    linhas = db.execute(_SQL_CONFLACAO, {"via_ids": via_ids}).mappings().all()
+    return [dict(linha) for linha in linhas]
+
+
+def _kerb_do_passo(vias: list[dict]) -> bool | None:
+    """Uma guia intransponível decide o passo; só é transponível se todas forem."""
+    valores = [via["kerb_transponivel"] for via in vias]
+    if any(valor is False for valor in valores):
+        return False
+    return True if valores and all(valor is True for valor in valores) else None
 
 
 def _guia(kerb_transponivel: bool | None) -> str:
@@ -160,9 +205,8 @@ def enriquecer_passos(
     ORS (-5..5, ou `None`) já resolvida por quem montou os passos brutos do
     ORS (`rota.py`, Tarefa 6) para o passo `i`, cruzando `way_points` com
     `properties.extras.steepness.values`. Quando o item existe (não é
-    `None`), ele **sobrepõe** a declividade do GeoSampa para aquele passo —
-    o ORS mede elevação real (SRTM) por toda a rota; o GeoSampa é um
-    diagnóstico estático de 2021 e só existe onde há conflação.
+    `None`), ele entra como estimativa: vence a declividade do GeoSampa só se
+    for maior (ver a regra no docstring do módulo).
 
     `duracao_s` de cada `Passo` sai como `0.0`: nenhum dos dois motores dá a
     duração "certa" para o perfil pedido (a do ORS é para outra velocidade;
@@ -175,15 +219,14 @@ def enriquecer_passos(
     passos: list[Passo] = []
 
     for indice, bruto in enumerate(passos_brutos):
-        ponto_medio = bruto.geometria.interpolate(0.5, normalized=True)
-        via = _via_mais_proxima(db, ponto_medio)
+        vias = _vias_mais_proximas(db, _pontos_do_passo(bruto.geometria))
 
-        if via is not None:
-            fontes.add(via["fonte_chave"])
-            fonte_passo = via["fonte_chave"]
-            data_referencia_passo = via["data_referencia"]
-            is_degrau = bool(via["is_degrau"])
-            kerb_transponivel = via["kerb_transponivel"]
+        if vias:
+            fontes.update(via["fonte_chave"] for via in vias)
+            fonte_passo = vias[0]["fonte_chave"]
+            data_referencia_passo = vias[0]["data_referencia"]
+            is_degrau = any(via["is_degrau"] for via in vias)
+            kerb_transponivel = _kerb_do_passo(vias)
         else:
             # nenhuma via_pedestre a 10 m: sem OSM confirmado para este
             # trecho (não entra em `fontes`), mas a geometria da rota ainda
@@ -193,22 +236,18 @@ def enriquecer_passos(
             is_degrau = bruto.is_degrau
             kerb_transponivel = bruto.kerb_transponivel
 
-        conflacao = _conflacao_da_via(db, via["id"]) if via is not None else None
-        if conflacao is not None:
-            fontes.add(conflacao["fonte_chave"])
-            largura_medida = bool(conflacao["largura_medida"])
-            # regra inegociável: largura_medida=False ⇒ largura_m=None,
-            # mesmo que largura_min_m valha 0 (GeoSampa: zero é ausência).
-            largura_m = float(conflacao["largura_min_m"]) if largura_medida else None
-            declividade_medida_geosampa = bool(conflacao["declividade_medida"])
-            declividade_pct_geosampa = (
-                float(conflacao["declividade_max_pct"]) if declividade_medida_geosampa else None
-            )
-        else:
-            largura_m = None
-            largura_medida = False
-            declividade_medida_geosampa = False
-            declividade_pct_geosampa = None
+        conflacoes = _conflacoes_das_vias(db, [via["id"] for via in vias]) if vias else []
+        fontes.update(conflacao["fonte_chave"] for conflacao in conflacoes)
+        # regra inegociável: largura_medida=False ⇒ largura_m=None, mesmo que
+        # largura_min_m valha 0 (GeoSampa: zero é ausência).
+        larguras = [float(c["largura_min_m"]) for c in conflacoes if c["largura_medida"]]
+        largura_m = min(larguras, default=None)
+        largura_medida = largura_m is not None
+        declividades = [
+            float(c["declividade_max_pct"]) for c in conflacoes if c["declividade_medida"]
+        ]
+        declividade_pct_geosampa = max(declividades, default=None)
+        if not conflacoes:
             if not aviso_sem_dados_emitido:
                 avisos.append(
                     Aviso(
@@ -226,12 +265,17 @@ def enriquecer_passos(
             if extras_steepness is not None and indice < len(extras_steepness)
             else None
         )
-        if classe_steepness is not None:
-            declividade_pct = _pct_da_classe_steepness(classe_steepness)
-            declividade_medida = declividade_pct is not None
+        estimativa_ors = (
+            _pct_da_classe_steepness(classe_steepness) if classe_steepness is not None else None
+        )
+        if estimativa_ors is not None and (
+            declividade_pct_geosampa is None or estimativa_ors > declividade_pct_geosampa
+        ):
+            declividade_pct = estimativa_ors
+            declividade_medida = False
         else:
             declividade_pct = declividade_pct_geosampa
-            declividade_medida = declividade_medida_geosampa
+            declividade_medida = declividade_pct_geosampa is not None
 
         barreiras_proximas: list[BarreiraResumo] = []
         for barreira in barreiras_dificulta:

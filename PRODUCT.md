@@ -34,7 +34,7 @@ Os quatro diferenciais abaixo foram confirmados pelo dono do projeto em 12/10/20
 ## Operating Context
 
 - Uso na rua, no celular, com uma mão, com sol na tela e às vezes sem sinal. Uso em casa, no desktop, com NVDA, teclado e zoom de 400%.
-- Área piloto: Vila Mariana, Lapa e Ipiranga. Fora dela a rota não existe, e o produto precisa dizer isso.
+- Área piloto: a maior parte do centro expandido, a Lapa e o Ipiranga, em sete retângulos contínuos (cerca de 149 km²; `etl/etl/config.py`). Fora dela a rota não existe, e o produto precisa dizer isso.
 - Fontes carregadas: OpenStreetMap (malha de pedestre), GeoSampa (calçadas com largura e declividade), SP156 (barreiras oficiais), GTFS da SPTrans (paradas e linhas). Roteamento pelo OpenRouteService com perfil `wheelchair`, fallback determinístico em pgRouting e fixtures gravadas para demonstração sem internet.
 - Produção de custo zero: Cloudflare Workers (frontend), Render Free (backend, dorme após 15 min e leva cerca de 1 min para acordar), Supabase Free (banco). Aquecer o backend antes de demonstrar faz parte do ritual.
 - Ritual acadêmico: entregas em planos numerados de 1 a 8 e apresentação à banca no fim do 2º semestre de 2026.

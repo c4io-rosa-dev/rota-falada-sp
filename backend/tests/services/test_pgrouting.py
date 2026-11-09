@@ -35,7 +35,7 @@ _NO_DESTINO = 9501407854
 _ORIGEM = Coordenada(lat=-23.6040614, lng=-46.6408116)  # == geom de _NO_ORIGEM
 _DESTINO = Coordenada(lat=-23.6040364, lng=-46.6446546)  # == geom de _NO_DESTINO
 
-# bem fora das três area_piloto (mesmo ponto-base de test_barreira_geom_db.py);
+# bem fora das area_piloto (mesmo ponto-base de test_barreira_geom_db.py);
 # não há nenhum no_pedestre a 300 m dali.
 _FORA_DO_PILOTO = Coordenada(lat=-24.048988029889923, lng=-45.98351729900837)
 
@@ -212,3 +212,23 @@ def test_direcao_da_virada_com_bearings_conhecidos():
     diferenca = _diferenca_angular(10.0, 25.0)
     assert diferenca == pytest.approx(15.0)
     assert _direcao_da_virada(diferenca) == "siga"
+
+
+# --- área ampliada (migration 009): trajeto da apresentação e recortes ligados
+
+
+def test_rota_metro_alto_do_ipiranga_ate_a_fatec(db):
+    metro = Coordenada(lat=-23.6022366, lng=-46.6124857)
+    fatec = Coordenada(lat=-23.609669, lng=-46.6082618)
+    rota = rota_pgrouting(db, metro, fatec)
+    assert rota is not None
+    assert 800 < rota.distancia_m < 2000
+
+
+def test_rota_atravessa_recortes_que_eram_separados(db):
+    """Lapa e Ipiranga ficavam em retângulos sem ligação até a migration 009."""
+    lapa = Coordenada(lat=-23.5232, lng=-46.7049)
+    museu_do_ipiranga = Coordenada(lat=-23.5856, lng=-46.6095)
+    rota = rota_pgrouting(db, lapa, museu_do_ipiranga)
+    assert rota is not None
+    assert 10_000 < rota.distancia_m < 20_000

@@ -38,7 +38,7 @@ def test_tabelas_oficiais_existem_e_area_piloto_semeada(db):
     nomes_area_piloto = {
         linha[0] for linha in db.execute(text("SELECT nome FROM area_piloto ORDER BY nome"))
     }
-    assert nomes_area_piloto == {"Vila Mariana", "Lapa", "Ipiranga"}
+    assert {"Vila Mariana", "Lapa", "Ipiranga"} <= nomes_area_piloto
 
 
 def test_calcada_sp_gerada_e_via_pedestre_sem_atributos_de_licenca_cruzada(db):
