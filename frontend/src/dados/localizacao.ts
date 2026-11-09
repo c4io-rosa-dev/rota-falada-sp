@@ -30,6 +30,39 @@ export function obterPosicao(): Promise<Posicao> {
   })
 }
 
+/** Uma leitura do GPS durante a navegação. Vive só em memória: nunca é gravada nem enviada. */
+export type LeituraPosicao = { lat: number; lon: number; precisaoM: number; tMs: number }
+
+/** maximumAge 0: na navegação, uma posição velha engana mais do que nenhuma. */
+export const OPCOES_VIGIA: PositionOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 }
+
+/**
+ * Acompanha a posição enquanto a navegação está ligada. Erros (inclusive tempo esgotado, código 3)
+ * vão para aoErrar sem reiniciar a vigia: o navegador continua tentando sozinho.
+ * Devolve a função de parar, idempotente. Sem geolocalização: chama aoErrar(0) e devolve função vazia.
+ */
+export function vigiarPosicao(aoMudar: (l: LeituraPosicao) => void, aoErrar: (codigo: number) => void): () => void {
+  if (!temGeolocalizacao()) {
+    aoErrar(0)
+    return () => {}
+  }
+  let ativa = true
+  const id = navigator.geolocation.watchPosition(
+    (p) => {
+      if (ativa) aoMudar({ lat: p.coords.latitude, lon: p.coords.longitude, precisaoM: p.coords.accuracy, tMs: p.timestamp })
+    },
+    (e) => {
+      if (ativa) aoErrar(e.code)
+    },
+    OPCOES_VIGIA,
+  )
+  return () => {
+    if (!ativa) return
+    ativa = false
+    navigator.geolocation.clearWatch(id)
+  }
+}
+
 /** 4 casas (cerca de 11 m): as coordenadas viram URL e cache, e o raio de busca é 50 m. */
 export function arredondar4(valor: number): number {
   return Math.round(valor * 10_000) / 10_000

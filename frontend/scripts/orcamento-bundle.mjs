@@ -22,4 +22,22 @@ if (entrada && readFileSync(join(pasta, entrada), 'utf-8').includes('leaflet-con
   console.log('EXCEDEU\tLeaflet no chunk de entrada')
   falhou = true
 }
+// a simulação da navegação guiada só existe no build de teste ou de demonstração (spec 10.2):
+// no build de produção, nem o texto da faixa nem o módulo da posição simulada podem entrar
+const SO_NA_DEMONSTRACAO = ['Modo demonstração', 'aba-oculta-no-meio', 'precisao-ruim-40m']
+for (const arquivo of readdirSync(pasta)) {
+  if (arquivo.startsWith('posicaoSimulada') || arquivo.startsWith('simulacao')) {
+    console.log(`EXCEDEU\tchunk da simulação no build: ${arquivo}`)
+    falhou = true
+    continue
+  }
+  if (!/\.(js|css|html)$/.test(arquivo)) continue
+  const texto = readFileSync(join(pasta, arquivo), 'utf-8')
+  for (const marca of SO_NA_DEMONSTRACAO) {
+    if (texto.includes(marca)) {
+      console.log(`EXCEDEU\t"${marca}" no build (${arquivo}): rode o build sem VITE_PERMITIR_SIMULACAO`)
+      falhou = true
+    }
+  }
+}
 process.exit(falhou ? 1 : 0)

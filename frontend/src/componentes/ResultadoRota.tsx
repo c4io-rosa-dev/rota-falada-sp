@@ -10,6 +10,7 @@ import { FichaRota } from './FichaRota'
 import { levarAoPasso, tirarPassoDeRetorno } from '../dados/retornoPasso'
 import { LinkPasso } from './LinkPasso'
 import { MapaRota } from './mapa/MapaRota'
+import { Placa } from './Placa'
 import { TabelaPassos } from './TabelaPassos'
 
 type Props = {
@@ -105,6 +106,14 @@ export function ResultadoRota({ rota, origem, destino, exigenciaPedida, calculad
           }))}
         >
           <BotaoOuvir key={calculadaEm} falas={falas} rotulo="Ouvir a rota" aoMudarPasso={setPassoAtivo} />
+          {/* a página nova decide se dá para navegar: nada da navegação entra no chunk de /rota */}
+          {!desatualizada && (
+            <div className="resultado__navegar">
+              <Placa para="/rota/navegar" variante="acao" pictograma="siga">
+                Iniciar navegação guiada
+              </Placa>
+            </div>
+          )}
         </FichaRota>
 
         {temMapa && (

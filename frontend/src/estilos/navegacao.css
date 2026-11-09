@@ -1,0 +1,249 @@
+/* ==========================================================================
+   /rota/navegar — navegação guiada. Só os tokens do DESIGN.md (index.css):
+   uma coluna, canto vivo, nenhuma sombra, nenhuma animação nem transição,
+   nenhum tamanho de fonte novo. Nada fixo na tela: a 400% e a 320 px tudo
+   rola junto, sem rolagem horizontal.
+   ========================================================================== */
+
+.navegar {
+  width: min(40rem, 100% - 2 * var(--calha));
+  margin: var(--e-4) auto var(--e-6);
+  display: grid;
+  gap: var(--e-3);
+}
+
+.navegar > *,
+.navegar p,
+.navegar li {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.navegar p {
+  margin: 0;
+}
+
+.navegar__titulo {
+  margin: 0;
+  font-size: var(--t-3);
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+/* a faixa da demonstração: texto, junta e fundo de vão; nada pisca */
+.navegar__faixa {
+  padding: var(--e-1) var(--e-2);
+  background: var(--vao);
+  border: 2px solid var(--tinta);
+  font-weight: 600;
+}
+
+.navegar__preparo,
+.navegar__aviso {
+  display: grid;
+  gap: var(--e-3);
+  justify-items: start;
+}
+
+.navegar__subtitulo {
+  margin: 0;
+  font-size: var(--t-2);
+}
+
+.navegar__lista {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: var(--e-1);
+}
+
+.navegar__voz {
+  display: grid;
+  gap: var(--e-1);
+  justify-items: start;
+}
+
+.navegar__comecar {
+  display: grid;
+  gap: var(--e-2);
+  justify-items: start;
+  width: 100%;
+}
+
+.navegar__comecar .placa--acao {
+  width: 100%;
+}
+
+/* link discreto que é botão (muda o modo, não a página) */
+.navegar__discreto {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--tinta);
+  font: inherit;
+  font-size: var(--t-1);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.navegar__link {
+  justify-content: flex-start;
+  padding-inline: 0;
+}
+
+.navegar__voltar {
+  justify-self: start;
+}
+
+/* ---------- painel: não é região viva ---------- */
+
+.painel {
+  display: grid;
+  gap: var(--e-1);
+  padding: var(--e-3);
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  border-radius: 0;
+}
+
+.painel__titulo {
+  margin: 0;
+  font-size: var(--t-2);
+}
+
+.painel__acao {
+  font-size: var(--t-4);
+  line-height: 1;
+}
+
+.painel__rua {
+  font-size: var(--t-2);
+  font-weight: 600;
+}
+
+.painel__distancia {
+  font-size: var(--t-3);
+  font-weight: 800;
+}
+
+.painel__trecho {
+  margin-top: var(--e-1);
+  display: grid;
+  gap: var(--e-1);
+}
+
+.painel__rotulo {
+  font-size: var(--t-1);
+  font-weight: 600;
+}
+
+.painel__avisos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--e-1);
+}
+
+.painel__avisos .aviso {
+  margin: 0;
+}
+
+.painel__procura {
+  font-weight: 600;
+}
+
+.painel__estado {
+  margin-top: var(--e-1);
+  padding-top: var(--e-1);
+  border-top: 1px solid var(--junta);
+  font-size: var(--t-1);
+  font-weight: 600;
+}
+
+/* ---------- detalhes do trecho ---------- */
+
+.detalhes {
+  display: grid;
+  gap: var(--e-1);
+}
+
+.detalhes > .placa {
+  width: 100%;
+}
+
+.detalhes__dados {
+  margin: 0;
+}
+
+.detalhes__barreiras {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+/* ---------- controles: empilhados, sem barra fixa ---------- */
+
+.controles {
+  display: grid;
+  gap: var(--e-1);
+}
+
+.controles .placa {
+  width: 100%;
+  min-height: 56px;
+}
+
+/* cada controle com a sua dica (o motivo de estar indisponível), logo abaixo */
+.controles__item {
+  display: grid;
+  gap: var(--e-1);
+}
+
+.controles__dica {
+  margin: 0;
+}
+
+/* Encerrar fica longe dos outros, para não ser tocado por engano */
+.controles__encerrar {
+  margin-top: var(--e-4);
+  display: grid;
+  gap: var(--e-2);
+}
+
+.confirmar {
+  display: grid;
+  gap: var(--e-1);
+}
+
+.confirmar__pergunta {
+  font-weight: 800;
+}
+
+.confirmar__opcoes {
+  display: grid;
+  gap: var(--e-1);
+}
+
+/* Alto contraste do Windows: o painel e a faixa mantêm a borda com as cores do sistema */
+@media (forced-colors: active) {
+  .painel,
+  .navegar__faixa {
+    border-color: CanvasText;
+  }
+
+  .painel__estado {
+    border-top-color: CanvasText;
+  }
+
+  /* a ação principal (Recalcular fora da rota) ganha borda dupla e grossa; o contorno Highlight
+     fica só para o botão pressionado (Pausar), que o index.css já marca: um sinal, um sentido */
+  .controles .placa--acao {
+    border: 4px double ButtonText;
+  }
+}

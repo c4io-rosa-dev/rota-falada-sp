@@ -23,6 +23,16 @@ export function Acessibilidade() {
         <li>Cálculo de rota a pé entre dois endereços da área piloto, por autocomplete ou pela localização do aparelho.</li>
         <li>Toda rota é apresentada como lista de passos em texto; o mapa é uma ilustração opcional.</li>
         <li>Leitura da rota em voz alta pelo botão &quot;Ouvir a rota&quot;.</li>
+        <li>
+          Navegação guiada pela localização do aparelho, com modo passo a passo para quem não quer ou não pode
+          usar a localização.
+        </li>
+        <li>
+          Navegação guiada: a sua localização é usada só no aparelho, enquanto a navegação está ligada. Se você
+          tocar em Recalcular, a posição arredondada (cerca de 11 m) vai ao nosso servidor, que calcula a rota com
+          um serviço de rotas, e a rota calculada fica guardada sem identificação por até 6 horas, como qualquer
+          rota.
+        </li>
         <li>Login por código enviado por e-mail, sem senha, em campo único.</li>
         <li>Cadastro e votação de barreiras, com a foto sempre opcional.</li>
         <li>Navegação completa por teclado, com link para pular ao conteúdo e foco visível.</li>

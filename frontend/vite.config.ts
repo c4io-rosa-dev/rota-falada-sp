@@ -14,6 +14,8 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/test/setup.ts'],
       css: true,
       include: ['src/**/*.test.{ts,tsx}'],
+      // os testes rodam como o build de E2E: a simulação da navegação guiada existe, mas só liga com ?simular=
+      env: { VITE_PERMITIR_SIMULACAO: 'true' },
     },
   }
 })
