@@ -53,7 +53,7 @@ describe('página /rota', () => {
     expect(screen.getByRole('combobox', { name: 'Origem' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Destino' })).toBeInTheDocument()
     const exigencia = screen.getByRole('group', { name: 'Exigência' })
-    expect(within(exigencia).getByRole('radio', { name: 'até 6%' })).toBeChecked()
+    expect(within(exigencia).getByRole('radio', { name: /^até 6%/ })).toBeChecked()
     expect(screen.getByRole('checkbox', { name: 'Evitar degraus' })).toBeChecked()
     const calcular = await botaoCalcular()
     expect(calcular).not.toHaveAttribute('aria-disabled')
@@ -95,7 +95,7 @@ describe('página /rota', () => {
 
     const titulo = await screen.findByRole('heading', { level: 2, name: /Rota encontrada/ })
     expect(titulo).toHaveFocus()
-    expect(titulo).toHaveTextContent('200,0 m em 2 passos, cerca de 4 minutos a pé, 1 aviso')
+    expect(titulo).toHaveTextContent('200 m em 2 passos, cerca de 4 minutos a pé, sem avisos')
     expect(document.title).toBe('Rota calculada · Rota Falada SP')
 
     const [{ init }] = api.de('POST /api/rotas')
@@ -110,8 +110,7 @@ describe('página /rota', () => {
     const lista = screen.getByRole('list', { name: 'Os 2 passos da rota' })
     expect(lista).toHaveAttribute('id', 'lista-passos')
     expect(within(lista).getAllByRole('listitem')).toHaveLength(2)
-    expect(screen.getByText('Sem dados aqui.')).toBeInTheDocument()
-    expect(screen.getByText(/Pedida: até 6%. Atendida: até 6%./)).toBeInTheDocument()
+    expect(screen.getByText('Até 6%, como pedido.')).toBeInTheDocument()
     expect(screen.getByText('openrouteservice.org by HeiGIT')).toBeInTheDocument()
     expect(screen.getByText(/evita as barreiras confirmadas que bloqueiam a passagem e avisa das que só dificultam/)).toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/garant/i)
@@ -131,7 +130,7 @@ describe('página /rota', () => {
     responder(Response.json(ROTA))
     await screen.findByRole('heading', { level: 2, name: /Rota encontrada/ })
     expect(limparOuLink).toHaveFocus()
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Rota encontrada. 200,0 m em 2 passos'))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Rota encontrada. 200 m em 2 passos'))
   })
 
   it('cancelar volta o foco ao botão, anuncia e ignora a resposta', async () => {
@@ -183,7 +182,8 @@ describe('página /rota', () => {
     abrir()
     await preencher(user)
     await user.click(await botaoCalcular())
-    expect(await screen.findByText(/roteamento local de reserva/)).toBeInTheDocument()
+    expect(await screen.findByText('roteamento local de reserva')).toBeInTheDocument()
+    expect(screen.getByText(/Rota calculada pelo roteamento de reserva, que não mede a inclinação/)).toBeInTheDocument()
     expect(screen.queryByText(/não desvia/)).toBeNull()
   })
 
@@ -255,7 +255,7 @@ describe('página /rota', () => {
     await preencher(user)
     await user.click(await botaoCalcular())
     await screen.findByRole('heading', { level: 2, name: /Rota encontrada/ })
-    await user.click(screen.getByRole('radio', { name: 'até 3%' }))
+    await user.click(screen.getByRole('radio', { name: /^até 3%/ }))
     expect(screen.getByText('Esta rota é da busca anterior. Calcule de novo.')).toBeInTheDocument()
     expect(api.de('POST /api/rotas')).toHaveLength(1)
     // única salvaguarda de 3.2.2 nesta tela: precisa chegar a quem usa leitor de tela

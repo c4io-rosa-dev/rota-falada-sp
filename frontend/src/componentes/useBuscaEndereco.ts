@@ -6,6 +6,7 @@ import {
   estadoInicialCampo,
   MINIMO_BUSCA,
   reduzirCampo,
+  semRepetidas,
   textoDaLista,
   textoDoCampo,
   textoForaDaArea,
@@ -53,7 +54,8 @@ export function useBuscaEndereco(rotulo: string, inicial: Endereco | null = null
       controle.current = pedido
       despachar({ tipo: 'buscar', texto })
       buscarEnderecos(texto.trim(), pedido.signal)
-        .then((opcoes) => {
+        .then((todas) => {
+          const opcoes = semRepetidas(todas)
           if (pedido.signal.aborted) return
           despachar({ tipo: 'resultado', texto, opcoes })
           if (opcoes.length === 0) {

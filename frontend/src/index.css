@@ -861,6 +861,63 @@ main {
   color: var(--tinta-2);
 }
 
+/* aviso que pode impedir a passagem ou exigir ajuda: letra de leitura, não de rodapé */
+.aviso--grave {
+  font-size: var(--t-2);
+}
+
+.aviso--grave .pictograma {
+  color: var(--tinta);
+}
+
+.ficha__titulo-avisos {
+  margin: var(--e-3) 0 0.75rem;
+  font-size: var(--t-1);
+}
+
+.aviso__ir {
+  white-space: nowrap;
+}
+
+/* o texto diz o excesso; o peso só reforça (nunca cor sozinha) */
+.marca-alerta {
+  font-weight: 600;
+}
+
+.ouvir__controles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.resultado__subtitulo {
+  margin: var(--e-3) 0 0.75rem;
+  font-size: var(--t-1);
+}
+
+/*
+ * Alto contraste do Windows apaga fundos: a marca desenhada só com background some e uma caixa
+ * marcada parece vazia. Ali volta o controle nativo, e os estados ativos usam as cores do sistema.
+ */
+@media (forced-colors: active) {
+  /* seletores mais fortes: as regras de desenho vêm depois neste arquivo */
+  .opcao input[type] {
+    appearance: auto;
+  }
+
+  .placa.placa[aria-pressed='true'] {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .placas .placa-passo--ativa .placa-passo__ordem {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
 .ficha .placa {
   width: 100%;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { textoFalado, type Passo } from '../dados/passo'
+import type { Fala } from '../dados/narrador'
 import { Placa } from './Placa'
 import { useAnuncio } from './useAnuncio'
 
@@ -18,7 +18,8 @@ function vozPortugues(s: SpeechSynthesis): SpeechSynthesisVoice | undefined {
 }
 
 type Props = {
-  passos: Passo[]
+  /** O que dizer, na ordem: resumo (ordem nula) e passos. Ver dados/narrador.ts. */
+  falas: Fala[]
   /** Recebe a ordem do passo em leitura, ou null quando a leitura acaba. */
   aoMudarPasso?: (ordem: number | null) => void
   rotulo?: string
@@ -27,21 +28,23 @@ type Props = {
 }
 
 /**
- * Lê os passos em voz alta com SpeechSynthesis (recurso progressivo). Botão de
+ * Lê a rota em voz alta com SpeechSynthesis (recurso progressivo). Botão de
  * alternância com rótulo fixo e aria-pressed; só o pictograma troca (ouvir/parar). A região viva
  * só anuncia o estado ("Lendo…", "Leitura interrompida."), nunca o texto do passo,
- * para não duplicar a voz.
+ * para não duplicar a voz. Durante a leitura, "Passo anterior" e "Próximo passo" pulam a fala,
+ * para quem está na rua não ouvir tudo de novo.
  */
-export function BotaoOuvir({ passos, aoMudarPasso, rotulo = 'Ouvir o exemplo', variante = 'neutra', className }: Props) {
+export function BotaoOuvir({ falas, aoMudarPasso, rotulo = 'Ouvir o exemplo', variante = 'neutra', className }: Props) {
   const [suporte] = useState(() => sintese() !== undefined)
   const [lendo, setLendo] = useState(false)
   const anunciar = useAnuncio()
   const sessao = useRef(0)
-  const passosRef = useRef(passos)
+  const falasRef = useRef(falas)
+  const indiceAtual = useRef(0)
   const aoMudarRef = useRef(aoMudarPasso)
 
   useEffect(() => {
-    passosRef.current = passos
+    falasRef.current = falas
     aoMudarRef.current = aoMudarPasso
   })
 
@@ -69,12 +72,13 @@ export function BotaoOuvir({ passos, aoMudarPasso, rotulo = 'Ouvir o exemplo', v
   function falar(indice: number, id: number) {
     const s = sintese()
     if (!s || id !== sessao.current) return
-    const lista = passosRef.current
+    const lista = falasRef.current
     if (indice >= lista.length) {
       parar()
       return
     }
-    const fala = new SpeechSynthesisUtterance(textoFalado(lista[indice]))
+    indiceAtual.current = indice
+    const fala = new SpeechSynthesisUtterance(lista[indice].texto)
     fala.lang = 'pt-BR'
     const voz = vozPortugues(s)
     if (voz) fala.voice = voz
@@ -84,6 +88,13 @@ export function BotaoOuvir({ passos, aoMudarPasso, rotulo = 'Ouvir o exemplo', v
     }
     aoMudarRef.current?.(lista[indice].ordem)
     s.speak(fala)
+  }
+
+  /** Interrompe a fala atual e continua de outro ponto; a sessão nova ignora a fala cancelada. */
+  function pular(delta: number) {
+    const id = ++sessao.current
+    sintese()?.cancel()
+    falar(Math.min(Math.max(indiceAtual.current + delta, 0), falasRef.current.length - 1), id)
   }
 
   function alternar() {
@@ -110,14 +121,26 @@ export function BotaoOuvir({ passos, aoMudarPasso, rotulo = 'Ouvir o exemplo', v
   }
 
   return (
-    <Placa
-      variante={variante}
-      pictograma={lendo ? 'parar' : 'ouvir'}
-      aria-pressed={lendo}
-      onClick={alternar}
-      className={className}
-    >
-      {rotulo}
-    </Placa>
+    <>
+      <Placa
+        variante={variante}
+        pictograma={lendo ? 'parar' : 'ouvir'}
+        aria-pressed={lendo}
+        onClick={alternar}
+        className={className}
+      >
+        {rotulo}
+      </Placa>
+      {lendo && (
+        <div className="ouvir__controles" role="group" aria-label="Controles da leitura">
+          <Placa variante="neutra" onClick={() => pular(-1)}>
+            Passo anterior
+          </Placa>
+          <Placa variante="neutra" onClick={() => pular(1)}>
+            Próximo passo
+          </Placa>
+        </div>
+      )}
+    </>
   )
 }

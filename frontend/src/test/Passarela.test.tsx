@@ -15,8 +15,8 @@ describe('Passarela', () => {
     const { container } = emLista(<Passarela passo={p2} />)
     const item = screen.getByRole('listitem')
     expect(within(item).getByText('Rua Helen Keller')).toHaveClass('letreiro')
-    expect(within(item).getByText('48,0 m')).toHaveClass('passarela__distancia')
-    expect(item).toHaveTextContent(/^2\s*Rua Helen Keller\s*48,0 m$/)
+    expect(within(item).getByText('48 m')).toHaveClass('passarela__distancia')
+    expect(item).toHaveTextContent(/^2\s*Rua Helen Keller\s*48 m$/)
     // a cota técnica completa vive na tabela da seção 4, não no vão
     expect(item.querySelector('.cota')).toBeNull()
     expect(item.querySelector('.passarela__acao')).toBeNull()
@@ -28,7 +28,7 @@ describe('Passarela', () => {
   it('sem rua, o nome gravado é a própria instrução, e nenhum pictograma entra no vão', () => {
     const { container } = emLista(<Passarela passo={p4} />)
     expect(screen.getByText('Vire à direita')).toHaveClass('letreiro')
-    expect(screen.getByText('13,1 m')).toBeInTheDocument()
+    expect(screen.getByText('13 m')).toBeInTheDocument()
     expect(container.querySelector('svg')).toBeNull()
   })
 

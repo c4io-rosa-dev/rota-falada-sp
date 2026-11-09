@@ -26,9 +26,9 @@ import '../estilos/rota.css'
 import { focoVaiParaResultado, mesmoPonto, montarPedido, reduzirRota, resumoDaRota, type EstadoRota } from './rotaEstado'
 
 const EXIGENCIAS: { valor: Inclinacao; rotulo: string }[] = [
-  { valor: 3, rotulo: 'até 3%' },
-  { valor: 6, rotulo: 'até 6%' },
-  { valor: 10, rotulo: 'até 10%' },
+  { valor: 3, rotulo: 'até 3%: quase plano' },
+  { valor: 6, rotulo: 'até 6%: subida leve' },
+  { valor: 10, rotulo: 'até 10%: subida forte, pode exigir ajuda' },
   { valor: 'any', rotulo: 'qualquer inclinação' },
 ]
 
@@ -96,7 +96,7 @@ export function Rota() {
   // fim do cálculo: foco no h2 ou anúncio, nunca os dois. Restaurar não move foco.
   const fase = estado.fase
   const restaurada = estado.fase === 'resultado' && estado.restaurada
-  const resumo = estado.fase === 'resultado' ? `Rota encontrada. ${resumoDaRota(estado.rota)}.` : null
+  const resumo = estado.fase === 'resultado' ? `Rota encontrada. ${resumoDaRota(estado.rota, estado.busca.pedido.perfil.inclinacao_max)}.` : null
   const buscaAtual = useMemo<BuscaFeita | null>(
     () =>
       origem.escolha && destino.escolha

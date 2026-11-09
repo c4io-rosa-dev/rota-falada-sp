@@ -139,3 +139,21 @@ def test_passo_longo_nao_esconde_o_pico_nem_o_degrau_fora_do_meio(db):
     assert float(passos[0].declividade_pct) == pytest.approx(12.0)
     assert float(passos[0].largura_m) == pytest.approx(1.2)
     assert passos[0].is_degrau is True
+
+
+@pytest.mark.parametrize(
+    ("classe", "esperado", "medida"),
+    [(1, 1.9, True), (2, 6.0, False)],
+)
+def test_estimativa_do_ors_so_vence_quando_a_faixa_desmente_a_medida(db, classe, esperado, medida):
+    """Classe 1 (1% a 4%) cabe numa medida de 1,9% e não a troca; classe 2 (4% a 7%) desmente."""
+    _preparar(db)
+    db.execute(
+        text("UPDATE calcada_sp SET declividade_max_pct = 1.9 WHERE id = :id"), {"id": _CAL_3}
+    )
+    geometria = _linha([(_X0 + 110, _Y0), (_X0 + 190, _Y0)])
+
+    passos, _avisos, _fontes = enriquecer_passos(db, [_passo(geometria, 80.0)], [], [classe])
+
+    assert float(passos[0].declividade_pct) == pytest.approx(esperado)
+    assert passos[0].declividade_medida is medida

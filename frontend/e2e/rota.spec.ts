@@ -190,3 +190,14 @@ test('fim a fim: 404 e 503 falam a verdade', async ({ page }) => {
   await page.getByRole('button', { name: 'Tentar de novo' }).click()
   await expect(page.getByRole('heading', { level: 2, name: /Rota encontrada/ })).toBeFocused()
 })
+
+test('alto contraste do Windows: opções marcadas continuam visíveis como controle nativo', async ({ page }) => {
+  await simular(page)
+  await page.emulateMedia({ forcedColors: 'active' })
+  await page.goto('/rota')
+  await expect(page.getByRole('checkbox', { name: 'Evitar degraus' })).toBeVisible()
+  const aparencias = await page.locator('.opcao input').evaluateAll((els) => els.map((e) => getComputedStyle(e).appearance))
+  expect(aparencias.length).toBeGreaterThan(0)
+  expect(aparencias.every((a) => a === 'auto')).toBe(true)
+  await expect(page.getByRole('checkbox', { name: 'Evitar degraus' })).toBeChecked()
+})

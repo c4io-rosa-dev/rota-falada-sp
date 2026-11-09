@@ -8,13 +8,11 @@ import {
   textoDataPasso,
   textoDuracao,
   textoExigencia,
-  textoFalado,
   textoFontePasso,
   textoInstrucao,
   textoLargura,
   textoMotor,
   textoSobreARota,
-  textosDeAviso,
 } from '../dados/passo'
 import { linhaDoGeoJson, meioDaLinha } from '../dados/rotaGeo'
 import { LINHA, passo, ROTA } from './fixturasRota'
@@ -51,7 +49,7 @@ describe('textos do passo', () => {
     expect(textoExigencia('any')).toBe('qualquer inclinação')
     expect(textoExigencia(6)).toBe('até 6%')
     expect(textoMotor('ors')).toBe('openrouteservice.org by HeiGIT')
-    expect(textoMotor('pgrouting')).toBe('roteamento local (pgRouting)')
+    expect(textoMotor('pgrouting')).toBe('roteamento local de reserva')
     expect(textoMotor('fixture')).toBe('rota gravada para demonstração, não calculada agora')
   })
 
@@ -84,21 +82,10 @@ describe('textos do passo', () => {
     expect(rotuloCategoria('escada')).toBe('Escada')
   })
 
-  it('aviso barreira_dificulta sai de barreiras_proximas; os outros usam a mensagem', () => {
-    const textos = textosDeAviso({
-      avisos: [
-        { tipo: 'trecho_sem_dados', mensagem: 'Sem dados.' },
-        { tipo: 'barreira_dificulta', mensagem: "Barreira 'calcada_estreita' a 12 m" },
-      ],
-      passos: [passo(3, { barreiras_proximas: [DIFICULTA] })],
-    })
-    expect(textos[0]).toBe('Sem dados.')
-    expect(textos[1]).toMatch(/^Passo 3: Calçada estreita/)
-    expect(textos.join()).not.toContain('calcada_estreita')
-  })
-
-  it('a voz avisa da barreira do passo', () => {
-    expect(textoFalado(passo(3, { barreiras_proximas: [DIFICULTA] }))).toContain('Atenção: barreira, Calçada estreita, a 12 metros.')
+  it('instrução do ORS e do pgRouting vira português da rua', () => {
+    expect(textoInstrucao(passo(1, { instrucao: 'Siga para este' }))).toBe('Siga para leste')
+    expect(textoInstrucao(passo(1, { instrucao: 'Vire à esquerda e siga por a via' }))).toBe('Vire à esquerda e siga pela via sem nome')
+    expect(textoInstrucao(passo(1, { instrucao: 'Entre na rotunda e saia na 1ª saída' }))).toBe('Entre na rotatória e saia na 1ª saída')
   })
 })
 

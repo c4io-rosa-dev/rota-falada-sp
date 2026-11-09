@@ -4,7 +4,8 @@ import { conferirChaves } from '../auth/guardaChaves'
 import { vigiarTiles } from '../componentes/mapa/opcoesMapa'
 import { textoVotoRegistrado } from '../dados/barreira'
 import { rotuloCategoria } from '../dados/categorias'
-import { nomesDasFontes, textoBarreira, textoDegrauDoPasso, textoFalado } from '../dados/passo'
+import { falaDoPasso } from '../dados/narrador'
+import { nomesDasFontes, textoBarreira, textoDegrauDoPasso } from '../dados/passo'
 import { buscarEnderecos, enderecoDoPonto } from '../api/client'
 import { pedir } from '../api/http'
 import { ehCancelamento, ErroApi } from '../api/base'
@@ -55,7 +56,7 @@ describe('categorias do SP156', () => {
   it('a síntese de voz e a ficha dizem a palavra certa', () => {
     const barreira = { id: 1, origem: 'oficial' as const, categoria: 'calcada_danificada', severidade: 'dificulta' as const, distancia_m: 5, confirmacoes: null, data_referencia: '2026-06-30' }
     expect(textoBarreira(barreira)).toContain('Calçada danificada, a 5 m.')
-    expect(textoFalado(passo(1, { barreiras_proximas: [barreira] }))).toContain('barreira, Calçada danificada, a 5 metros.')
+    expect(falaDoPasso(passo(1, { barreiras_proximas: [barreira] }), 1, 6)).toContain('Calçada danificada a 5 metros.')
   })
 })
 
@@ -78,14 +79,14 @@ describe('degrau sem dado', () => {
 
   it('trecho sem via casada não afirma que não há degrau', () => {
     expect(textoDegrauDoPasso(semVia)).toBe('sem dado')
-    expect(textoFalado(semVia)).toContain('Degrau: sem dado.')
+    expect(falaDoPasso(semVia, 1, 6)).toContain('Sem medida da calçada neste trecho.')
   })
 
   it('com via casada, o dado vale', () => {
     expect(textoDegrauDoPasso(passo(1))).toBe('não')
     expect(textoDegrauDoPasso(passo(1, { is_degrau: true }))).toBe('sim')
     expect(textoDegrauDoPasso(passo(1, { is_degrau: true, data_referencia: null }))).toBe('sim')
-    expect(textoFalado(passo(1))).not.toContain('Degrau: sem dado.')
+    expect(falaDoPasso(passo(1), 1, 6)).not.toContain('Sem medida')
   })
 })
 

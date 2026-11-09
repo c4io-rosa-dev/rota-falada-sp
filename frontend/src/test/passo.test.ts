@@ -7,7 +7,6 @@ import {
   separarInstrucao,
   textoDeclividade,
   textoDegrau,
-  textoFalado,
   textoGuia,
   textoLargura,
 } from '../dados/passo'
@@ -26,8 +25,9 @@ describe('formatação de um passo', () => {
   })
 
   it('formata medidas em pt-BR com uma casa decimal', () => {
-    expect(formatarDistancia(48)).toBe('48,0 m')
-    expect(formatarDistancia(750.7)).toBe('750,7 m')
+    expect(formatarDistancia(48)).toBe('48 m')
+    expect(formatarDistancia(750.7)).toBe('751 m')
+    expect(formatarDistancia(1993.9)).toBe('2,0 km')
     expect(textoLargura(p4)).toBe('1,67 m')
     expect(textoDeclividade(p4)).toBe('cerca de 3% (estimativa)')
     expect(textoDeclividade({ ...p4, declividade_pct: 9.15, declividade_medida: true })).toBe('9,15% (GeoSampa)')
@@ -50,10 +50,4 @@ describe('formatação de um passo', () => {
     expect(formatarData('2026-10-12')).toBe('12/10/2026')
   })
 
-  it('monta o texto falado de cada passo em pt-BR', () => {
-    expect(textoFalado(p4)).toBe(
-      'Passo 4. Vire à direita. 13,1 metros. Largura da calçada: 1,67 metro. Declividade: cerca de 3 por cento, estimativa. Guia não rebaixada.',
-    )
-    expect(textoFalado(p2)).toContain('Largura da calçada: sem dado.')
-  })
 })
