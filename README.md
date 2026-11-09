@@ -2,6 +2,8 @@
 
 Guia de rotas a pé em São Paulo que evita escadas, calçadas estreitas e outras barreiras físicas, pensado para cadeirantes, pessoas com baixa visão e idosos. Projeto da disciplina Engenharia de Software II (FATEC Ipiranga, 2º semestre de 2026).
 
+**Cobertura:** a maior parte do centro expandido, a Lapa e o Ipiranga, em sete retângulos contínuos (cerca de 149 km²; `etl/etl/config.py::AREA_PILOTO`).
+
 **Tese do produto:** a rota é um texto (lista de passos navegável por teclado e leitor de tela); o mapa é uma ilustração opcional. Se o mapa falhar, o aplicativo continua inteiro.
 
 ## Documentação

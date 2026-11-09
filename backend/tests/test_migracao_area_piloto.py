@@ -1,6 +1,7 @@
-"""area_piloto: o Ipiranga inclui a FATEC (migration 007) e o banco bate com
-o `AREA_PILOTO` do ETL (mesmos retângulos, mesma ordem de id; `bairro_de` do
-ETL depende dessa ordem)."""
+"""area_piloto: o Ipiranga inclui a FATEC (migration 007) e a estação Alto do
+Ipiranga, a união é contínua (migration 009) e o banco bate com o `AREA_PILOTO`
+do ETL (mesmos retângulos, mesma ordem de id; `bairro_de` do ETL depende dessa
+ordem)."""
 
 import ast
 from pathlib import Path
@@ -13,6 +14,8 @@ pytestmark = pytest.mark.integration
 _CONFIG_ETL = Path(__file__).resolve().parents[2] / "etl" / "etl" / "config.py"
 # ponto dentro do polígono da FATEC Ipiranga no OSM (way 737408597)
 _FATEC = (-46.6087, -23.6090)
+# nó da estação no OSM
+_METRO_ALTO_DO_IPIRANGA = (-46.6124857, -23.6022366)
 
 
 @pytest.fixture
@@ -35,15 +38,27 @@ def _area_piloto_do_etl() -> dict[str, tuple[float, float, float, float]]:
     raise AssertionError("AREA_PILOTO não encontrado em etl/etl/config.py")
 
 
-def test_ipiranga_contem_a_fatec(db):
+@pytest.mark.parametrize("ponto", [_FATEC, _METRO_ALTO_DO_IPIRANGA], ids=["fatec", "metro"])
+def test_ipiranga_contem_o_trajeto_da_apresentacao(db, ponto):
     contem = db.execute(
         text(
             "SELECT ST_Covers(geom, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)) "
             "FROM area_piloto WHERE nome = 'Ipiranga'"
         ),
-        {"lon": _FATEC[0], "lat": _FATEC[1]},
+        {"lon": ponto[0], "lat": ponto[1]},
     ).scalar_one()
     assert contem is True
+
+
+def test_uniao_continua_de_cerca_de_150_km2(db):
+    pedacos, km2 = db.execute(
+        text(
+            "SELECT ST_NumGeometries(u), ST_Area(u::geography) / 1e6 "
+            "FROM (SELECT ST_Multi(ST_Union(geom)) AS u FROM area_piloto) s"
+        )
+    ).one()
+    assert pedacos == 1
+    assert 140 <= km2 <= 160
 
 
 def test_area_piloto_do_banco_igual_a_do_etl_na_mesma_ordem(db):

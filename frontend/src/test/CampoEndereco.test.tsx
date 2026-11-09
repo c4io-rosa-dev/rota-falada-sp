@@ -161,7 +161,7 @@ describe('CampoEndereco', () => {
     apiFalsa({ 'GET /api/geocode': Response.json([]) })
     await digitar(campo, 'rua inexistente')
     await act(() => vi.advanceTimersByTimeAsync(150))
-    expect(screen.getByRole('status')).toHaveTextContent('na área piloto')
+    expect(screen.getByRole('status')).toHaveTextContent('na área piloto (centro expandido, Lapa e Ipiranga)')
     expect(document.getElementById('origem-retorno')).toHaveTextContent('fora dessa área')
     expect(document.querySelectorAll('[aria-live],[role=status],[role=alert]')).toHaveLength(1)
   })

@@ -46,7 +46,7 @@ def _cliente_fixture() -> OrsFixtureClient:
     )
 
 
-# bem fora das três area_piloto (mesmo ponto-base de test_pgrouting.py e
+# bem fora das area_piloto (mesmo ponto-base de test_pgrouting.py e
 # test_barreira_geom_db.py): não há nenhum no_pedestre a 300 m dali, então
 # `rota_pgrouting` sempre devolve `None` para esses pontos — é o que deixa
 # as duas branches de tradução de erro do router (404/503) exercitáveis sem

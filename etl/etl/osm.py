@@ -25,9 +25,9 @@ from etl.download import baixar
 from etl.geo import bbox_para_poligono, comprimento_m
 from etl.osm_regras import (
     classificar_kerb,
+    custo_aresta,
     eh_via_de_pedestre,
     esquema_calcada,
-    fator_custo,
 )
 
 # Tags relevantes para acessibilidade: osmnx descarta qualquer outra tag ao
@@ -227,7 +227,7 @@ def _gdf_arestas(
         kerb_v = _valor(nos.loc[linha["v"], "kerb"])
         kerb, kerb_transponivel = classificar_kerb([kerb_u, kerb_v])
         comprimento = comprimento_m(linha.geometry)
-        custo = comprimento * fator_custo(tags, kerb_transponivel)
+        custo = custo_aresta(comprimento, tags, kerb_transponivel)
 
         linhas.append(
             {

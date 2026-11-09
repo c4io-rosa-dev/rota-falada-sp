@@ -10,13 +10,22 @@ from pathlib import Path
 
 # oeste, sul, leste, norte (lon/lat, EPSG:4326)
 # Ipiranga vai até -23.615 (não -23.605) para incluir a FATEC (migration 007).
+# Os quatro últimos (migration 009) aproximam o centro expandido, usando como
+# referência o minianel no OSM: Tietê ao norte, Salim Farah Maluf a leste,
+# Bandeirantes ao sul e Pinheiros a oeste. A ordem é a dos ids de `area_piloto`:
+# a primeira área que contém o ponto dá o bairro do rótulo, por isso os recortes
+# antigos ficam na frente. Sobrepostos de propósito (ver migration 009).
 AREA_PILOTO: dict[str, tuple[float, float, float, float]] = {
     "Vila Mariana": (-46.660, -23.610, -46.615, -23.570),
     "Lapa": (-46.720, -23.545, -46.680, -23.510),
     "Ipiranga": (-46.625, -23.615, -46.590, -23.575),
+    "Centro": (-46.685, -23.575, -46.615, -23.515),
+    "Pinheiros": (-46.705, -23.610, -46.655, -23.540),
+    "Mooca": (-46.620, -23.580, -46.575, -23.520),
+    "Saúde": (-46.665, -23.625, -46.620, -23.605),
 }
 
-# bbox que envolve os três recortes, usada no `osmium extract`.
+# bbox que envolve todos os recortes, usada no `osmium extract`.
 BBOX_UNIAO: tuple[float, float, float, float] = (
     min(bbox[0] for bbox in AREA_PILOTO.values()),
     min(bbox[1] for bbox in AREA_PILOTO.values()),
