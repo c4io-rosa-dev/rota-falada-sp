@@ -254,7 +254,7 @@ export interface components {
              * Tipo
              * @enum {string}
              */
-            tipo: "exigencia_relaxada" | "barreira_dificulta" | "trecho_sem_dados" | "motor_fallback";
+            tipo: "exigencia_relaxada" | "barreira_dificulta" | "trecho_sem_dados" | "trecho_ingreme" | "motor_fallback";
             /** Mensagem */
             mensagem: string;
         };

@@ -34,7 +34,7 @@ from app.services.barreira_geom import (
 )
 from app.services.ors_client import EstadoCota, OrsClient, OrsErro, OrsFixtureClient, _nome_fixture
 from app.services.pgrouting import rota_pgrouting
-from app.services.rota import RotaNaoEncontrada, calcular
+from app.services.rota import RotaNaoEncontrada, _extras_steepness_do_ors, calcular
 
 pytestmark = [pytest.mark.integration, pytest.mark.dados_reais]
 
@@ -618,3 +618,56 @@ def test_regressao_poi_wheelchair_no_severidade_informativo_nao_bloqueia_rota(db
     assert saida.motor == "pgrouting"
     assert saida.distancia_m == pytest.approx(rota_referencia.distancia_m, rel=0.01)
     assert not any(a.tipo == "barreira_dificulta" and "outro" in a.mensagem for a in saida.avisos)
+
+
+# --- declividade honesta: pior classe do passo e aviso de trecho íngreme ------
+
+
+def test_classe_do_passo_e_a_pior_que_ele_toca():
+    resposta = _resposta_ors([(0.0, 0.0)] * 11, 100.0)
+    resposta["features"][0]["properties"]["extras"]["steepness"] = {
+        "values": [[0, 8, 1], [8, 10, -4]]
+    }
+    assert _extras_steepness_do_ors(resposta, [(0, 10), (0, 8)]) == [-4, 1]
+
+
+class _ClienteFixo:
+    def __init__(self, resposta: dict):
+        self.resposta = resposta
+
+    def rota(self, *_args, **_kwargs) -> dict:
+        return self.resposta
+
+
+def test_passo_acima_do_nivel_derruba_a_exigencia_atendida_e_avisa(db):
+    origem = _ponto_4326(0.0)
+    destino = _ponto_4326(100.0)
+    cliente = _ClienteFixo(_resposta_ors([origem, destino], 100.0, steepness_classe=4))
+    entrada = RotaIn(
+        origem=Coordenada(lng=origem[0], lat=origem[1]),
+        destino=Coordenada(lng=destino[0], lat=destino[1]),
+    )
+
+    saida = calcular(db, entrada, cliente, datetime.now(UTC))
+
+    assert saida.motor == "ors"
+    assert saida.nivel_exigencia_atendido == "any"
+    ingreme = [a for a in saida.avisos if a.tipo == "trecho_ingreme"]
+    assert len(ingreme) == 1
+    assert "passo 1" in ingreme[0].mensagem
+    assert "15" in ingreme[0].mensagem
+
+
+def test_passo_dentro_do_nivel_nao_avisa_de_trecho_ingreme(db):
+    origem = _ponto_4326(0.0, 300.0)
+    destino = _ponto_4326(100.0, 300.0)
+    cliente = _ClienteFixo(_resposta_ors([origem, destino], 100.0, steepness_classe=1))
+    entrada = RotaIn(
+        origem=Coordenada(lng=origem[0], lat=origem[1]),
+        destino=Coordenada(lng=destino[0], lat=destino[1]),
+    )
+
+    saida = calcular(db, entrada, cliente, datetime.now(UTC))
+
+    assert saida.nivel_exigencia_atendido == 6
+    assert not any(a.tipo == "trecho_ingreme" for a in saida.avisos)

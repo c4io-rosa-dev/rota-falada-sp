@@ -52,7 +52,13 @@ class Passo(BaseModel):
 
 
 class Aviso(BaseModel):
-    tipo: Literal["exigencia_relaxada", "barreira_dificulta", "trecho_sem_dados", "motor_fallback"]
+    tipo: Literal[
+        "exigencia_relaxada",
+        "barreira_dificulta",
+        "trecho_sem_dados",
+        "trecho_ingreme",
+        "motor_fallback",
+    ]
     mensagem: str
 
 

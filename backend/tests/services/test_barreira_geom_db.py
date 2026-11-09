@@ -100,6 +100,40 @@ def test_barreiras_no_corredor_so_traz_colaborativa_validada_e_ignora_oficial_ex
     assert len(poligonos["coordinates"]) == 1
 
 
+def test_oficial_finalizada_de_categoria_que_dificulta_nao_avisa(db):
+    """Ex.: guia danificada finalizada pela prefeitura: o problema foi dado como
+    resolvido, então não vira aviso. A aberta da mesma categoria continua."""
+    fid_sp156 = _fonte_id(db, "sp156")
+    hoje = date.today()  # noqa: DTZ011 — datas são DATE, sem fuso
+    for id_, status, fim, dx in (
+        (ID_OFICIAL_ANTIGA, "Finalizada", hoje - timedelta(days=10), 100.0),
+        (ID_OFICIAL_ANTIGA + 1, "Aberto", None, 150.0),
+    ):
+        db.execute(
+            text(
+                "INSERT INTO barreira_oficial (id, categoria, servico, status, data_abertura, "
+                "data_finalizacao, geom, fonte_id, data_referencia) VALUES (:id, "
+                "'guia_danificada', 'Guias', :status, :abertura, :fim, "
+                "ST_SetSRID(ST_GeomFromText(:wkt), 4326), :fonte_id, :referencia)"
+            ),
+            {
+                "id": id_,
+                "status": status,
+                "abertura": hoje - timedelta(days=60),
+                "fim": fim,
+                "wkt": _ponto_wkt(dx),
+                "fonte_id": fid_sp156,
+                "referencia": hoje,
+            },
+        )
+
+    candidatas = barreiras_no_corredor(db, corredor(_linha_4326(), largura_m=50.0))
+
+    assert [(c.id, c.severidade) for c in candidatas if c.origem == "oficial"] == [
+        (ID_OFICIAL_ANTIGA + 1, "dificulta")
+    ]
+
+
 def test_hash_barreiras_muda_ao_inserir_outra_barreira_no_corredor(db):
     fid_colab = _fonte_id(db, "colaborativo")
 

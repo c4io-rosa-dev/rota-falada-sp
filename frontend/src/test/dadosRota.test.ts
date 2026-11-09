@@ -57,7 +57,7 @@ describe('textos do passo', () => {
 
   it('a frase da ficha só promete o que cada motor faz', () => {
     expect(textoSobreARota('ors')).toBe(
-      'Rota sugerida com os dados disponíveis. Ela evita as barreiras confirmadas que bloqueiam a passagem e avisa das que só dificultam. Relatos ainda sem confirmação não mudam a rota, e não sabemos o que não foi registrado.',
+      'Rota sugerida com os dados disponíveis. Ela evita as barreiras confirmadas que bloqueiam a passagem e avisa das que só dificultam. Relatos ainda sem confirmação não mudam a rota, e não sabemos o que não foi registrado. A largura e a inclinação de cada passo são o pior valor conhecido no trecho, nos dois lados da rua.',
     )
     expect(textoSobreARota('pgrouting')).toContain('as barreiras confirmadas que bloqueiam a passagem')
     expect(textoSobreARota('pgrouting')).toContain('não sabemos o que não foi registrado')
@@ -66,8 +66,10 @@ describe('textos do passo', () => {
 
   it('fonte e data dizem de onde vem cada coisa', () => {
     expect(nomeFonte('colaborativo')).toBe('colaboradores')
-    expect(textoFontePasso(passo(1))).toBe('OpenStreetMap; largura: GeoSampa')
-    expect(textoFontePasso(passo(1, { largura_medida: false, largura_m: null }))).toBe('OpenStreetMap')
+    expect(textoFontePasso(passo(1))).toBe('OpenStreetMap; largura e declividade: GeoSampa')
+    expect(textoFontePasso(passo(1, { declividade_medida: false }))).toBe('OpenStreetMap; largura: GeoSampa')
+    expect(textoFontePasso(passo(1, { largura_medida: false, largura_m: null }))).toBe('OpenStreetMap; declividade: GeoSampa')
+    expect(textoFontePasso(passo(1, { largura_medida: false, largura_m: null, declividade_medida: false }))).toBe('OpenStreetMap')
     expect(textoDataPasso(passo(1))).toBe('12/10/2026 (trecho no OSM)')
     expect(textoDataPasso(passo(1, { largura_medida: false, data_referencia: null }))).toBe('sem dado')
   })
