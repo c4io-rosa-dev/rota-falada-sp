@@ -18,7 +18,7 @@ export const AVISO_PARE = 'Pare para olhar a tela antes de virar.'
  * do código). Os pedaços vão sem cache HTTP ('no-store'). Versão completa: página Acessibilidade.
  */
 export const TEXTO_MAPA_PRIVACIDADE =
-  'O mapa é opcional e vem do próprio site, num arquivo só da área coberta. Para desenhar a região em volta de você, o aparelho pede ao site pedaços desse arquivo, e esses pedidos indicam a região. O site não registra esses pedidos e nenhum outro serviço recebe pedido de mapa. A Cloudflare, que hospeda o site, recebe esses pedidos para entregá-los, como qualquer acesso ao site. O mapa pede esses pedaços sem guardá-los no cache do navegador: o que foi visto some quando a aba fecha. As escolhas de mostrar e girar o mapa ficam só nesta aba.'
+  'O mapa é opcional e vem do próprio site, num arquivo só da área coberta. Para desenhar a região em volta de você, o aparelho pede ao site pedaços desse arquivo, e esses pedidos indicam a região. O site não registra esses pedidos e nenhum outro serviço recebe pedido de mapa. A Cloudflare, que hospeda o site, recebe esses pedidos para entregá-los, como qualquer acesso ao site. O mapa pede esses pedaços sem guardá-los no cache do navegador: o que foi visto some quando a aba fecha. A seta que mostra para onde você está virado pode usar a bússola do aparelho: essa direção fica só no aparelho, não é guardada e não é enviada. As escolhas do mapa (mostrar, girar, inclinar e tela cheia) ficam só nesta aba.'
 
 /**
  * Privacidade no preparo, versão curta e sem promessa falsa (a completa fica na página
@@ -48,14 +48,36 @@ export const MAPA_PARTE_FALTANDO = 'Parte do mapa não carregou. Siga pelo paine
 export const MAPA_ANUNCIO_FALHOU = 'O mapa não carregou. Siga pela voz e pelo texto.'
 export const MAPA_ANUNCIO_SEM_WEBGL = 'Este aparelho não consegue desenhar o mapa.'
 
-/** Dicas (aria-describedby) das placas "Mostrar o mapa" e "Girar o mapa com a rota". */
+/** Dicas (aria-describedby) das placas "Mostrar o mapa" e "Girar o mapa com a rota". A seta da pessoa é outra coisa: ela pode usar a bússola. */
 export const DICA_MOSTRAR_MAPA = 'Opcional. A voz e o texto continuam valendo. A escolha vale só nesta aba.'
 export const DICA_GIRAR_MAPA =
   'Desligado, o norte fica para cima. Ligado, segue a rota, não a bússola: não acompanha o corpo, e fora da rota volta ao norte. Vale só nesta aba.'
 
+/* Emenda de 10/11/2026 da spec do mapa (seção 19): vista inclinada, tela cheia e seta da pessoa. */
+
+/** Dica da alternância "Vista inclinada". */
+export const DICA_INCLINAR_MAPA =
+  'Desligada, o mapa é visto de cima. Ligada, ele inclina e mostra os prédios em volume; a troca não é animada. Vale só nesta aba.'
+/** Dica da alternância "Mapa em tela cheia". */
+export const DICA_TELA_CHEIA =
+  'O mapa ocupa a tela, com a instrução em cima e os controles embaixo. Para sair, use o botão Sair da tela cheia ou a tecla Esc. Vale só nesta aba.'
+export const ROTULO_SAIR_TELA_CHEIA = 'Sair da tela cheia'
+
+/** De onde vem a direção da seta da pessoa: texto parado, à vista, nunca anunciado. */
+export const SETA_PELA_BUSSOLA = 'Seta pela bússola: mostra para onde o aparelho está virado.'
+export const SETA_PELA_CAMINHADA = 'Seta pelo sentido da caminhada.'
+export const SETA_PELA_ROTA = 'Seta pelo sentido da rota.'
+export const SETA_SEM_DIRECAO = 'Sem direção agora: o ponto fica sem seta.'
+/** iPhone: a bússola só pode ser lida depois de um toque que peça a permissão. */
+export const ROTULO_USAR_BUSSOLA = 'Usar a bússola na seta'
+export const DICA_USAR_BUSSOLA =
+  'O aparelho vai pedir permissão para ler a bússola. A direção fica só neste aparelho e não é guardada.'
+export const BUSSOLA_NEGADA = 'A bússola não foi autorizada. A seta segue o sentido da caminhada ou da rota.'
+
 /**
- * aria-label do mapa: ROTULO_MAPA_NORTE ou ROTULO_MAPA_GIRADO, seguido de ROTULO_MAPA_FIM
- * (que já começa com espaço; junte com `+`). Muda só quando a preferência de girar muda, por isso
+ * aria-label do mapa: ROTULO_MAPA_NORTE ou ROTULO_MAPA_GIRADO, depois ROTULO_MAPA_INCLINADO se a
+ * vista inclinada está ligada, e por fim ROTULO_MAPA_FIM (os dois últimos já começam com espaço;
+ * junte com `+`). Muda só quando a preferência de girar muda, por isso
  * descreve a preferência de um jeito que vale em todos os momentos: procurando, fora da rota, em
  * sentido contrário e no passo a passo o mapa fica com o norte para cima mesmo com "Girar" ligado,
  * e nem sempre há trecho andado ou próxima virada.
@@ -63,6 +85,7 @@ export const DICA_GIRAR_MAPA =
 export const ROTULO_MAPA_NORTE = 'Mapa da rota a pé, com o norte para cima.'
 export const ROTULO_MAPA_GIRADO =
   'Mapa da rota a pé. Com você na rota, ele gira no sentido em que ela segue; fora dela e no passo a passo, o norte fica para cima.'
+export const ROTULO_MAPA_INCLINADO = ' Vista inclinada ligada: enquanto segue você, o mapa aparece inclinado.'
 export const ROTULO_MAPA_FIM =
   ' Mostra o trecho que falta e, quando houver, o trecho já andado e a próxima virada. Tudo o que ele mostra está no painel.'
 

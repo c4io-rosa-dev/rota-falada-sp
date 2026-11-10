@@ -44,10 +44,17 @@ const estado = vi.hoisted(() => {
     fitBounds = vi.fn()
     easeTo = vi.fn()
     flyTo = vi.fn()
-    setStyle = vi.fn()
+    /** O estilo em vigor (o da criação ou o do último setStyle), para o getLayer responder de verdade. */
+    estilo: { layers?: { id: string }[] }
+    setStyle = vi.fn((estilo: { name?: string; layers?: { id: string }[] }) => {
+      this.estilo = estilo
+    })
+    getLayer = vi.fn((id: string) => this.estilo.layers?.find((l) => l.id === id))
+    setLayoutProperty = vi.fn()
     remove = vi.fn()
     constructor(opcoes: Record<string, unknown>) {
       this.opcoes = opcoes
+      this.estilo = opcoes.style as { layers?: { id: string }[] }
       // como o MapLibre faz: o canvas recebe papel e nome próprios (e aqui um tabindex focável,
       // para provar que o motor o tira da ordem de foco)
       const container = opcoes.container as HTMLElement
@@ -241,6 +248,7 @@ function cenaSeguir(extra: { centro?: LonLat; rumo?: number; pessoaAbaixo?: bool
     andado: [A, centro],
     restante: [centro, B, C],
     manobra: { trecho: [B, C], ponto: B },
+    setaManobra: null,
     destino: C,
     pessoa: { ponto: centro, encaixada: true, raioPrecisaoM: null },
     camera: { modo: 'seguir', centro, rumo: extra.rumo ?? 0, pessoaAbaixo: extra.pessoaAbaixo ?? false },
@@ -345,8 +353,10 @@ describe('criarMotor: o mapa', () => {
       interactive: false,
       attributionControl: false,
       fadeDuration: 0,
+      // emenda de 10/11/2026 (decisão do dono): a vista inclinada existe, opcional. O mapa nasce
+      // de cima (pitch 0) e o teto é o ângulo fixo de 45°, para os tiles do horizonte não explodirem
       pitch: 0,
-      maxPitch: 0,
+      maxPitch: 45,
       pixelRatio: 2,
       maxTileCacheSize: 30,
       refreshExpiredTiles: false,
@@ -598,6 +608,296 @@ describe('atualizar: câmera', () => {
     motor.atualizar(cenaCongelada(), true)
     expect(mapa.rotateTo).toHaveBeenCalledTimes(1)
     expect(mapa.jumpTo).toHaveBeenCalledTimes(1)
+  })
+})
+
+/* ---------- vista inclinada e prédios (emenda de 10/11/2026, 19.2) ---------- */
+
+describe('atualizar: vista inclinada', () => {
+  const predios = (mapa: InstanceType<typeof estado.MapaFalso>) =>
+    mapa.setLayoutProperty.mock.calls.filter((c) => c[0] === 'predios-3d').map((c) => c[2])
+
+  it('o ângulo é fixo em 45° e é o teto do mapa', async () => {
+    expect(M.INCLINACAO_GRAUS).toBe(45)
+    await M.criarMotor(el, opcoes())
+    expect(estado.mapas[0].opcoes.maxPitch).toBe(45)
+    expect(M.INCLINACAO_GRAUS).toBeLessThanOrEqual(60) // limite estável do MapLibre
+  })
+
+  it('desligada por padrão: nenhum pitch no jumpTo, prédios escondidos, sinais em 0/nao', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    expect(mapa.jumpTo.mock.calls[0][0]).not.toHaveProperty('pitch')
+    expect(el.dataset.inclinacao).toBe('0')
+    expect(el.dataset.predios).toBe('nao')
+    expect(predios(mapa)).not.toContain('visible')
+  })
+
+  it('ligar inclina num salto só (jumpTo com pitch 45), põe a pessoa no terço de baixo e mostra os prédios', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    motor.atualizar(cenaSeguir(), false, true)
+    expect(mapa.jumpTo).toHaveBeenLastCalledWith({
+      center: A,
+      zoom: 17,
+      padding: { top: 120, bottom: 0, left: 0, right: 0 },
+      pitch: 45,
+    })
+    expect(el.dataset.inclinacao).toBe('45')
+    expect(el.dataset.predios).toBe('sim')
+    expect(predios(mapa).at(-1)).toBe('visible')
+    expect(mapa.rotateTo).not.toHaveBeenCalled()
+    nenhumDeslize(mapa)
+  })
+
+  it('com movimento reduzido a troca é o mesmo salto: nada anima', async () => {
+    const { motor, mapa } = await motorPronto({ reduzido: () => true })
+    motor.atualizar(cenaSeguir(), false, true)
+    expect(mapa.jumpTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ pitch: 45 }))
+    expect(mapa.rotateTo).not.toHaveBeenCalled()
+    nenhumDeslize(mapa)
+  })
+
+  it('inclinada e parada: o tique não redesenha; andando, o salto seguinte não repete o pitch', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false, true)
+    motor.atualizar(cenaSeguir(), false, true)
+    expect(mapa.jumpTo).toHaveBeenCalledTimes(1)
+    motor.atualizar(cenaSeguir({ centro: B }), false, true)
+    expect(mapa.jumpTo).toHaveBeenCalledTimes(2)
+    expect(mapa.jumpTo.mock.calls[1][0]).not.toHaveProperty('pitch')
+    expect(mapa.jumpTo.mock.calls[1][0]).toMatchObject({ padding: { top: 120 } })
+  })
+
+  it('desligar volta a ver de cima num salto e esconde os prédios', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false, true)
+    motor.atualizar(cenaSeguir(), false, false)
+    expect(mapa.jumpTo).toHaveBeenLastCalledWith({
+      center: A,
+      zoom: 17,
+      padding: { top: 0, bottom: 0, left: 0, right: 0 },
+      pitch: 0,
+    })
+    expect(el.dataset.inclinacao).toBe('0')
+    expect(el.dataset.predios).toBe('nao')
+    expect(predios(mapa).at(-1)).toBe('none')
+  })
+
+  it('inclinar e girar juntos: o pitch vai no salto e o giro continua com a regra dele', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir({ rumo: 90, pessoaAbaixo: true }), true, true)
+    expect(mapa.jumpTo.mock.calls[0][0]).toMatchObject({ pitch: 45, padding: { top: 120 } })
+    expect(mapa.jumpTo.mock.calls[0][0]).not.toHaveProperty('bearing')
+    expect(mapa.rotateTo).toHaveBeenCalledExactlyOnceWith(90, expect.objectContaining({ duration: 200 }))
+  })
+
+  it('enquadrar (passo a passo) fica de cima mesmo com a vista inclinada ligada; ao voltar a seguir, inclina de novo', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false, true)
+    motor.atualizar(cenaEnquadrar(), false, true)
+    expect(mapa.jumpTo).toHaveBeenLastCalledWith({ pitch: 0 })
+    expect(mapa.fitBounds).toHaveBeenCalledExactlyOnceWith([A, C], { animate: false, padding: 24, bearing: 0 })
+    expect(el.dataset.inclinacao).toBe('0')
+    expect(el.dataset.predios).toBe('nao')
+    motor.atualizar(cenaSeguir(), false, true)
+    expect(mapa.jumpTo).toHaveBeenLastCalledWith(expect.objectContaining({ pitch: 45 }))
+    expect(el.dataset.predios).toBe('sim')
+  })
+
+  it('congelado, a escolha da vista vale na hora, sem mexer no centro', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    mapa.jumpTo.mockClear()
+    motor.atualizar(cenaCongelada(), false, true)
+    expect(mapa.jumpTo).toHaveBeenCalledExactlyOnceWith({ pitch: 45 })
+    expect(el.dataset.inclinacao).toBe('45')
+    motor.atualizar(cenaCongelada(), false, true)
+    expect(mapa.jumpTo).toHaveBeenCalledTimes(1)
+  })
+
+  it('ao voltar à aba, a inclinação vai no mesmo salto instantâneo', async () => {
+    const { motor, mapa } = await motorPronto()
+    oculta = true
+    motor.atualizar(cenaSeguir({ centro: B }), false, true)
+    expect(mapa.jumpTo).not.toHaveBeenCalled()
+    oculta = false
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(mapa.jumpTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ center: B, pitch: 45, bearing: 0 }))
+    nenhumDeslize(mapa)
+  })
+
+  it('no alto contraste não há prédios: a camada nem existe no estilo, e a vista inclina mesmo assim', async () => {
+    consulta('(forced-colors: active)').matches = true
+    const { motor, mapa } = await motorPronto()
+    expect((mapa.opcoes.style as { name: string }).name).toBe('rota-falada-navegacao-contraste')
+    motor.atualizar(cenaSeguir(), false, true)
+    expect(el.dataset.inclinacao).toBe('45')
+    expect(el.dataset.predios).toBe('nao')
+    expect(mapa.setLayoutProperty).not.toHaveBeenCalled()
+  })
+
+  it('quem pede mais contraste (prefers-contrast: more) não recebe os prédios, e a mudança vale na hora', async () => {
+    const mais = consulta('(prefers-contrast: more)')
+    mais.matches = true
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false, true)
+    expect(el.dataset.inclinacao).toBe('45')
+    expect(el.dataset.predios).toBe('nao')
+    expect(predios(mapa)).not.toContain('visible')
+    mais.mudar(false)
+    expect(el.dataset.predios).toBe('sim')
+    expect(predios(mapa).at(-1)).toBe('visible')
+    mais.mudar(true)
+    expect(predios(mapa).at(-1)).toBe('none')
+  })
+
+  it('trocar o tema com a vista inclinada: o estilo novo carrega e os prédios voltam a aparecer', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false, true)
+    motor.trocarTema('escuro')
+    mapa.setLayoutProperty.mockClear()
+    mapa.emitir('style.load')
+    expect(predios(mapa)).toEqual(['visible'])
+    // e ao cair no alto contraste, somem
+    consulta('(forced-colors: active)').mudar(true)
+    mapa.emitir('style.load')
+    expect(el.dataset.predios).toBe('nao')
+  })
+})
+
+/* ---------- seta da pessoa (emenda de 10/11/2026, 19.4) ---------- */
+
+describe('apontar: a seta da pessoa', () => {
+  it('sem direção, a fonte da seta não é escrita (anel sem seta)', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    rodarQuadros()
+    expect(mapa.fontes.seta).toBeUndefined()
+  })
+
+  it('com direção, escreve um triângulo fechado no ponto da pessoa, com o bico para o rumo dado', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    motor.apontar(90)
+    rodarQuadros()
+    const dados = mapa.fontes.seta.setData.mock.calls[0][0]
+    expect(dados.features).toHaveLength(1)
+    expect(dados.features[0].geometry.type).toBe('Polygon')
+    const anel = dados.features[0].geometry.coordinates[0] as LonLat[]
+    expect(anel).toHaveLength(4)
+    expect(anel[3]).toEqual(anel[0])
+    // rumo 90 = leste: o bico fica a leste do ponto, na mesma latitude, a cerca de 15 m
+    expect(anel[0][0]).toBeGreaterThan(A[0])
+    expect(anel[0][1]).toBeCloseTo(A[1], 7)
+    expect((anel[0][0] - A[0]) * 111_195 * Math.cos((A[1] * Math.PI) / 180)).toBeCloseTo(15, 0)
+  })
+
+  it('a mesma direção não reescreve; menos de 1° também não; uma direção nova reescreve só a seta', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    motor.apontar(90)
+    rodarQuadros()
+    motor.apontar(90)
+    motor.apontar(90.3)
+    rodarQuadros()
+    expect(mapa.fontes.seta.setData).toHaveBeenCalledTimes(1)
+    motor.apontar(120)
+    rodarQuadros()
+    expect(mapa.fontes.seta.setData).toHaveBeenCalledTimes(2)
+    for (const id of ['rota', 'manobra', 'pessoa']) expect(mapa.fontes[id].setData).toHaveBeenCalledTimes(1)
+    // a seta não mexe na câmera
+    expect(mapa.jumpTo).toHaveBeenCalledTimes(1)
+    nenhumDeslize(mapa)
+  })
+
+  it('a seta acompanha o ponto da pessoa', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.apontar(0)
+    motor.atualizar(cenaSeguir(), false)
+    rodarQuadros()
+    motor.atualizar(cenaSeguir({ centro: B }), false)
+    rodarQuadros()
+    expect(mapa.fontes.seta.setData).toHaveBeenCalledTimes(2)
+    const anel = mapa.fontes.seta.setData.mock.calls[1][0].features[0].geometry.coordinates[0] as LonLat[]
+    expect(anel[0][0]).toBeCloseTo(B[0], 7)
+    expect(anel[0][1]).toBeGreaterThan(B[1]) // rumo 0 = norte
+  })
+
+  it('apontar(null), valor não numérico ou cena sem pessoa esvaziam a seta', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    motor.apontar(45)
+    rodarQuadros()
+    motor.apontar(null)
+    rodarQuadros()
+    expect(mapa.fontes.seta.setData.mock.calls.at(-1)![0].features).toEqual([])
+    motor.apontar(Number.NaN)
+    rodarQuadros()
+    expect(mapa.fontes.seta.setData).toHaveBeenCalledTimes(2)
+    motor.apontar(45)
+    rodarQuadros()
+    motor.atualizar(cenaEnquadrar(), false)
+    rodarQuadros()
+    expect(mapa.fontes.seta.setData.mock.calls.at(-1)![0].features).toEqual([])
+  })
+
+  it('com a aba escondida nada é escrito; depois de destruído, apontar não faz nada', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    rodarQuadros()
+    oculta = true
+    motor.apontar(10)
+    rodarQuadros()
+    expect(mapa.fontes.seta).toBeUndefined()
+    motor.destruir()
+    motor.apontar(20)
+    expect(quadros.size).toBe(0)
+  })
+
+  it('a direção nunca vai para o DOM', async () => {
+    const { motor } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    motor.apontar(123)
+    rodarQuadros()
+    expect(JSON.stringify({ ...el.dataset })).not.toContain('123')
+    expect(el.outerHTML).not.toContain('123')
+  })
+})
+
+/* ---------- seta de manobra (emenda de 10/11/2026, 19.1) ---------- */
+
+describe('atualizar: seta de manobra', () => {
+  const HASTE: LonLat[] = [A, B, C]
+  const PONTA: LonLat[] = [C, B, A, C]
+
+  it('com seta, a fonte da manobra leva a haste e a ponta marcadas com parte = seta', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar({ ...cenaSeguir(), setaManobra: { haste: HASTE, ponta: PONTA } }, false)
+    rodarQuadros()
+    const manobra = mapa.fontes.manobra.setData.mock.calls[0][0]
+    expect(manobra.features).toEqual([
+      { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [B, C] } },
+      { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: B } },
+      { type: 'Feature', properties: { parte: 'seta' }, geometry: { type: 'LineString', coordinates: HASTE } },
+      { type: 'Feature', properties: { parte: 'seta' }, geometry: { type: 'Polygon', coordinates: [PONTA] } },
+    ])
+  })
+
+  it('sem manobra não há seta, mesmo que a cena traga uma', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar({ ...cenaSeguir(), manobra: null, setaManobra: { haste: HASTE, ponta: PONTA } }, false)
+    rodarQuadros()
+    expect(mapa.fontes.manobra.setData.mock.calls[0][0].features).toEqual([])
+  })
+
+  it('a seta que aparece ou some reescreve a fonte da manobra', async () => {
+    const { motor, mapa } = await motorPronto()
+    motor.atualizar(cenaSeguir(), false)
+    rodarQuadros()
+    motor.atualizar({ ...cenaSeguir(), setaManobra: { haste: HASTE, ponta: PONTA } }, false)
+    rodarQuadros()
+    expect(mapa.fontes.manobra.setData).toHaveBeenCalledTimes(2)
   })
 })
 
@@ -876,6 +1176,10 @@ describe('destruir', () => {
 describe('guardas do código-fonte', () => {
   it('lê o código de verdade', () => {
     expect(fonteMotor).toContain('export async function criarMotor')
+  })
+
+  it('nenhum sensor no motor: a direção chega pronta por apontar()', () => {
+    expect(fonteMotor).not.toMatch(/deviceorientation|DeviceOrientationEvent|webkitCompass|geolocation/)
   })
 
   it('sem console, sem fetch direto, sem flyTo nem easeTo, sem promessas absolutas', () => {

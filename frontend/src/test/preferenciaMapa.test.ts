@@ -3,7 +3,10 @@
  * em sessionStorage, com '0' ou '1'. A guarda estática lê o próprio código-fonte.
  */
 import FONTE from '../dados/preferenciaMapa.ts?raw'
-import { CHAVE_ABERTO, CHAVE_GIRAR, gravarPreferenciaMapa, lerPreferenciasMapa } from '../dados/preferenciaMapa'
+import { CHAVE_ABERTO, CHAVE_CHEIA, CHAVE_GIRAR, CHAVE_INCLINADA, gravarPreferenciaMapa, lerPreferenciasMapa } from '../dados/preferenciaMapa'
+
+// emenda de 10/11/2026 (decisão do dono): duas escolhas novas, vista inclinada e tela cheia, com a mesma regra
+const DESLIGADAS = { inclinada: false, cheia: false }
 
 beforeEach(() => {
   sessionStorage.clear()
@@ -19,19 +22,28 @@ describe('preferências do mapa nesta aba', () => {
   it('as chaves são as do contrato', () => {
     expect(CHAVE_ABERTO).toBe('rota-falada:mapa-aberto')
     expect(CHAVE_GIRAR).toBe('rota-falada:mapa-girar')
+    expect(CHAVE_INCLINADA).toBe('rota-falada:mapa-inclinada')
+    expect(CHAVE_CHEIA).toBe('rota-falada:mapa-tela-cheia')
   })
 
-  it('padrão: mapa fechado e sem girar', () => {
-    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: false })
+  it('padrão: mapa fechado, sem girar, sem inclinar e fora da tela cheia', () => {
+    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: false, ...DESLIGADAS })
   })
 
   it('grava e lê de volta cada escolha', () => {
     gravarPreferenciaMapa('aberto', true)
-    expect(lerPreferenciasMapa()).toEqual({ aberto: true, girar: false })
+    expect(lerPreferenciasMapa()).toEqual({ aberto: true, girar: false, ...DESLIGADAS })
     gravarPreferenciaMapa('girar', true)
-    expect(lerPreferenciasMapa()).toEqual({ aberto: true, girar: true })
+    expect(lerPreferenciasMapa()).toEqual({ aberto: true, girar: true, ...DESLIGADAS })
     gravarPreferenciaMapa('aberto', false)
-    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: true })
+    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: true, ...DESLIGADAS })
+    gravarPreferenciaMapa('inclinada', true)
+    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: true, inclinada: true, cheia: false })
+    gravarPreferenciaMapa('cheia', true)
+    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: true, inclinada: true, cheia: true })
+    gravarPreferenciaMapa('inclinada', false)
+    gravarPreferenciaMapa('cheia', false)
+    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: true, ...DESLIGADAS })
   })
 
   it('grava só "1" ou "0"', () => {
@@ -45,7 +57,9 @@ describe('preferências do mapa nesta aba', () => {
     for (const v of ['sim', 'true', '', ' 1', '2', 'null']) {
       sessionStorage.setItem(CHAVE_ABERTO, v)
       sessionStorage.setItem(CHAVE_GIRAR, v)
-      expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: false })
+      sessionStorage.setItem(CHAVE_INCLINADA, v)
+      sessionStorage.setItem(CHAVE_CHEIA, v)
+      expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: false, ...DESLIGADAS })
     }
   })
 
@@ -55,7 +69,7 @@ describe('preferências do mapa nesta aba', () => {
       throw new Error('bloqueado')
     })
     expect(() => lerPreferenciasMapa()).not.toThrow()
-    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: false })
+    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: false, ...DESLIGADAS })
   })
 
   it('armazenamento que lança na escrita não quebra e a escrita é ignorada', () => {
@@ -65,14 +79,16 @@ describe('preferências do mapa nesta aba', () => {
     expect(() => gravarPreferenciaMapa('aberto', true)).not.toThrow()
     expect(() => gravarPreferenciaMapa('girar', true)).not.toThrow()
     vi.restoreAllMocks()
-    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: false })
+    expect(lerPreferenciasMapa()).toEqual({ aberto: false, girar: false, ...DESLIGADAS })
   })
 
-  it('depois de gravar as duas, a aba tem só as duas chaves, com "0" ou "1", e nada no localStorage', () => {
+  it('depois de gravar as quatro, a aba tem só as quatro chaves, com "0" ou "1", e nada no localStorage', () => {
     gravarPreferenciaMapa('aberto', true)
     gravarPreferenciaMapa('girar', false)
+    gravarPreferenciaMapa('inclinada', true)
+    gravarPreferenciaMapa('cheia', false)
     const chaves = Array.from({ length: sessionStorage.length }, (_, i) => sessionStorage.key(i)).sort()
-    expect(chaves).toEqual([CHAVE_ABERTO, CHAVE_GIRAR].sort())
+    expect(chaves).toEqual([CHAVE_ABERTO, CHAVE_GIRAR, CHAVE_INCLINADA, CHAVE_CHEIA].sort())
     for (const k of chaves) expect(['0', '1']).toContain(sessionStorage.getItem(k as string))
     expect(localStorage.length).toBe(0)
   })
@@ -92,9 +108,14 @@ describe('guarda estática do código das preferências', () => {
     expect(FONTE).not.toMatch(/lat|lon|rumo|posicao|posição/i)
   })
 
-  it("as únicas strings 'rota-falada:' são as duas chaves", () => {
+  it("as únicas strings 'rota-falada:' são as quatro chaves", () => {
     const achadas = FONTE.match(/rota-falada:[\w-]*/g) ?? []
-    expect([...new Set(achadas)].sort()).toEqual(['rota-falada:mapa-aberto', 'rota-falada:mapa-girar'])
-    expect(achadas).toHaveLength(2)
+    expect([...new Set(achadas)].sort()).toEqual([
+      'rota-falada:mapa-aberto',
+      'rota-falada:mapa-girar',
+      'rota-falada:mapa-inclinada',
+      'rota-falada:mapa-tela-cheia',
+    ])
+    expect(achadas).toHaveLength(4)
   })
 })

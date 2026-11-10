@@ -31,7 +31,18 @@ export function obterPosicao(): Promise<Posicao> {
 }
 
 /** Uma leitura do GPS durante a navegação. Vive só em memória: nunca é gravada nem enviada. */
-export type LeituraPosicao = { lat: number; lon: number; precisaoM: number; tMs: number }
+export type LeituraPosicao = {
+  lat: number
+  lon: number
+  precisaoM: number
+  tMs: number
+  /** Sentido do movimento (coords.heading), 0 = norte; só quando o aparelho informa. Alimenta a seta do mapa. */
+  rumoGraus?: number
+  /** coords.speed em m/s; só quando o aparelho informa. */
+  velocidadeMps?: number
+}
+
+const finito = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v)
 
 /** maximumAge 0: na navegação, uma posição velha engana mais do que nenhuma. */
 export const OPCOES_VIGIA: PositionOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 }
@@ -49,7 +60,12 @@ export function vigiarPosicao(aoMudar: (l: LeituraPosicao) => void, aoErrar: (co
   let ativa = true
   const id = navigator.geolocation.watchPosition(
     (p) => {
-      if (ativa) aoMudar({ lat: p.coords.latitude, lon: p.coords.longitude, precisaoM: p.coords.accuracy, tMs: p.timestamp })
+      if (!ativa) return
+      const leitura: LeituraPosicao = { lat: p.coords.latitude, lon: p.coords.longitude, precisaoM: p.coords.accuracy, tMs: p.timestamp }
+      // parado, o aparelho devolve heading nulo ou NaN: o campo só existe quando há um número
+      if (finito(p.coords.heading)) leitura.rumoGraus = p.coords.heading
+      if (finito(p.coords.speed)) leitura.velocidadeMps = p.coords.speed
+      aoMudar(leitura)
     },
     (e) => {
       if (ativa) aoErrar(e.code)

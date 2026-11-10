@@ -42,27 +42,47 @@ export type OpcoesEstilo = {
 }
 
 /** Fontes GeoJSON que o motor preenche com setData. */
-export const FONTES_ROTA = ['rota', 'manobra', 'pessoa'] as const
+export const FONTES_ROTA = ['rota', 'manobra', 'pessoa', 'seta'] as const
 
 /**
  * Contrato dos dados (o motor monta as features assim):
  * - `rota`: LineString com `parte: 'andado' | 'restante'` e Point com `parte: 'destino'`;
- * - `manobra`: LineString (trecho da virada) e Point (ponto da virada);
- * - `pessoa`: Point com `encaixada: boolean` e, quando fora da rota, Polygon da precisão.
+ * - `manobra`: LineString (trecho da virada) e Point (ponto da virada); com seta de manobra,
+ *   LineString com `parte: 'seta'` (a haste) e Polygon (a ponta);
+ * - `pessoa`: Point com `encaixada: boolean` e, quando fora da rota, Polygon da precisão;
+ * - `seta`: Polygon da seta da pessoa (para onde ela olha ou anda), ou vazio.
  */
 export const PROP_PARTE = 'parte'
 export const PROP_ENCAIXADA = 'encaixada'
-export const PARTE = { andado: 'andado', restante: 'restante', destino: 'destino' } as const
+export const PARTE = { andado: 'andado', restante: 'restante', destino: 'destino', seta: 'seta' } as const
+
+/**
+ * Prédios em volume (emenda de 10/11/2026, 19.2): só com a vista inclinada. A camada nasce
+ * escondida e o motor a mostra; no alto contraste ela nem existe.
+ */
+export const CAMADA_PREDIOS_3D = 'predios-3d'
+/** Teto da "maquete": tira os valores absurdos do dado (até 26 km) e o efeito de cânion do centro. */
+export const TETO_PREDIO_M = 15
+/** 3,6% dos prédios não têm altura: ficam baixos. */
+export const ALTURA_SEM_DADO_M = 3
+/** A camada inteira translúcida: as ruas atrás de um prédio continuam perceptíveis. */
+export const OPACIDADE_PREDIOS = 0.7
 
 export const CAMADAS_ROTA = [
   'rota-restante-casing',
   'rota-restante',
   'rota-andado',
   'rota-manobra',
+  'manobra-seta-casing',
+  'manobra-seta-borda',
+  'manobra-seta',
+  'manobra-seta-ponta',
   'manobra-ponto',
   'destino-anel',
   'destino',
   'precisao',
+  'pessoa-seta-borda',
+  'pessoa-seta',
   'pessoa-borda',
   'pessoa',
 ] as const
@@ -165,15 +185,48 @@ function camadasBase(c: CoresMapa, contraste: boolean, comTexto: boolean): Layer
     }
     saida.push(camada)
   }
+  if (contraste) return saida
+  // Os volumes entram abaixo dos nomes de rua (ou no fim da base, sem letra): o nome continua legível.
+  const primeiroTexto = saida.findIndex((camada) => camada.type === 'symbol')
+  saida.splice(primeiroTexto === -1 ? saida.length : primeiroTexto, 0, camadaPredios3d(c))
   return saida
+}
+
+/**
+ * Prédios extrudados, escolhidos pela acessibilidade (pesquisa de 09/11/2026):
+ * - teto de 15 m e 3 m sem dado: sem pilares de quilômetros e sem cânion escondendo as ruas;
+ * - camada inteira translúcida, na cor `torre` dos prédios planos, sem textura;
+ * - só polígonos `kind = building`: ficam fora os pontos de endereço da mesma camada e os
+ *   `building_part`, que duplicariam o volume;
+ * - a rota vem depois no estilo e o MapLibre a desenha por cima dos volumes: nunca é encoberta.
+ */
+function camadaPredios3d(c: CoresMapa): LayerSpecification {
+  return {
+    id: CAMADA_PREDIOS_3D,
+    type: 'fill-extrusion',
+    source: FONTE_BASE,
+    'source-layer': 'buildings',
+    minzoom: 15,
+    filter: ['all', ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]], ['==', ['get', 'kind'], 'building']],
+    layout: { visibility: 'none' },
+    paint: {
+      'fill-extrusion-color': c.torre,
+      'fill-extrusion-height': ['max', 0, ['min', ['number', ['get', 'height'], ALTURA_SEM_DADO_M], TETO_PREDIO_M]],
+      'fill-extrusion-base': 0,
+      'fill-extrusion-opacity': OPACIDADE_PREDIOS,
+    },
+  }
 }
 
 const naParte = (parte: string): ExpressionSpecification => ['==', ['get', PROP_PARTE], parte]
 const daGeometria = (tipo: string): ExpressionSpecification => ['==', ['geometry-type'], tipo]
 
 function camadasRota(c: CoresMapa, contraste: boolean): LayerSpecification[] {
-  const larguraRestante = contraste ? 8 : 6
-  const larguraCasing = contraste ? 12 : 10
+  // Faixa grossa (emenda de 10/11/2026, 19.1), na mesma cor: o contraste já é alto; sem halo nem brilho.
+  const larguraRestante = contraste ? 12 : 10
+  const larguraCasing = contraste ? 18 : 16
+  const naoSeta: ExpressionSpecification = ['!=', ['get', PROP_PARTE], PARTE.seta]
+  const ehSeta: ExpressionSpecification = ['==', ['get', PROP_PARTE], PARTE.seta]
   const encaixada: ExpressionSpecification = ['==', ['get', PROP_ENCAIXADA], true]
   return [
     {
@@ -205,9 +258,43 @@ function camadasRota(c: CoresMapa, contraste: boolean): LayerSpecification[] {
       id: 'rota-manobra',
       type: 'line',
       source: 'manobra',
-      filter: daGeometria('LineString'),
+      filter: ['all', daGeometria('LineString'), naoSeta],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': c.oxido, 'line-width': larguraRestante },
+    },
+    {
+      // Seta de manobra: a FORMA é o sinal (óxido contra tinta tem só 2,47:1). O contorno claro
+      // separa a seta da rota escura pela luminância, não só pela matiz. Sem sprite, sem ícone.
+      id: 'manobra-seta-casing',
+      type: 'line',
+      source: 'manobra',
+      filter: ['all', daGeometria('LineString'), ehSeta],
+      layout: { 'line-cap': 'butt', 'line-join': 'round' },
+      paint: { 'line-color': c.placa, 'line-width': larguraCasing },
+    },
+    {
+      // Contorno claro da ponta; a haste e o miolo da ponta vêm depois e cobrem a parte de dentro.
+      id: 'manobra-seta-borda',
+      type: 'line',
+      source: 'manobra',
+      filter: daGeometria('Polygon'),
+      layout: { 'line-join': 'miter' },
+      paint: { 'line-color': c.placa, 'line-width': 6 },
+    },
+    {
+      id: 'manobra-seta',
+      type: 'line',
+      source: 'manobra',
+      filter: ['all', daGeometria('LineString'), ehSeta],
+      layout: { 'line-cap': 'butt', 'line-join': 'round' },
+      paint: { 'line-color': c.oxido, 'line-width': larguraRestante },
+    },
+    {
+      id: 'manobra-seta-ponta',
+      type: 'fill',
+      source: 'manobra',
+      filter: daGeometria('Polygon'),
+      paint: { 'fill-color': c.oxido, 'fill-antialias': true },
     },
     {
       id: 'manobra-ponto',
@@ -250,6 +337,21 @@ function camadasRota(c: CoresMapa, contraste: boolean): LayerSpecification[] {
       source: 'pessoa',
       filter: daGeometria('Polygon'),
       paint: { 'fill-color': c.tinta2, 'fill-opacity': 0.15, 'fill-outline-color': c.tinta2 },
+    },
+    {
+      // Seta da pessoa (para onde ela olha ou anda): sai de baixo do círculo, com contorno claro
+      // para não sumir sobre a rota, que tem a mesma cor.
+      id: 'pessoa-seta-borda',
+      type: 'line',
+      source: 'seta',
+      layout: { 'line-join': 'miter' },
+      paint: { 'line-color': c.placa, 'line-width': 5 },
+    },
+    {
+      id: 'pessoa-seta',
+      type: 'fill',
+      source: 'seta',
+      paint: { 'fill-color': c.tinta, 'fill-antialias': true },
     },
     {
       // Fundo claro de 3 px em volta da pessoa: borda quando encaixada, miolo do círculo vazado quando fora.
@@ -304,6 +406,7 @@ export function estiloMapaNavegacao(opcoes: OpcoesEstilo): StyleSpecification {
       rota: vazio(),
       manobra: vazio(),
       pessoa: vazio(),
+      seta: vazio(),
     },
     layers: [...camadasBase(cores, contraste, fontes !== null), ...camadasRota(cores, contraste)],
   }

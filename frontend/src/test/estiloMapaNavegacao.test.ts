@@ -11,8 +11,12 @@ import {
   ZOOM_MIN,
 } from '../componentes/mapa/arquivoMapa'
 import {
+  ALTURA_SEM_DADO_M,
+  CAMADA_PREDIOS_3D,
   CAMADAS_ROTA,
   estiloMapaNavegacao,
+  OPACIDADE_PREDIOS,
+  TETO_PREDIO_M,
   FONTES_ROTA,
   type CoresMapa,
   type Tema,
@@ -115,9 +119,9 @@ describe('estiloMapaNavegacao', () => {
     expect(Object.values(s.sources).every((f) => f.type === 'vector' || f.type === 'geojson')).toBe(true)
   })
 
-  it('as fontes GeoJSON são rota, manobra e pessoa, começando vazias', () => {
+  it('as fontes GeoJSON são rota, manobra, pessoa e seta (emenda de 10/11/2026), começando vazias', () => {
     const s = estilo()
-    expect(FONTES_ROTA).toEqual(['rota', 'manobra', 'pessoa'])
+    expect(FONTES_ROTA).toEqual(['rota', 'manobra', 'pessoa', 'seta'])
     for (const nome of FONTES_ROTA) {
       expect(s.sources[nome]).toEqual({ type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
     }
@@ -147,10 +151,17 @@ describe('estiloMapaNavegacao', () => {
       'rota-restante',
       'rota-andado',
       'rota-manobra',
+      // emenda de 10/11/2026: seta de manobra e seta da pessoa
+      'manobra-seta-casing',
+      'manobra-seta-borda',
+      'manobra-seta',
+      'manobra-seta-ponta',
       'manobra-ponto',
       'destino-anel',
       'destino',
       'precisao',
+      'pessoa-seta-borda',
+      'pessoa-seta',
       'pessoa-borda',
       'pessoa',
     ])
@@ -166,10 +177,13 @@ describe('estiloMapaNavegacao', () => {
     const restante = camada(s, 'rota-restante')
     expect(andado.type).toBe('line')
     expect(andado.paint).toMatchObject({ 'line-dasharray': [2, 2], 'line-width': 4, 'line-color': CORES_CLARO.tinta2 })
-    expect(restante.paint).toMatchObject({ 'line-width': 6, 'line-color': CORES_CLARO.tinta })
+    // emenda de 10/11/2026 (decisão do dono): faixa mais grossa, 10 px sobre 16 px, na mesma cor
+    expect(restante.paint).toMatchObject({ 'line-width': 10, 'line-color': CORES_CLARO.tinta })
     expect(restante.paint).not.toHaveProperty('line-dasharray')
-    expect(camada(s, 'rota-restante-casing').paint).toMatchObject({ 'line-width': 10, 'line-color': CORES_CLARO.placa })
-    expect(camada(s, 'rota-manobra').paint).toMatchObject({ 'line-width': 6, 'line-color': CORES_CLARO.oxido })
+    expect(camada(s, 'rota-restante-casing').paint).toMatchObject({ 'line-width': 16, 'line-color': CORES_CLARO.placa })
+    expect(camada(s, 'rota-manobra').paint).toMatchObject({ 'line-width': 10, 'line-color': CORES_CLARO.oxido })
+    // sem halo nem brilho: nenhuma camada da rota tem line-blur
+    expect(JSON.stringify(s.layers.filter((l) => (CAMADAS_ROTA as readonly string[]).includes(l.id)))).not.toContain('line-blur')
     expect(camada(s, 'manobra-ponto').paint).toMatchObject({
       'circle-radius': 7,
       'circle-opacity': 0,
@@ -185,7 +199,11 @@ describe('estiloMapaNavegacao', () => {
       'rota', 'rota', 'rota', 'rota', 'rota',
     ])
     expect(['rota-manobra', 'manobra-ponto'].map(fonteDe)).toEqual(['manobra', 'manobra'])
+    expect(['manobra-seta-casing', 'manobra-seta-borda', 'manobra-seta', 'manobra-seta-ponta'].map(fonteDe)).toEqual([
+      'manobra', 'manobra', 'manobra', 'manobra',
+    ])
     expect(['precisao', 'pessoa-borda', 'pessoa'].map(fonteDe)).toEqual(['pessoa', 'pessoa', 'pessoa'])
+    expect(['pessoa-seta-borda', 'pessoa-seta'].map(fonteDe)).toEqual(['seta', 'seta'])
   })
 
   // "Forma, não só cor" (DESIGN.md): perto da chegada, destino e pessoa aparecem juntos
@@ -226,10 +244,109 @@ describe('estiloMapaNavegacao', () => {
     expect(ids).not.toContain('buildings')
     expect(ids.some((id) => id.startsWith('water'))).toBe(false)
     expect(ids.some((id) => id.startsWith('landuse_'))).toBe(false)
-    expect(camada(s, 'rota-restante').paint).toMatchObject({ 'line-width': 8, 'line-color': CANVAS_TEXT })
+    expect(ids).not.toContain(CAMADA_PREDIOS_3D)
+    expect(s.layers.some((l) => l.type === 'fill-extrusion')).toBe(false)
+    expect(camada(s, 'rota-restante').paint).toMatchObject({ 'line-width': 12, 'line-color': CANVAS_TEXT })
+    expect(camada(s, 'rota-restante-casing').paint).toMatchObject({ 'line-width': 18 })
+    expect(camada(s, 'manobra-seta').paint).toMatchObject({ 'line-color': HIGHLIGHT })
+    expect(camada(s, 'manobra-seta-ponta').paint).toMatchObject({ 'fill-color': HIGHLIGHT })
+    expect(camada(s, 'manobra-seta-casing').paint).toMatchObject({ 'line-color': CANVAS })
     expect(camada(s, 'rota-restante-casing').paint).toMatchObject({ 'line-color': CANVAS })
     expect(camada(s, 'rota-andado').paint).toMatchObject({ 'line-dasharray': [2, 2] })
     expect(camada(s, 'rota-manobra').paint).toMatchObject({ 'line-color': HIGHLIGHT })
+  })
+
+  describe('seta de manobra e seta da pessoa (emenda de 10/11/2026, 19.1 e 19.4)', () => {
+    it('a seta de manobra é forma com contorno claro: a diferença para a rota não depende só da cor', () => {
+      const s = estilo()
+      const haste = camada(s, 'manobra-seta')
+      const casing = camada(s, 'manobra-seta-casing')
+      const ponta = camada(s, 'manobra-seta-ponta')
+      const borda = camada(s, 'manobra-seta-borda')
+      expect(haste.type).toBe('line')
+      expect(ponta.type).toBe('fill')
+      expect(haste.paint).toMatchObject({ 'line-color': CORES_CLARO.oxido, 'line-width': 10 })
+      expect(ponta.paint).toMatchObject({ 'fill-color': CORES_CLARO.oxido })
+      // o contorno é da cor clara da rua (placa), mais largo que a haste, e vem antes dela
+      expect(casing.paint).toMatchObject({ 'line-color': CORES_CLARO.placa, 'line-width': 16 })
+      expect(borda.paint).toMatchObject({ 'line-color': CORES_CLARO.placa })
+      const ids = s.layers.map((l) => l.id)
+      expect(ids.indexOf('manobra-seta-casing')).toBeLessThan(ids.indexOf('manobra-seta'))
+      expect(ids.indexOf('manobra-seta-borda')).toBeLessThan(ids.indexOf('manobra-seta-ponta'))
+      // e por cima da rota inteira
+      expect(ids.indexOf('manobra-seta-casing')).toBeGreaterThan(ids.indexOf('rota-restante'))
+    })
+
+    it('a haste da seta e o trecho da virada não se misturam: filtros pela propriedade parte', () => {
+      const s = estilo()
+      const filtro = (id: string) => JSON.stringify((camada(s, id) as { filter?: unknown }).filter)
+      expect(filtro('rota-manobra')).toBe(JSON.stringify(['all', ['==', ['geometry-type'], 'LineString'], ['!=', ['get', 'parte'], 'seta']]))
+      expect(filtro('manobra-seta')).toBe(JSON.stringify(['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'parte'], 'seta']]))
+      expect(filtro('manobra-seta-casing')).toBe(filtro('manobra-seta'))
+      expect(filtro('manobra-seta-ponta')).toBe(JSON.stringify(['==', ['geometry-type'], 'Polygon']))
+    })
+
+    it('a seta da pessoa fica embaixo do círculo dela, na cor da pessoa, com contorno claro', () => {
+      const s = estilo()
+      const ids = s.layers.map((l) => l.id)
+      expect(camada(s, 'pessoa-seta').type).toBe('fill')
+      expect(camada(s, 'pessoa-seta').paint).toMatchObject({ 'fill-color': CORES_CLARO.tinta })
+      expect(camada(s, 'pessoa-seta-borda').paint).toMatchObject({ 'line-color': CORES_CLARO.placa })
+      expect(ids.indexOf('pessoa-seta-borda')).toBeLessThan(ids.indexOf('pessoa-seta'))
+      expect(ids.indexOf('pessoa-seta')).toBeLessThan(ids.indexOf('pessoa-borda'))
+    })
+  })
+
+  describe('prédios em volume (emenda de 10/11/2026, 19.2)', () => {
+    const predios = (tema: Tema = 'claro') => camada(estilo(tema), CAMADA_PREDIOS_3D)
+
+    it('a camada existe no claro e no escuro, nasce escondida e lê os prédios do próprio arquivo', () => {
+      for (const tema of ['claro', 'escuro'] as const) {
+        const c = predios(tema)
+        expect(c.type).toBe('fill-extrusion')
+        expect(c).toMatchObject({ source: 'protomaps', 'source-layer': 'buildings', minzoom: 15 })
+        // desligada por padrão: só o motor mostra, e só com a vista inclinada
+        expect(c.layout).toEqual({ visibility: 'none' })
+      }
+      expect(estilo().layers.filter((l) => l.type === 'fill-extrusion')).toHaveLength(1)
+    })
+
+    it('teto de 15 m, 3 m sem dado, nunca negativo: os 26 km do dado não viram pilar', () => {
+      expect(TETO_PREDIO_M).toBe(15)
+      expect(ALTURA_SEM_DADO_M).toBe(3)
+      expect(predios().paint).toMatchObject({
+        'fill-extrusion-height': ['max', 0, ['min', ['number', ['get', 'height'], 3], 15]],
+        'fill-extrusion-base': 0,
+      })
+    })
+
+    it('translúcida e na cor torre do tema, sem padrão nem textura', () => {
+      expect(OPACIDADE_PREDIOS).toBeGreaterThan(0)
+      expect(OPACIDADE_PREDIOS).toBeLessThan(1)
+      expect(predios().paint).toMatchObject({ 'fill-extrusion-color': CORES_CLARO.torre, 'fill-extrusion-opacity': OPACIDADE_PREDIOS })
+      expect(predios().paint).not.toHaveProperty('fill-extrusion-pattern')
+    })
+
+    it('o filtro deixa de fora os pontos de endereço e os building_part', () => {
+      expect((predios() as { filter?: unknown }).filter).toEqual([
+        'all',
+        ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]],
+        ['==', ['get', 'kind'], 'building'],
+      ])
+    })
+
+    it('fica acima do chão e das ruas, abaixo dos nomes de rua e de toda a rota', () => {
+      const ids = estilo().layers.map((l) => l.id)
+      const i = ids.indexOf(CAMADA_PREDIOS_3D)
+      expect(i).toBeGreaterThan(ids.indexOf('buildings'))
+      expect(i).toBeLessThan(ids.indexOf('roads_labels_minor'))
+      expect(i).toBeLessThan(ids.indexOf('roads_labels_major'))
+      // a rota vem depois: o MapLibre a desenha por cima dos volumes
+      expect(i).toBeLessThan(ids.indexOf('rota-restante-casing'))
+      // sem letra, fica no fim da base
+      const semLetra = estilo('claro', null).layers.map((l) => l.id)
+      expect(semLetra.indexOf(CAMADA_PREDIOS_3D)).toBe(semLetra.length - CAMADAS_ROTA.length - 1)
+    })
   })
 
   it('com fontes, declara o Archivo local em font-faces e só rótulos de rua', () => {

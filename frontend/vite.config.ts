@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => {
             name: 'app',
             environment: 'jsdom',
             setupFiles: ['./src/test/setup.ts'],
+            // prazo por teste maior que o findBy de 5 s (setup.ts), para a suíte carregada não estourar
+            testTimeout: 15000,
             css: true,
             include: ['src/**/*.test.{ts,tsx}'],
             // os testes rodam como o build de E2E: a simulação da navegação guiada existe, mas só liga com ?simular=

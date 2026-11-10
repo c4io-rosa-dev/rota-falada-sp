@@ -5,6 +5,7 @@ import { avisoDaProcura, type EstadoNavegacao } from '../../dados/navegacao/nave
 import { letreiroDoPasso, separarInstrucao, textoInstrucao } from '../../dados/passo'
 import { Pictograma } from '../Pictograma'
 import type { NomePictograma } from '../pictogramas'
+import { pictogramaDaManobra } from './pictogramaManobra'
 import { PAINEL_FORA, PAINEL_FORA_O_QUE_FAZER } from './textosNavegacao'
 
 type Props = {
@@ -98,7 +99,11 @@ export function PainelNavegacao({ estado: e, telaPodeApagar, refTitulo }: Props)
 
       {comPasso && !fora && (
         <>
-          <p className="painel__acao letreiro">{acao}</p>
+          {/* o desenho da manobra reforça a ação pela forma; é decorativo, o texto é a informação */}
+          <div className="painel__manobra">
+            <Pictograma nome={prox === null ? 'destino' : pictogramaDaManobra(alvo)} tamanho={40} className="painel__picto" />
+            <p className="painel__acao letreiro">{acao}</p>
+          </div>
           <p className="painel__rua">{letreiroDoPasso(alvo)}</p>
           <p className="painel__distancia medida">{distancia}</p>
           {graves.length > 0 && (

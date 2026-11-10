@@ -26,12 +26,30 @@ const LADOS_CIRCULO = 32
 
 export type LonLat = [number, number]
 
-export type PrefsMapa = { aberto: boolean; girar: boolean }
+/** inclinada e cheia (emenda de 10/11/2026): ausentes valem desligadas. */
+export type PrefsMapa = { aberto: boolean; girar: boolean; inclinada?: boolean; cheia?: boolean }
+
+/** Seta de manobra desenhada pelo app: a haste segue a rota pela virada e a ponta fecha em triângulo. */
+export const SETA_MANOBRA = {
+  ANTES_M: 12,
+  DEPOIS_M: 18,
+  /** Sem pelo menos isto de rota depois da virada, não há para onde apontar. */
+  MINIMO_DEPOIS_M: 3,
+  /** Trecho final usado para o sentido da ponta. */
+  OLHAR_M: 3,
+  PONTA_COMPRIMENTO_M: 11,
+  PONTA_LARGURA_M: 16,
+} as const
+
+/** haste: linha ao longo da rota; ponta: anel fechado do triângulo (4 vértices, o último repete o primeiro). */
+export type SetaManobra = { haste: LonLat[]; ponta: LonLat[] }
 
 export type Cena = {
   andado: LonLat[] | null
   restante: LonLat[] | null
   manobra: { trecho: LonLat[]; ponto: LonLat } | null
+  /** A seta da próxima virada (forma, não só cor); null sem manobra ou sem rota depois dela. */
+  setaManobra: SetaManobra | null
   destino: LonLat
   pessoa: { ponto: LonLat; encaixada: boolean; raioPrecisaoM: number | null } | null
   /** 'seguir': centro na pessoa; 'enquadrar': caixa do trecho; 'congelar': não mexe na câmera. */
@@ -106,14 +124,58 @@ export function trechoDoPasso(t: Trajeto, i: number): LonLat[] {
  * A próxima virada com a MESMA regra do painel: passo_a_passo → passoAtual; senão
  * proximoUtil(contexto, passoAtual). null = o próximo é o destino.
  */
-export function manobraEmDestaque(e: EstadoNavegacao): { passo: number; trecho: LonLat[]; ponto: LonLat } | null {
+export function manobraEmDestaque(
+  e: EstadoNavegacao,
+): { passo: number; trecho: LonLat[]; ponto: LonLat; seta: SetaManobra | null } | null {
   const t = e.trajeto
   if (!t) return null
   const passo = e.fase === 'passo_a_passo' ? e.passoAtual : proximoUtil(e.contexto, e.passoAtual)
   if (passo === null) return null
   const trecho = trechoDoPasso(t, passo)
   if (trecho.length === 0) return null
-  return { passo, trecho, ponto: trecho[0] }
+  return { passo, trecho, ponto: trecho[0], seta: setaDaManobra(t, t.passos[passo].inicioM) }
+}
+
+/**
+ * A seta da virada que começa em viradaM (metros ao longo da rota): haste de 12 m antes até 18 m
+ * depois, presa à rota, e ponta triangular em metros no fim da haste, no sentido do último trecho.
+ * A forma é o sinal: o óxido da virada contra a tinta da rota tem só 2,47:1 de contraste.
+ */
+export function setaDaManobra(t: Trajeto, viradaM: number): SetaManobra | null {
+  const S = SETA_MANOBRA
+  const virada = Math.min(t.totalM, Math.max(0, viradaM))
+  const fim = Math.min(t.totalM, virada + S.DEPOIS_M)
+  if (fim - virada < S.MINIMO_DEPOIS_M) return null
+  const a = pontoAoLongo(t, Math.max(virada, fim - S.OLHAR_M))
+  const b = pontoAoLongo(t, fim)
+  const leste = (b[1] - a[1]) * t.regua.kx
+  const norte = (b[0] - a[0]) * t.regua.ky
+  const tamanho = Math.hypot(leste, norte)
+  if (tamanho < CORDA_MINIMA_M) return null
+  const ux = leste / tamanho
+  const uy = norte / tamanho
+  const meia = S.PONTA_LARGURA_M / 2
+  // deslocamento em metros (leste, norte) a partir do fim da haste, já em [lon, lat]
+  const em = (lesteM: number, norteM: number): LonLat => [b[1] + lesteM / t.regua.kx, b[0] + norteM / t.regua.ky]
+  const bico = em(ux * S.PONTA_COMPRIMENTO_M, uy * S.PONTA_COMPRIMENTO_M)
+  const esquerda = em(-uy * meia, ux * meia)
+  const direita = em(uy * meia, -ux * meia)
+  return {
+    haste: pedaco(t, Math.max(0, virada - S.ANTES_M), fim),
+    ponta: [bico, direita, esquerda, [bico[0], bico[1]]],
+  }
+}
+
+/**
+ * O sentido da rota no ponto da pessoa, para a seta dela quando não há bússola nem caminhada.
+ * Só com a pessoa encaixada na rota (navegando ou pausada no meio da navegação); senão null.
+ */
+export function rumoDaRotaAgora(e: EstadoNavegacao): number | null {
+  const t = e.trajeto
+  if (!t) return null
+  const acompanhando = e.fase === 'navegando' || (e.fase === 'pausada' && e.faseAntesDaPausa === 'navegando')
+  if (!acompanhando || e.acompanhamento.fora || e.acompanhamento.contrarioAvisado) return null
+  return rumoEm(t, e.acompanhamento.progressoMaxM)
 }
 
 /** Polígono fechado (33 vértices) a raioM metros do centro, medido com a régua do trajeto. */
@@ -125,6 +187,24 @@ export function circuloPrecisao(centro: LonLat, raioM: number, regua: Regua): Lo
   }
   anel.push([anel[0][0], anel[0][1]])
   return anel
+}
+
+/** Seta da pessoa, em metros a partir do centro do círculo dela (no zoom 17, 1 m ≈ 1,8 px). */
+export const SETA_PESSOA = { BICO_M: 15, BASE_M: 8, ABERTURA_GRAUS: 42 } as const
+
+/**
+ * Triângulo fechado (4 vértices) que sai do ponto da pessoa e aponta para `graus` (0 = norte,
+ * 90 = leste): o bico a 15 m e os dois cantos da base a 8 m, abertos 42° para cada lado. O círculo
+ * da pessoa é desenhado por cima da base; sobra o bico, como numa bússola de mapa.
+ */
+export function setaDaPessoa(centro: LonLat, graus: number, regua: Regua): LonLat[] {
+  const S = SETA_PESSOA
+  const em = (angulo: number, raioM: number): LonLat => {
+    const rad = (angulo * Math.PI) / 180
+    return [centro[0] + (raioM * Math.sin(rad)) / regua.kx, centro[1] + (raioM * Math.cos(rad)) / regua.ky]
+  }
+  const bico = em(graus, S.BICO_M)
+  return [bico, em(graus + S.ABERTURA_GRAUS, S.BASE_M), em(graus - S.ABERTURA_GRAUS, S.BASE_M), [bico[0], bico[1]]]
 }
 
 function caixaDe(linha: LonLat[]): [LonLat, LonLat] {
@@ -172,6 +252,7 @@ export function cenaDoMapa(e: EstadoNavegacao, prefs: PrefsMapa, rumoAnterior: n
     andado,
     restante,
     manobra: m && { trecho: m.trecho, ponto: m.ponto },
+    setaManobra: m ? m.seta : null,
     destino: paraLonLat(t.pontos[t.pontos.length - 1]),
   }
   const rumoMantido = prefs.girar ? rumoAnterior : 0

@@ -14,13 +14,15 @@ import { gravarSessaoRota, PERFIL_FORM_PADRAO } from '../dados/sessaoRota'
 import { Navegar } from '../pages/Navegar'
 import { apiFalsa } from './apiFalsa'
 import { ROTA_L } from './fixturasNavegacao'
+// o apoio do mapa aberto chega por import() junto com o motor: já carregado aqui, o import() do teste não espera a transformação
+import '../componentes/mapa/apoioMapaAberto'
 
 /* o motor do mapa (MapLibre) não roda no jsdom: um falso guarda o que recebe, sem rede */
 const mapa = vi.hoisted(() => ({ motores: [] as { atualizar: ReturnType<typeof vi.fn>; destruir: ReturnType<typeof vi.fn> }[] }))
 vi.mock('../componentes/mapa/MotorMapaNavegacao', () => ({
   ErroMotorMapa: class extends Error {},
   criarMotor: () => {
-    const motor = { atualizar: vi.fn(), trocarTema: vi.fn(), destruir: vi.fn() }
+    const motor = { atualizar: vi.fn(), apontar: vi.fn(), trocarTema: vi.fn(), destruir: vi.fn() }
     mapa.motores.push(motor)
     return Promise.resolve(motor)
   },

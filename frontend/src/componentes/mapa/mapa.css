@@ -108,7 +108,8 @@
   display: grid;
   gap: var(--e-2);
   min-width: 0;
-  margin-block: var(--e-3);
+  /* a figura é a irmã seguinte, separada pelo espaço da própria página */
+  margin-block: var(--e-3) 0;
 }
 
 .mapa-nav__escolha {
@@ -120,6 +121,14 @@
 
 .mapa-nav__ligado {
   font-weight: 800;
+}
+
+/* de onde vem a direção da seta da pessoa: texto parado, à vista */
+.mapa-nav__seta {
+  margin: 0;
+  font-size: var(--t-1);
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .mapa-nav {

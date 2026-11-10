@@ -101,6 +101,32 @@
   justify-self: start;
 }
 
+/* ---------- contêiner da navegação (emenda 19.3 da spec do mapa) ----------
+   Fora da tela cheia ele não tem caixa: o painel, os controles, as opções do mapa e a figura
+   fluem como filhos diretos de .navegar. A ordem no DOM é a mesma nos dois modos. */
+
+.nav-tela,
+.nav-tela__base {
+  display: contents;
+}
+
+.nav-tela > *,
+.nav-tela__base > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* só existe em tela cheia */
+.nav-tela__sair {
+  width: 100%;
+}
+
+/* quanto falta e em que passo: texto parado junto dos controles */
+.navegar__falta {
+  font-size: var(--t-2);
+  font-weight: 600;
+}
+
 /* ---------- painel: não é região viva ---------- */
 
 .painel {
@@ -122,7 +148,20 @@
   font-size: var(--t-2);
 }
 
+/* o desenho da manobra ao lado da ação: forma além do texto; não encolhe e não corta o texto */
+.painel__manobra {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-width: 0;
+}
+
+.painel__picto {
+  flex: none;
+}
+
 .painel__acao {
+  min-width: 0;
   font-size: var(--t-4);
   line-height: 1;
 }
@@ -250,5 +289,131 @@
      fica só para o botão pressionado (Pausar), que o index.css já marca: um sinal, um sentido */
   .controles .placa--acao {
     border: 4px double ButtonText;
+  }
+}
+
+/* ---------- mapa em tela cheia (emenda 19.3 da spec do mapa) ----------
+   Layout CSS dentro da página, não a Fullscreen API. Três faixas: o cartão da instrução em cima,
+   o mapa no meio e, embaixo, a distância, os controles e as opções do mapa. O cartão não cobre o
+   mapa: ele cresce com o texto e o mapa encolhe até 8rem; a faixa de baixo rola por dentro; se
+   nem assim couber (texto a 200%, 320 px), a tela inteira rola. Nenhum texto é cortado.
+   Sem animação nem transição na troca. */
+
+html.com-tela-cheia {
+  overflow: hidden;
+}
+
+.nav-tela--cheia {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(8rem, 1fr) auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background-color: var(--concreto);
+}
+
+.nav-tela--cheia > .painel {
+  grid-row: 1;
+  padding: var(--e-2) var(--calha);
+  border-width: 0 0 2px;
+  border-color: var(--tinta);
+}
+
+/* no cartão a ação usa o tamanho de título de seção: sobra tela para o mapa */
+.nav-tela--cheia .painel__acao {
+  font-size: var(--t-3);
+}
+
+.nav-tela--cheia > .mapa-nav {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 8rem;
+  border-width: 0;
+}
+
+.nav-tela--cheia .mapa-nav__tela {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 8rem;
+}
+
+/* o crédito numa linha só quando cabe, para o mapa ficar com a altura; o link mantém 44 px */
+.nav-tela--cheia .mapa-nav__atribuicao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.25em;
+  padding-block: 0;
+}
+
+.nav-tela--cheia > .nav-tela__base {
+  grid-row: 3;
+  display: grid;
+  gap: var(--e-2);
+  align-content: start;
+  max-height: 34vh;
+  max-height: 34dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* o que recebe foco não fica escondido atrás do botão de sair, que é fixo no topo da faixa */
+  scroll-padding-top: 4rem;
+  padding: 0 var(--calha) var(--e-2);
+  background: var(--placa);
+  border-top: 2px solid var(--tinta);
+}
+
+/* a saída fica sempre à vista, mesmo com a faixa rolada */
+.nav-tela--cheia .nav-tela__sair {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 48px;
+}
+
+/* controles lado a lado quando cabem; empilhados em tela estreita ou com texto ampliado */
+.nav-tela--cheia .controles {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  align-items: start;
+}
+
+.nav-tela--cheia .controles .placa {
+  min-height: 48px;
+}
+
+.nav-tela--cheia .controles__encerrar {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.nav-tela--cheia .mapa-nav__bloco {
+  margin-block: 0;
+}
+
+/* Tela baixa (celular deitado, zoom de 200% ou mais): a faixa de baixo deixa de rolar por dentro e
+   o botão de sair deixa de ficar preso no topo dela. A tela inteira rola e sobra altura para ler. */
+@media (max-height: 30rem) {
+  .nav-tela--cheia > .nav-tela__base {
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .nav-tela--cheia .nav-tela__sair {
+    position: static;
+  }
+}
+
+@media (forced-colors: active) {
+  .nav-tela--cheia {
+    background: Canvas;
+  }
+
+  .nav-tela--cheia > .painel,
+  .nav-tela--cheia > .nav-tela__base {
+    background: Canvas;
+    border-color: CanvasText;
   }
 }

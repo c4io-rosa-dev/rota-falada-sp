@@ -11,6 +11,9 @@ const CRUS = import.meta.glob(
     '../pages/Navegar.tsx',
     // o mapa da navegação (spec do mapa próprio, seção 11): as mesmas regras valem para ele
     '../componentes/mapa/MapaNavegacao.tsx',
+    // a bússola da seta da pessoa (emenda de 10/11/2026): mesma regra, nada gravado nem enviado
+    '../componentes/mapa/useBussola.ts',
+    '../componentes/mapa/apoioMapaAberto.ts',
     '../componentes/mapa/MotorMapaNavegacao.ts',
     '../componentes/mapa/estiloMapaNavegacao.ts',
     '../componentes/mapa/arquivoMapa.ts',
@@ -29,10 +32,12 @@ describe('o código da navegação não grava nem registra posição', () => {
     expect(caminhos).toContain('dados/navegacao/navegacao.ts')
     expect(caminhos).toContain('componentes/navegacao/useNavegacao.ts')
     expect(caminhos).toContain('pages/Navegar.tsx')
-    for (const mapa of ['MapaNavegacao.tsx', 'MotorMapaNavegacao.ts', 'estiloMapaNavegacao.ts', 'arquivoMapa.ts']) {
+    for (const mapa of ['MapaNavegacao.tsx', 'useBussola.ts', 'apoioMapaAberto.ts', 'MotorMapaNavegacao.ts', 'estiloMapaNavegacao.ts', 'arquivoMapa.ts']) {
       expect(caminhos).toContain(`componentes/mapa/${mapa}`)
     }
     expect(caminhos).toContain('dados/navegacao/mapaNavegacao.ts')
+    expect(caminhos).toContain('dados/navegacao/direcaoSeta.ts')
+    expect(caminhos).toContain('componentes/navegacao/useTelaCheia.ts')
   })
 
   it('nenhum localStorage, sessionStorage, indexedDB ou console', () => {
@@ -126,11 +131,14 @@ describe('cabeçalhos do site (public/_headers)', () => {
       .map((l) => l.trim())
       .find((l) => l.startsWith(`${nome}:`))
 
-  it('Permissions-Policy libera só para o próprio site a localização e a tela ligada, e nega os sensores de movimento', () => {
-    // o rumo do mapa vem da corda da rota, nunca da bússola: os sensores ficam negados para todos
-    expect(linha('Permissions-Policy')).toBe(
-      'Permissions-Policy: geolocation=(self), screen-wake-lock=(self), accelerometer=(), gyroscope=(), magnetometer=()',
+  it('Permissions-Policy libera só para o próprio site a localização, a tela ligada e os três sensores da bússola', () => {
+    // decisão do dono (emenda de 10/11/2026 da spec do mapa): a seta da pessoa usa a bússola do aparelho.
+    // O rumo do MAPA continua vindo da corda da rota. Nada é liberado para terceiros: só (self).
+    const politica = linha('Permissions-Policy')
+    expect(politica).toBe(
+      'Permissions-Policy: geolocation=(self), screen-wake-lock=(self), accelerometer=(self), gyroscope=(self), magnetometer=(self)',
     )
+    expect(politica).not.toMatch(/\*|https?:/)
   })
 
   it('a CSP não muda: nada novo na rede', () => {

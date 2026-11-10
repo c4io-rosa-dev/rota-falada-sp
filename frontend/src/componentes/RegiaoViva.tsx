@@ -73,7 +73,7 @@ export function RegiaoViva({ children }: { children: ReactNode }) {
   return (
     <ContextoAnuncio.Provider value={anunciar}>
       <ContextoCancelarAnuncio.Provider value={cancelar}>{children}</ContextoCancelarAnuncio.Provider>
-      <div role="status" aria-live="polite" aria-atomic="true" className="visualmente-oculto">
+      <div role="status" aria-live="polite" aria-atomic="true" className="visualmente-oculto" data-regiao-viva="">
         {mensagem}
       </div>
     </ContextoAnuncio.Provider>

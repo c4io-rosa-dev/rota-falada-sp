@@ -24,10 +24,12 @@ import { ContextoAnuncio, type Anunciar } from '../componentes/useAnuncio'
 import type { PrefsMapa } from '../dados/navegacao/mapaNavegacao'
 import { estadoNavegacao, type EstadoNavegacao, type Fase } from '../dados/navegacao/navegacao'
 import { ROTA_L } from './fixturasNavegacao'
+// o apoio do mapa aberto chega por import() junto com o motor: já carregado aqui, o import() do teste não espera a transformação
+import '../componentes/mapa/apoioMapaAberto'
 
 /* ---------- motor simulado: a primeira carga do chunk falha (como Mapa.test.tsx) ---------- */
 
-type MotorFalso = { atualizar: ReturnType<typeof vi.fn>; trocarTema: ReturnType<typeof vi.fn>; destruir: ReturnType<typeof vi.fn> }
+type MotorFalso = { atualizar: ReturnType<typeof vi.fn>; apontar: ReturnType<typeof vi.fn>; trocarTema: ReturnType<typeof vi.fn>; destruir: ReturnType<typeof vi.fn> }
 type Criacao = { el: HTMLElement; opcoes: OpcoesMotor; motor: MotorFalso }
 
 const sim = vi.hoisted(() => ({
@@ -55,7 +57,7 @@ vi.mock('../componentes/mapa/MotorMapaNavegacao', () => {
   return {
     ErroMotorMapa,
     criarMotor: (el: HTMLElement, opcoes: OpcoesMotor) => {
-      const motor: MotorFalso = { atualizar: vi.fn(), trocarTema: vi.fn(), destruir: vi.fn() }
+      const motor: MotorFalso = { atualizar: vi.fn(), apontar: vi.fn(), trocarTema: vi.fn(), destruir: vi.fn() }
       sim.criacoes.push({ el, opcoes, motor })
       const modo = sim.proximo
       if (modo === 'sem_webgl' || modo === 'nao_carregou') {

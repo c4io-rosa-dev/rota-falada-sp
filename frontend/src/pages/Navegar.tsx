@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { usePaginaAcessivel } from '../a11y/usePaginaAcessivel'
 import type { RotaOut } from '../api/client'
@@ -16,9 +16,11 @@ import {
   MSG_SEM_PERMISSAO,
 } from '../componentes/navegacao/textosNavegacao'
 import { useNavegacao, type Vigia } from '../componentes/navegacao/useNavegacao'
+import { useTelaCheia } from '../componentes/navegacao/useTelaCheia'
 import { Placa } from '../componentes/Placa'
 import type { PrefsMapa } from '../dados/navegacao/mapaNavegacao'
 import type { Fase } from '../dados/navegacao/navegacao'
+import { resumoDoCaminho } from '../dados/navegacao/resumoCaminho'
 import { montarTrajeto } from '../dados/navegacao/trajeto'
 import { gravarPreferenciaMapa, lerPreferenciasMapa, type QualPreferenciaMapa } from '../dados/preferenciaMapa'
 import { lerSessaoRota, type BuscaFeita } from '../dados/sessaoRota'
@@ -84,8 +86,14 @@ function NavegacaoGuiada({ rota, busca, vigia }: { rota: RotaOut; busca: BuscaFe
   const nav = useNavegacao(rota, busca.pedido, vigia)
   const navegar = useNavigate()
   const e = nav.estado
-  // mapa opcional: fechado e sem giro por padrão; a escolha vale só nesta aba (spec do mapa, 6 e 10.4)
+  // mapa opcional: fechado, sem giro, visto de cima e fora da tela cheia por padrão; as escolhas
+  // valem só nesta aba (spec do mapa, 6, 10.4 e emenda 19)
   const [prefsMapa, setPrefsMapa] = useState<PrefsMapa>(lerPreferenciasMapa)
+  const tela = useRef<HTMLDivElement>(null)
+  // o mapa só aparece (e a tela cheia só vale) nas fases com mapa: na chegada a página volta ao normal
+  const comMapa = FASES_COM_MAPA.includes(e.fase) && e.trajeto !== null
+  const telaCheia = comMapa && prefsMapa.aberto && prefsMapa.cheia === true
+  useTelaCheia(tela, telaCheia, () => mudarPrefsMapa('cheia', false))
 
   function mudarPrefsMapa(qual: QualPreferenciaMapa, valor: boolean) {
     setPrefsMapa((p) => ({ ...p, [qual]: valor }))
@@ -159,51 +167,71 @@ function NavegacaoGuiada({ rota, busca, vigia }: { rota: RotaOut; busca: BuscaFe
   const comDetalhes = passoAPasso || e.fase === 'navegando' || (e.fase === 'pausada' && e.faseAntesDaPausa === 'navegando')
   const fora = e.fase === 'navegando' && e.acompanhamento.fora
   const procuraDemorada = e.fase === 'procurando' && e.procuraDemorada
-  // aria-disabled sozinho só diz "indisponível": a dica diz por quê
   // o mapa é complemento do painel: some na chegada (o motor é destruído) e o foco segue para o h2
-  const mostrarMapa = FASES_COM_MAPA.includes(e.fase) && e.trajeto !== null
+  const mostrarMapa = comMapa
+  const resumo = resumoDoCaminho(e)
+  // aria-disabled sozinho só diz "indisponível": a dica diz por quê
   const dicaRecalcular = e.fase === 'pausada' ? 'Disponível depois de retomar.' : e.recalculando ? 'Calculando nova rota.' : undefined
 
+  const controles =
+    e.fase === 'chegou' ? (
+      <Placa para="/rota" className="navegar__voltar">
+        Voltar para a rota
+      </Placa>
+    ) : (
+      <>
+        {procuraDemorada && <Placa onClick={nav.passoAPasso}>Seguir passo a passo</Placa>}
+        {comDetalhes && <DetalhesTrecho passo={e.rota.passos[e.passoAtual]} />}
+        {/* quanto falta e em que passo: texto parado junto dos controles, nunca anunciado; sem tempo */}
+        {resumo && (
+          <p className="navegar__falta medida">
+            {resumo.falta && <span>{resumo.falta} </span>}
+            <span>{resumo.passo}</span>
+          </p>
+        )}
+        <ControlesNavegacao
+          aoEncerrar={encerrar}
+          controles={
+            passoAPasso
+              ? [
+                  { rotulo: 'Passo anterior', aoTocar: nav.passoAnterior, inativo: e.passoAtual === 0 },
+                  { rotulo: 'Próximo passo', aoTocar: nav.proximoPasso, inativo: ultimo },
+                  { rotulo: 'Repetir', pictograma: 'ouvir', aoTocar: nav.repetir },
+                ]
+              : [
+                  { rotulo: 'Repetir', pictograma: 'ouvir', aoTocar: nav.repetir },
+                  // fora da rota vira a ação principal, sem mudar de lugar
+                  {
+                    rotulo: 'Recalcular',
+                    pictograma: 'siga',
+                    aoTocar: nav.recalcular,
+                    acao: fora,
+                    inativo: dicaRecalcular !== undefined,
+                    dica: dicaRecalcular,
+                  },
+                  { rotulo: 'Pausar', pictograma: 'parar', aoTocar: nav.alternarPausa, pressionado: e.fase === 'pausada' },
+                ]
+          }
+        />
+      </>
+    )
+
   return (
-    <>
+    // Um contêiner só, com a mesma ordem no DOM nos dois modos: painel, controles, opções do mapa e
+    // figura. Fora da tela cheia ele não tem caixa (display: contents) e tudo flui como antes; em
+    // tela cheia vira três faixas por CSS (painel em cima, mapa no meio, o resto embaixo).
+    <div ref={tela} className={telaCheia ? 'nav-tela nav-tela--cheia' : 'nav-tela'}>
       <PainelNavegacao estado={e} telaPodeApagar={nav.telaPodeApagar} refTitulo={nav.refPainel} />
-      {e.fase === 'chegou' ? (
-        <Placa para="/rota" className="navegar__voltar">
-          Voltar para a rota
-        </Placa>
+      {/* o mapa é complemento: as opções dele vêm depois dos controles, para não empurrá-los para baixo
+          da dobra no celular nem pôr "Mostrar o mapa" e "Girar" no caminho do Tab até Repetir,
+          Recalcular e Pausar */}
+      {mostrarMapa ? (
+        <MapaNavegacao estado={e} prefs={prefsMapa} aoMudarPrefs={mudarPrefsMapa}>
+          {controles}
+        </MapaNavegacao>
       ) : (
-        <>
-          {procuraDemorada && <Placa onClick={nav.passoAPasso}>Seguir passo a passo</Placa>}
-          {comDetalhes && <DetalhesTrecho passo={e.rota.passos[e.passoAtual]} />}
-          <ControlesNavegacao
-            aoEncerrar={encerrar}
-            controles={
-              passoAPasso
-                ? [
-                    { rotulo: 'Passo anterior', aoTocar: nav.passoAnterior, inativo: e.passoAtual === 0 },
-                    { rotulo: 'Próximo passo', aoTocar: nav.proximoPasso, inativo: ultimo },
-                    { rotulo: 'Repetir', pictograma: 'ouvir', aoTocar: nav.repetir },
-                  ]
-                : [
-                    { rotulo: 'Repetir', pictograma: 'ouvir', aoTocar: nav.repetir },
-                    // fora da rota vira a ação principal, sem mudar de lugar
-                    {
-                      rotulo: 'Recalcular',
-                      pictograma: 'siga',
-                      aoTocar: nav.recalcular,
-                      acao: fora,
-                      inativo: dicaRecalcular !== undefined,
-                      dica: dicaRecalcular,
-                    },
-                    { rotulo: 'Pausar', pictograma: 'parar', aoTocar: nav.alternarPausa, pressionado: e.fase === 'pausada' },
-                  ]
-            }
-          />
-        </>
+        <div className="nav-tela__base">{controles}</div>
       )}
-      {/* o mapa é complemento: depois dos controles, para não empurrá-los para baixo da dobra no
-          celular nem pôr "Mostrar o mapa" e "Girar" no caminho do Tab até Repetir, Recalcular e Pausar */}
-      {mostrarMapa && <MapaNavegacao estado={e} prefs={prefsMapa} aoMudarPrefs={mudarPrefsMapa} />}
-    </>
+    </div>
   )
 }

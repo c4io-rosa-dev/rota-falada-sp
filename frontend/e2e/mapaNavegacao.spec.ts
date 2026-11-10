@@ -5,7 +5,9 @@ import {
   MAPA_SEM_WEBGL,
   ROTULO_MAPA_FIM,
   ROTULO_MAPA_GIRADO,
+  ROTULO_MAPA_INCLINADO,
   ROTULO_MAPA_NORTE,
+  SETA_PELA_ROTA,
 } from '../src/componentes/navegacao/textosNavegacao'
 import { alvosDe44, focoNaoCaiu, semRolagemHorizontal, semViolacoes, umaRegiaoViva } from './apoio'
 import { bloquearTerceiros, servirMapaFalso } from './apoioMapa'
@@ -30,6 +32,10 @@ const regiao = (page: Page) => page.getByRole('status')
 /** O mesmo botão: "Mostrar o mapa" fechado, "Esconder o mapa" aberto (ação, sem aria-pressed). */
 const mostrar = (page: Page) => page.getByRole('button', { name: /^(Mostrar|Esconder) o mapa$/ })
 const girar = (page: Page) => page.getByRole('button', { name: 'Girar o mapa com a rota' })
+const inclinar = (page: Page) => page.getByRole('button', { name: 'Vista inclinada' })
+const telaCheia = (page: Page) => page.getByRole('button', { name: 'Mapa em tela cheia' })
+const sairDaTelaCheia = (page: Page) => page.getByRole('button', { name: 'Sair da tela cheia' })
+const conteiner = (page: Page) => page.locator('.nav-tela')
 const figura = (page: Page) => page.locator('figure.mapa-nav')
 const tela = (page: Page) => page.locator('figure.mapa-nav [role=img]')
 /** O contêiner do MapLibre, com os sinais que o motor escreve (data-estilo, data-rumo, data-centro). */
@@ -298,6 +304,269 @@ test.describe('mapa da navegação guiada', () => {
     await tentar.click()
     await expect(mostrar(page)).toBeFocused()
     await expect(figura(page)).toHaveAttribute('data-fase', 'falhou', { timeout: 20_000 })
+  })
+})
+
+/* ---------- emenda de 10/11/2026 da spec do mapa (seção 19) ---------- */
+
+test.describe('vista inclinada com prédios', () => {
+  test('11. começa desligada; ligar inclina o mapa de verdade (45°), mostra os prédios, muda o rótulo e vale na aba', async ({ page, context }) => {
+    const erros = errosDaPagina(page)
+    await prepararRede(context)
+    await comecarSimulacao(page)
+    await expect(inclinar(page)).toHaveCount(0) // mapa fechado: a opção nem existe
+    await abrirMapa(page)
+    await estiloCarregado(page)
+    await expect(inclinar(page)).toHaveAttribute('aria-pressed', 'false')
+    await expect(inclinar(page)).toHaveText('Vista inclinada: desligado')
+    await expect(motor(page)).toHaveAttribute('data-inclinacao', '0')
+    await expect(motor(page)).toHaveAttribute('data-predios', 'nao')
+
+    await inclinar(page).click()
+    await expect(inclinar(page)).toBeFocused()
+    await expect(inclinar(page)).toHaveAttribute('aria-pressed', 'true')
+    await expect(inclinar(page)).toHaveText('Vista inclinada: ligado')
+    await expect(motor(page)).toHaveAttribute('data-inclinacao', '45', { timeout: 15_000 })
+    await expect(motor(page)).toHaveAttribute('data-predios', 'sim')
+    await expect(tela(page)).toHaveAttribute('aria-label', ROTULO_MAPA_NORTE + ROTULO_MAPA_INCLINADO + ROTULO_MAPA_FIM)
+    // o estilo com a camada de volume desenha sem nenhum erro do MapLibre
+    await estiloCarregado(page)
+    await conferir(page, 'vista inclinada')
+
+    // junto com o giro
+    await girar(page).click()
+    await expect(motor(page)).not.toHaveAttribute('data-rumo', '0', { timeout: 15_000 })
+    await expect(motor(page)).toHaveAttribute('data-inclinacao', '45')
+    await estiloCarregado(page)
+
+    // recarregar a mesma aba: a escolha continua
+    await page.reload()
+    await page.getByRole('button', { name: 'Começar' }).click()
+    await expect(inclinar(page)).toHaveAttribute('aria-pressed', 'true')
+    await expect(motor(page)).toHaveAttribute('data-inclinacao', '45', { timeout: 20_000 })
+
+    // desligar volta a ver de cima e esconde os prédios
+    await inclinar(page).click()
+    await expect(motor(page)).toHaveAttribute('data-inclinacao', '0', { timeout: 15_000 })
+    await expect(motor(page)).toHaveAttribute('data-predios', 'nao')
+    expect(erros).toEqual([])
+  })
+
+  test('12. no passo a passo o mapa fica de cima, mesmo com a vista inclinada ligada', async ({ page, context }) => {
+    await prepararRede(context)
+    await abrirNavegacao(page)
+    await page.getByRole('button', { name: 'Seguir passo a passo, sem localização' }).click()
+    await abrirMapa(page)
+    await inclinar(page).click()
+    await expect(inclinar(page)).toHaveAttribute('aria-pressed', 'true')
+    await expect(figura(page)).toHaveAttribute('data-camera', 'enquadrar')
+    await expect(motor(page)).toHaveAttribute('data-inclinacao', '0')
+    await estiloCarregado(page)
+  })
+})
+
+test.describe('vista inclinada no alto contraste do Windows', () => {
+  test('13. inclina, mas sem nenhum prédio em volume; a tela cheia mantém alvos e uma região viva', async ({ page, context }) => {
+    await page.emulateMedia({ forcedColors: 'active' })
+    const erros = errosDaPagina(page)
+    await prepararRede(context)
+    await comecarSimulacao(page)
+    await abrirMapa(page)
+    await inclinar(page).click()
+    await expect(motor(page)).toHaveAttribute('data-inclinacao', '45', { timeout: 15_000 })
+    await expect(motor(page)).toHaveAttribute('data-predios', 'nao')
+    await estiloCarregado(page)
+    await telaCheia(page).click()
+    await expect(sairDaTelaCheia(page)).toBeFocused()
+    await alvosDe44(page, 'tela cheia no alto contraste')
+    await semRolagemHorizontal(page, 'tela cheia no alto contraste')
+    await umaRegiaoViva(page)
+    expect(erros).toEqual([])
+  })
+})
+
+test.describe('vista inclinada com movimento reduzido', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  test('14. a troca é um salto: inclina e volta sem erro', async ({ page, context }) => {
+    const erros = errosDaPagina(page)
+    await prepararRede(context)
+    await comecarSimulacao(page)
+    await abrirMapa(page)
+    await inclinar(page).click()
+    await expect(motor(page)).toHaveAttribute('data-inclinacao', '45', { timeout: 15_000 })
+    await estiloCarregado(page)
+    await inclinar(page).click()
+    await expect(motor(page)).toHaveAttribute('data-inclinacao', '0', { timeout: 15_000 })
+    expect(erros).toEqual([])
+  })
+})
+
+test.describe('mapa em tela cheia', () => {
+  /** Nada do cartão nem da faixa de baixo é cortado: o que não cabe rola, por dentro ou na tela inteira. */
+  async function nadaCortado(page: Page, contexto: string) {
+    const problemas = await page.evaluate(() => {
+      const cheia = document.querySelector<HTMLElement>('.nav-tela--cheia')
+      if (!cheia) return ['sem tela cheia']
+      const achados: string[] = []
+      const rola = (el: HTMLElement) => ['auto', 'scroll'].includes(getComputedStyle(el).overflowY)
+      // o contêiner rola quando o conteúdo não cabe; a faixa de baixo rola por dentro ou cresce inteira
+      if (!rola(cheia)) achados.push('o contêiner não rola')
+      const base = cheia.querySelector<HTMLElement>(':scope > .nav-tela__base')!
+      if (!rola(base) && base.scrollHeight > base.clientHeight + 1) achados.push('a faixa de baixo corta o próprio conteúdo')
+      // nenhum texto do cartão é cortado por uma caixa de altura fixa ou com overflow escondido
+      const painel = cheia.querySelector<HTMLElement>(':scope > .painel')!
+      if (painel.scrollHeight > painel.clientHeight + 1) achados.push('o cartão corta o próprio conteúdo')
+      for (const el of cheia.querySelectorAll<HTMLElement>('.painel *, .nav-tela__base p, .nav-tela__base button')) {
+        const css = getComputedStyle(el)
+        if (css.overflow === 'hidden' || css.textOverflow === 'ellipsis' || css.whiteSpace === 'nowrap') {
+          if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) achados.push('cortado: ' + el.className)
+        }
+        if (el.scrollWidth > cheia.clientWidth + 1) achados.push('mais largo que a tela: ' + el.className)
+      }
+      if (cheia.scrollWidth > cheia.clientWidth + 1) achados.push('rolagem horizontal na tela cheia')
+      return achados
+    })
+    expect(problemas, contexto).toEqual([])
+  }
+
+  test('15. liga, ocupa a tela com o cartão em cima, o mapa no meio e os controles embaixo; sai pelo botão e pelo Esc', async ({ page, context }) => {
+    const erros = errosDaPagina(page)
+    await prepararRede(context)
+    await comecarSimulacao(page)
+    await abrirMapa(page)
+    await estiloCarregado(page)
+    await expect(telaCheia(page)).toHaveAttribute('aria-pressed', 'false')
+    await expect(telaCheia(page)).toHaveText('Mapa em tela cheia: desligado')
+    await expect(sairDaTelaCheia(page)).toHaveCount(0)
+
+    await telaCheia(page).click()
+    // o foco vai para a saída, que fica sempre à vista
+    await expect(sairDaTelaCheia(page)).toBeFocused()
+    await expect(sairDaTelaCheia(page)).toBeInViewport()
+    await expect(telaCheia(page)).toHaveAttribute('aria-pressed', 'true')
+    expect(await conteiner(page).boundingBox()).toEqual({ x: 0, y: 0, width: 320, height: 720 })
+
+    // três faixas, de cima para baixo: cartão, mapa, controles
+    const caixa = async (seletor: string) => (await page.locator(seletor).first().boundingBox())!
+    const cartao = await caixa('.nav-tela--cheia > .painel')
+    const mapa = await caixa('.nav-tela--cheia .mapa-nav__tela')
+    const base = await caixa('.nav-tela--cheia > .nav-tela__base')
+    expect(cartao.y).toBe(0)
+    expect(cartao.y + cartao.height).toBeLessThanOrEqual(mapa.y + 1)
+    expect(mapa.y + mapa.height).toBeLessThanOrEqual(base.y + 1)
+    expect(base.y + base.height).toBeLessThanOrEqual(720 + 1)
+    expect(mapa.height).toBeGreaterThanOrEqual(128)
+    // o cartão não cobre o mapa, e o mapa continua desenhando do tamanho novo
+    await expect(tela(page).locator('canvas')).toBeVisible()
+    await estiloCarregado(page)
+    await expect(page.getByRole('heading', { level: 2, name: /^Passo \d de 5$/ })).toBeInViewport()
+    await expect(page.locator('.navegar__falta')).toContainText(/até o destino\. Passo \d de 5\./)
+
+    // o resto da página fica inerte e a página de trás não rola; a região viva continua anunciando
+    expect(await page.evaluate(() => document.querySelector('header')?.hasAttribute('inert'))).toBe(true)
+    expect(await page.evaluate(() => document.querySelector('[role=status]')?.closest('[inert]') === null)).toBe(true)
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflowY)).toBe('hidden')
+    await expect(regiao(page)).toContainText('Em 50 metros, vire à direita', { timeout: 15_000 })
+
+    // tudo continua alcançável pelo teclado, e o que recebe o foco fica à vista, não atrás do botão de sair
+    for (const nome of ['Repetir', 'Recalcular', 'Pausar', 'Encerrar', 'Esconder o mapa', 'Girar o mapa com a rota', 'Vista inclinada', 'Mapa em tela cheia']) {
+      const botao = page.getByRole('button', { name: nome, exact: true })
+      await botao.focus()
+      await expect(botao).toBeFocused()
+      await expect(botao).toBeInViewport()
+      const sair = (await sairDaTelaCheia(page).boundingBox())!
+      const alvo = (await botao.boundingBox())!
+      expect(alvo.y, nome + ' atrás do botão de sair').toBeGreaterThanOrEqual(sair.y + sair.height - 1)
+    }
+    // a ordem do Tab é a do documento: sair, controles, opções do mapa
+    const ordem = await page.evaluate(() => [...document.querySelectorAll('.nav-tela--cheia button')].map((b) => b.textContent?.trim() ?? ''))
+    expect(ordem[0]).toBe('Sair da tela cheia')
+    expect(ordem.indexOf('Repetir')).toBeLessThan(ordem.indexOf('Encerrar'))
+    expect(ordem.indexOf('Encerrar')).toBeLessThan(ordem.indexOf('Esconder o mapa'))
+    await nadaCortado(page, 'tela cheia a 320 px')
+    await conferir(page, 'tela cheia')
+
+    // Esc sai e o foco fica na alternância
+    await page.keyboard.press('Escape')
+    await expect(conteiner(page)).not.toHaveClass(/nav-tela--cheia/)
+    await expect(telaCheia(page)).toBeFocused()
+    await expect(telaCheia(page)).toHaveAttribute('aria-pressed', 'false')
+    expect(await page.locator('[inert]').count()).toBe(0)
+    await expect(figura(page)).toHaveAttribute('data-fase', 'pronto')
+
+    // de novo, agora saindo pelo botão
+    await telaCheia(page).click()
+    await sairDaTelaCheia(page).click()
+    await expect(telaCheia(page)).toBeFocused()
+    await expect(conteiner(page)).not.toHaveClass(/nav-tela--cheia/)
+    await conferir(page, 'depois da tela cheia')
+    expect(erros).toEqual([])
+  })
+
+  test('16. texto ampliado a 200% e tela baixa: o cartão cresce, o mapa encolhe e nada é cortado', async ({ page, context }) => {
+    await prepararRede(context)
+    await comecarSimulacao(page)
+    await abrirMapa(page)
+    await telaCheia(page).click()
+    await expect(sairDaTelaCheia(page)).toBeFocused()
+    // 320 x 360 px: o mesmo que 640 x 720 com 200% de zoom do navegador (reflow, WCAG 1.4.10)
+    await page.setViewportSize({ width: 320, height: 360 })
+    await nadaCortado(page, 'tela cheia a 320 x 360')
+    await semRolagemHorizontal(page, 'tela cheia a 320 x 360')
+    // e com o texto a 200% (WCAG 1.4.4), por cima disso
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%'
+    })
+    await nadaCortado(page, 'tela cheia com texto a 200%')
+    // o mapa não some: encolhe até o mínimo
+    const mapa = (await page.locator('.nav-tela--cheia .mapa-nav__tela').boundingBox())!
+    expect(mapa.height).toBeGreaterThanOrEqual(128)
+    // o título do cartão, o que falta e a saída continuam alcançáveis rolando
+    for (const alvo of [page.getByRole('heading', { level: 2 }), page.locator('.navegar__falta'), sairDaTelaCheia(page), page.getByRole('button', { name: 'Encerrar' })]) {
+      await alvo.scrollIntoViewIfNeeded()
+      await expect(alvo).toBeInViewport()
+    }
+    await alvosDe44(page, 'tela cheia com texto a 200%')
+    await page.keyboard.press('Escape')
+    await expect(conteiner(page)).not.toHaveClass(/nav-tela--cheia/)
+  })
+
+  test('17. a preferência vale na aba, e na chegada a página volta ao normal', async ({ page, context }) => {
+    await prepararRede(context)
+    await comecarSimulacao(page)
+    await abrirMapa(page)
+    await telaCheia(page).click()
+    await page.reload()
+    await page.getByRole('button', { name: 'Começar' }).click()
+    await expect(conteiner(page)).toHaveClass(/nav-tela--cheia/)
+    await expect(page.getByRole('heading', { level: 2 })).toBeFocused()
+    const chegada = page.getByRole('heading', { level: 2, name: 'Você chegou ao destino' })
+    await expect(chegada).toBeFocused({ timeout: 45_000 })
+    await expect(conteiner(page)).not.toHaveClass(/nav-tela--cheia/)
+    expect(await page.locator('[inert]').count()).toBe(0)
+    await conferir(page, 'chegada depois da tela cheia')
+  })
+})
+
+test.describe('seta da pessoa', () => {
+  test('18. sem bússola (computador) e sem rumo do GPS, a dica diz que a seta segue o sentido da rota', async ({ page, context }) => {
+    const erros = errosDaPagina(page)
+    await prepararRede(context)
+    await comecarSimulacao(page)
+    await abrirMapa(page)
+    await estiloCarregado(page)
+    const dica = page.locator('.mapa-nav__seta')
+    await expect(dica).toHaveAttribute('data-fonte-seta', 'rota', { timeout: 15_000 })
+    await expect(dica).toHaveText(SETA_PELA_ROTA)
+    await expect(dica).toBeVisible()
+    // texto parado: fora de qualquer região viva
+    expect(await dica.evaluate((el) => el.closest('[aria-live], [role=status]') === null)).toBe(true)
+    // a direção nunca vai para o DOM do mapa: só os sinais sem posição (e o centro, só no build de E2E)
+    const atributos = await motor(page).evaluate((el) => Object.keys((el as HTMLElement).dataset).sort())
+    expect(atributos).toEqual(['centro', 'estilo', 'inclinacao', 'predios', 'rumo'])
+    await estiloCarregado(page)
+    expect(erros).toEqual([])
   })
 })
 

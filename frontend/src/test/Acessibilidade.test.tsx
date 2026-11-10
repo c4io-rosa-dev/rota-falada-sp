@@ -4,8 +4,9 @@ import { axe } from 'vitest-axe'
 import App from '../App'
 import { AVISO_PRIVACIDADE, AVISO_PRIVACIDADE_MAPA, TEXTO_MAPA_PRIVACIDADE } from '../componentes/navegacao/textosNavegacao'
 
+// emenda de 10/11/2026 da spec do mapa (decisão do dono): a seta pode usar a bússola, e há duas escolhas novas
 const TEXTO_MAPA =
-  'O mapa é opcional e vem do próprio site, num arquivo só da área coberta. Para desenhar a região em volta de você, o aparelho pede ao site pedaços desse arquivo, e esses pedidos indicam a região. O site não registra esses pedidos e nenhum outro serviço recebe pedido de mapa. A Cloudflare, que hospeda o site, recebe esses pedidos para entregá-los, como qualquer acesso ao site. O mapa pede esses pedaços sem guardá-los no cache do navegador: o que foi visto some quando a aba fecha. As escolhas de mostrar e girar o mapa ficam só nesta aba.'
+  'O mapa é opcional e vem do próprio site, num arquivo só da área coberta. Para desenhar a região em volta de você, o aparelho pede ao site pedaços desse arquivo, e esses pedidos indicam a região. O site não registra esses pedidos e nenhum outro serviço recebe pedido de mapa. A Cloudflare, que hospeda o site, recebe esses pedidos para entregá-los, como qualquer acesso ao site. O mapa pede esses pedaços sem guardá-los no cache do navegador: o que foi visto some quando a aba fecha. A seta que mostra para onde você está virado pode usar a bússola do aparelho: essa direção fica só no aparelho, não é guardada e não é enviada. As escolhas do mapa (mostrar, girar, inclinar e tela cheia) ficam só nesta aba.'
 
 describe('página /acessibilidade', () => {
   it('declara a meta WCAG 2.2 AA, os recursos, as limitações e o contato', async () => {

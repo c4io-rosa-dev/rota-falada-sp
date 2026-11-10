@@ -6,6 +6,10 @@
  * - nenhum pedido a terceiros: o arquivo de tiles, o worker do MapLibre e a letra vêm do próprio site;
  * - a posição nunca desliza: a câmera pula (jumpTo); só o giro anima, 200 ms, e nada anima com
  *   movimento reduzido ou com a aba escondida;
+ * - a vista inclinada (emenda de 10/11/2026, 19.2) é um ângulo fixo de 45°, opcional, e a troca é
+ *   sempre um salto; os prédios em volume só aparecem com ela, e nunca no alto contraste;
+ * - a seta da pessoa (19.4) recebe a direção já escolhida pela casca e só a desenha: a direção
+ *   nunca vai para o DOM nem é guardada além do último número, em memória;
  * - nada focável e nada anunciado: o nome acessível fica na figura da casca (seção 10);
  * - nada guardado: só a última cena, em memória, para reaplicar ao trocar o tema ou voltar à aba.
  *   Os pedaços do arquivo são pedidos com cache 'no-store': o navegador não grava em disco a
@@ -14,8 +18,9 @@
  *
  * Sinais no DOM, sem posição, para os testes de ponta a ponta (o contêiner é aria-hidden por dentro
  * do role="img" da casca): `data-estilo` ('carregando' | 'carregado', depois do style.load e do
- * primeiro idle), `data-erros-mapa` (erros do MapLibre que não são de tile) e `data-rumo` (o rumo
- * real do mapa, em graus inteiros). Só no build de E2E, `data-centro` (o centro arredondado).
+ * primeiro idle), `data-erros-mapa` (erros do MapLibre que não são de tile), `data-rumo` (o rumo
+ * real do mapa, em graus inteiros), `data-inclinacao` (0 ou 45) e `data-predios` ('sim' | 'nao').
+ * Só no build de E2E, `data-centro` (o centro arredondado).
  *
  * Falhas: antes de criar o mapa, chama `aoFalhar(motivo)` e rejeita com ErroMotorMapa (a casca
  * só precisa olhar o aoFalhar; o catch serve para o import que falhar). Depois de criado, um
@@ -26,10 +31,11 @@ import fonteLatinExt from '@fontsource-variable/archivo/files/archivo-latin-ext-
 import { addProtocol, Map as MapaGL, setWorkerUrl, type GeoJSONSource } from 'maplibre-gl'
 import urlDoWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { FetchSource, PMTiles, Protocol } from 'pmtiles'
-import { circuloPrecisao, ZOOM_NAVEGACAO, type Cena, type LonLat } from '../../dados/navegacao/mapaNavegacao'
+import { circuloPrecisao, setaDaPessoa, ZOOM_NAVEGACAO, type Cena, type LonLat } from '../../dados/navegacao/mapaNavegacao'
 import { criarRegua } from '../../dados/navegacao/regua'
 import { CAIXA_AREA, URL_MAPA, ZOOM_MAX, ZOOM_MIN } from './arquivoMapa'
 import {
+  CAMADA_PREDIOS_3D,
   estiloMapaNavegacao,
   PARTE,
   PROP_ENCAIXADA,
@@ -51,7 +57,10 @@ export type OpcoesMotor = {
 }
 
 export type MotorMapa = {
-  atualizar(cena: Cena, girar: boolean): void
+  /** inclinada: a vista de 45° (só no modo seguir; enquadrar fica de cima). */
+  atualizar(cena: Cena, girar: boolean, inclinada?: boolean): void
+  /** Direção da seta da pessoa, em graus (0 = norte); null tira a seta (anel sem seta). */
+  apontar(graus: number | null): void
   trocarTema(tema: Tema): void
   destruir(): void
 }
@@ -74,6 +83,11 @@ const DURACAO_GIRO_MS = 200
 const MARGEM_ENQUADRAR_PX = 24
 /** Fração da altura no padding.top quando a pessoa fica no terço de baixo (mapa girado). */
 const FRACAO_PESSOA_ABAIXO = 0.4
+/**
+ * Ângulo fixo da vista inclinada e teto do mapa (maxPitch): abaixo do limite estável de 60° do
+ * MapLibre, e quanto menor o ângulo, menos tiles entram no horizonte.
+ */
+export const INCLINACAO_GRAUS = 45
 const MARGEM_CAIXA_GRAUS = 0.01
 const PIXEL_RATIO_MAX = 2
 /** Arredondamento das chaves de comparação: 1e-5 grau ≈ 1 m em São Paulo. */
@@ -81,6 +95,8 @@ const CASAS_CHAVE = 5
 
 const CONSULTA_ESCURO = '(prefers-color-scheme: dark)'
 const CONSULTA_CONTRASTE = '(forced-colors: active)'
+/** Quem pede mais contraste não recebe os volumes translúcidos dos prédios. */
+const CONSULTA_MAIS_CONTRASTE = '(prefers-contrast: more)'
 
 /** Cores do tema claro (index.css), para quando os tokens não puderem ser lidos. */
 const CORES_PADRAO: CoresMapa = {
@@ -236,6 +252,7 @@ type Geometria =
   | { type: 'LineString'; coordinates: LonLat[] }
   | { type: 'Polygon'; coordinates: LonLat[][] }
 type Feicao = { type: 'Feature'; properties: Record<string, string | boolean>; geometry: Geometria }
+type DadosFonte = { chave: string; dados: () => Colecao }
 type Colecao = { type: 'FeatureCollection'; features: Feicao[] }
 
 const feicao = (properties: Feicao['properties'], geometry: Geometria): Feicao => ({ type: 'Feature', properties, geometry })
@@ -245,8 +262,9 @@ const chavePonto = (p: LonLat) => `${p[0].toFixed(CASAS_CHAVE)},${p[1].toFixed(C
 const chaveLinha = (l: LonLat[] | null) => (l && l.length > 0 ? `${l.length}:${chavePonto(l[0])}:${chavePonto(l[l.length - 1])}` : '-')
 
 /** Chave e conteúdo de cada fonte: a comparação é por progresso (ponto do corte), manobra e pessoa. */
-function dadosDaCena(cena: Cena): Record<'rota' | 'manobra' | 'pessoa', { chave: string; dados: () => Colecao }> {
+function dadosDaCena(cena: Cena): Record<'rota' | 'manobra' | 'pessoa', DadosFonte> {
   const { andado, restante, manobra, destino, pessoa } = cena
+  const seta = cena.setaManobra
   return {
     rota: {
       chave: `${chaveLinha(andado)}|${chaveLinha(restante)}|${chavePonto(destino)}`,
@@ -258,13 +276,20 @@ function dadosDaCena(cena: Cena): Record<'rota' | 'manobra' | 'pessoa', { chave:
         ]),
     },
     manobra: {
-      chave: manobra ? `${chaveLinha(manobra.trecho)}|${chavePonto(manobra.ponto)}` : '-',
+      chave: manobra ? `${chaveLinha(manobra.trecho)}|${chavePonto(manobra.ponto)}|${seta ? chaveLinha(seta.ponta) : '-'}` : '-',
       dados: () =>
         colecao(
           manobra
             ? [
                 feicao({}, { type: 'LineString', coordinates: manobra.trecho }),
                 feicao({}, { type: 'Point', coordinates: manobra.ponto }),
+                // a seta da virada: haste ao longo da rota e ponta em triângulo (forma, não só cor)
+                ...(seta
+                  ? [
+                      feicao({ [PROP_PARTE]: PARTE.seta }, { type: 'LineString', coordinates: seta.haste }),
+                      feicao({ [PROP_PARTE]: PARTE.seta }, { type: 'Polygon', coordinates: [seta.ponta] }),
+                    ]
+                  : []),
               ]
             : [],
         ),
@@ -280,6 +305,16 @@ function dadosDaCena(cena: Cena): Record<'rota' | 'manobra' | 'pessoa', { chave:
         return colecao([feicao({}, { type: 'Polygon', coordinates: [anel] }), ponto])
       },
     },
+  }
+}
+
+/** A seta da pessoa: um triângulo em metros no ponto dela, ou nada (sem pessoa ou sem direção). */
+function dadosDaSeta(cena: Cena, graus: number | null): DadosFonte {
+  const pessoa = cena.pessoa
+  if (!pessoa || graus === null) return { chave: '-', dados: () => colecao([]) }
+  return {
+    chave: `${chavePonto(pessoa.ponto)}|${Math.round(graus)}`,
+    dados: () => colecao([feicao({}, { type: 'Polygon', coordinates: [setaDaPessoa(pessoa.ponto, graus, criarRegua(pessoa.ponto[1]))] })]),
   }
 }
 
@@ -331,7 +366,7 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
     attributionControl: false,
     fadeDuration: 0,
     pitch: 0,
-    maxPitch: 0,
+    maxPitch: INCLINACAO_GRAUS,
     pixelRatio: Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, PIXEL_RATIO_MAX),
     maxTileCacheSize: 30,
     refreshExpiredTiles: false,
@@ -348,9 +383,13 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
 
   let destruido = false
   let estiloPronto = false
-  let ultima: { cena: Cena; girar: boolean } | null = null
+  let ultima: { cena: Cena; girar: boolean; inclinada: boolean } | null = null
   /** Rumo que a câmera já tem (ou para onde está girando). */
   let rumoAtual = 0
+  /** Inclinação que a câmera já tem: 0 ou INCLINACAO_GRAUS. */
+  let inclinacaoAtual = 0
+  /** Direção da seta da pessoa: só o último número, em memória. */
+  let direcao: number | null = null
   let chaves: Record<string, string> = {}
   let quadro: number | null = null
   /** Centro, margem e rumo da última câmera aplicada no modo seguir; null depois de enquadrar ou congelar. */
@@ -358,6 +397,8 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
   let errosOutros = 0
   el.dataset.estilo = 'carregando'
   el.dataset.rumo = '0'
+  el.dataset.inclinacao = '0'
+  el.dataset.predios = 'nao'
 
   // Vigia de tiles: avisa uma vez se faltam partes (3 erros ou 8 s sem idle depois da 1ª câmera).
   let errosTile = 0
@@ -374,9 +415,31 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
     prazoIdle = null
   }
 
+  /**
+   * Os prédios em volume só aparecem com a vista inclinada, nunca no alto contraste (a camada
+   * nem existe nesse estilo) e nunca para quem pede mais contraste.
+   */
+  function mostrarPredios() {
+    if (destruido || !estiloPronto) return
+    const visivel =
+      inclinacaoAtual > 0 && tema !== 'contraste' && !consultar(CONSULTA_MAIS_CONTRASTE)?.matches && mapa.getLayer(CAMADA_PREDIOS_3D) !== undefined
+    el.dataset.predios = visivel ? 'sim' : 'nao'
+    if (mapa.getLayer(CAMADA_PREDIOS_3D) === undefined) return
+    mapa.setLayoutProperty(CAMADA_PREDIOS_3D, 'visibility', visivel ? 'visible' : 'none')
+  }
+
+  /** A troca de plano é sempre um salto (nunca anima), com ou sem movimento reduzido. */
+  function inclinar(graus: number) {
+    if (graus === inclinacaoAtual) return
+    inclinacaoAtual = graus
+    el.dataset.inclinacao = String(graus)
+    mostrarPredios()
+  }
+
   mapa.on('style.load', () => {
     estiloPronto = true
-    chaves = {} // estilo novo nasce com as fontes vazias
+    chaves = { seta: '-' } // estilo novo nasce com as fontes vazias
+    mostrarPredios()
     agendarDados()
   })
   mapa.on('load', () => calarCanvas(mapa))
@@ -420,7 +483,8 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
   function escreverDados() {
     quadro = null
     if (destruido || !estiloPronto || !ultima || document.hidden) return
-    for (const [id, { chave, dados }] of Object.entries(dadosDaCena(ultima.cena))) {
+    const fontes: Record<string, DadosFonte> = { ...dadosDaCena(ultima.cena), seta: dadosDaSeta(ultima.cena, direcao) }
+    for (const [id, { chave, dados }] of Object.entries(fontes)) {
       if (chaves[id] === chave) continue
       const fonte = mapa.getSource<GeoJSONSource>(id)
       if (!fonte) continue
@@ -441,9 +505,15 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
   }
 
   /** instantaneo: ao voltar à aba, tudo vai num jumpTo só, sem giro animado. */
-  function aplicarCamera(cena: Cena, girar: boolean, instantaneo: boolean) {
+  function aplicarCamera(cena: Cena, girar: boolean, inclinada: boolean, instantaneo: boolean) {
     const camera = cena.camera
+    const inclinacao = inclinada ? INCLINACAO_GRAUS : 0
     if (camera.modo === 'congelar') {
+      // Congelado não mexe no centro, mas a escolha da vista vale agora (o rótulo já diz como está).
+      if (inclinacao !== inclinacaoAtual) {
+        mapa.jumpTo({ pitch: inclinacao })
+        inclinar(inclinacao)
+      }
       // Congelado não mexe no centro. Mas, se a pessoa desligou "Girar", o rótulo já diz
       // "norte para cima": o mapa volta ao norte agora, pela mesma regra do giro.
       if (!girar && rumoAtual !== 0) {
@@ -455,6 +525,11 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
       return
     }
     if (camera.modo === 'enquadrar') {
+      // o passo inteiro é visto de cima: inclinado, o fundo do enquadramento encolheria
+      if (inclinacaoAtual !== 0) {
+        mapa.jumpTo({ pitch: 0 })
+        inclinar(0)
+      }
       mapa.fitBounds(camera.caixa, { animate: false, padding: MARGEM_ENQUADRAR_PX, bearing: 0 })
       rumoAtual = 0
       ultimaCamera = null
@@ -463,14 +538,19 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
     }
     const alvo = girar ? camera.rumo : 0
     const padding = {
-      top: camera.pessoaAbaixo ? Math.round(el.clientHeight * FRACAO_PESSOA_ABAIXO) : 0,
+      // girado ou inclinado, a pessoa fica no terço de baixo: o que vem pela frente ganha a tela
+      top: camera.pessoaAbaixo || inclinada ? Math.round(el.clientHeight * FRACAO_PESSOA_ABAIXO) : 0,
       bottom: 0,
       left: 0,
       right: 0,
     }
-    const posicao = { center: camera.centro, zoom: ZOOM_NAVEGACAO, padding }
+    // a inclinação só entra no salto quando muda: sem animação, com ou sem movimento reduzido
+    const posicao =
+      inclinacao !== inclinacaoAtual || instantaneo
+        ? { center: camera.centro, zoom: ZOOM_NAVEGACAO, padding, pitch: inclinacao }
+        : { center: camera.centro, zoom: ZOOM_NAVEGACAO, padding }
     const mudou = alvo !== rumoAtual
-    const chave = `${chavePonto(camera.centro)}|${padding.top}|${alvo}`
+    const chave = `${chavePonto(camera.centro)}|${padding.top}|${alvo}|${inclinacao}`
     // o tique de 1 s com a pessoa parada não redesenha nada
     if (!instantaneo && !mudou && chave === ultimaCamera) return
     if (instantaneo || (mudou && opcoes.reduzido())) {
@@ -487,12 +567,13 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
     }
     rumoAtual = alvo
     ultimaCamera = chave
+    inclinar(inclinacao)
     armarVigia()
   }
 
   const aoMudarVisibilidade = () => {
     if (destruido || document.hidden || !ultima) return
-    aplicarCamera(ultima.cena, ultima.girar, true)
+    aplicarCamera(ultima.cena, ultima.girar, ultima.inclinada, true)
     agendarDados()
   }
   const aoMudarEsquema = () => {
@@ -504,14 +585,21 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
     (c): c is MediaQueryList => c !== null,
   )
   for (const c of consultas) c.addEventListener('change', aoMudarEsquema)
+  const maisContraste = consultar(CONSULTA_MAIS_CONTRASTE)
+  maisContraste?.addEventListener('change', mostrarPredios)
 
   const motor: MotorMapa = {
-    atualizar(cena, girar) {
+    atualizar(cena, girar, inclinada = false) {
       if (destruido) return
-      ultima = { cena, girar }
+      ultima = { cena, girar, inclinada }
       if (document.hidden) return // guarda só a última; aplica no visibilitychange
-      aplicarCamera(cena, girar, false)
+      aplicarCamera(cena, girar, inclinada, false)
       agendarDados()
+    },
+    apontar(graus) {
+      if (destruido) return
+      direcao = graus === null || !Number.isFinite(graus) ? null : graus
+      agendarDados() // o quadro seguinte reescreve a fonte da seta só se a chave mudou
     },
     trocarTema(novo) {
       if (destruido) return
@@ -525,6 +613,8 @@ export async function criarMotor(el: HTMLElement, opcoes: OpcoesMotor): Promise<
       destruido = true
       document.removeEventListener('visibilitychange', aoMudarVisibilidade)
       for (const c of consultas) c.removeEventListener('change', aoMudarEsquema)
+      maisContraste?.removeEventListener('change', mostrarPredios)
+      direcao = null
       if (quadro !== null) cancelAnimationFrame(quadro)
       quadro = null
       pararPrazoIdle()
