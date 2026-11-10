@@ -1,27 +1,37 @@
 /** Textos fixos da tela de navegação, num lugar só para o preparo e as telas sem GPS dizerem o mesmo. */
 
+/**
+ * Fora da rota, o painel troca a manobra adiante (que não vale mais) por este estado, em destaque,
+ * e pelo que fazer: as mesmas palavras da fala "saiu" e do Repetir.
+ */
+export const PAINEL_FORA = 'Fora da rota'
+export const PAINEL_FORA_O_QUE_FAZER = 'Volte para a rota ou toque em Recalcular.'
+
 /** Avisos de rua que valem com ou sem GPS (inclusive no passo a passo). */
 export const AVISO_CARROS = 'O app não vê carros, semáforos nem obras.'
 export const AVISO_PARE = 'Pare para olhar a tela antes de virar.'
 
 /**
- * Privacidade, sem promessa falsa: cada Recalcular é um POST /api/rotas comum; o servidor
- * consulta o serviço de rotas com a origem arredondada e guarda a rota calculada no cache
- * anônimo (rota_cache) por até 6 horas, como qualquer rota.
- */
-/**
  * Privacidade do mapa da navegação (spec do mapa próprio, seção 11), sem prometer anonimato:
  * os pedidos de pedaços do arquivo indicam a região, o Worker não registra nada e a Cloudflare,
  * que hospeda o site, recebe os pedidos para entregá-los (sem dizer o que ela retém, que não depende
- * do código). Os pedaços vão sem cache HTTP ('no-store'). Também aparece na página Acessibilidade.
+ * do código). Os pedaços vão sem cache HTTP ('no-store'). Versão completa: página Acessibilidade.
  */
 export const TEXTO_MAPA_PRIVACIDADE =
   'O mapa é opcional e vem do próprio site, num arquivo só da área coberta. Para desenhar a região em volta de você, o aparelho pede ao site pedaços desse arquivo, e esses pedidos indicam a região. O site não registra esses pedidos e nenhum outro serviço recebe pedido de mapa. A Cloudflare, que hospeda o site, recebe esses pedidos para entregá-los, como qualquer acesso ao site. O mapa pede esses pedaços sem guardá-los no cache do navegador: o que foi visto some quando a aba fecha. As escolhas de mostrar e girar o mapa ficam só nesta aba.'
 
+/**
+ * Privacidade no preparo, versão curta e sem promessa falsa (a completa fica na página
+ * Acessibilidade). A posição vive só na memória da página, a última leitura e nada mais. Cada
+ * Recalcular é um POST /api/rotas comum: o servidor consulta o serviço de rotas com a origem
+ * arredondada e guarda a rota calculada no cache anônimo (rota_cache) por até 6 horas.
+ */
 export const AVISO_PRIVACIDADE =
-  'Sua localização fica só neste aparelho enquanto você navega. Se você tocar em Recalcular, a posição arredondada (cerca de 11 m) vai ao nosso servidor, que calcula a rota com um serviço de rotas, e a rota calculada fica guardada sem identificação por até 6 horas, como qualquer rota.' +
-  ' ' +
-  TEXTO_MAPA_PRIVACIDADE
+  'Sua posição, a direção e o trajeto ficam só neste aparelho e não são guardados. A posição atual só sai do aparelho quando você toca em Recalcular: vai arredondada (cerca de 11 m) ao nosso servidor e ao serviço de rotas que ele usa, e a nova rota fica guardada sem identificação por até 6 horas.'
+
+/** O mapa, curto: os pedidos indicam a região, o site não os registra e a hospedagem os recebe. */
+export const AVISO_PRIVACIDADE_MAPA =
+  'Se você abrir o mapa, o aparelho pede ao site o desenho da região em volta. O site não registra esses pedidos, mas eles passam pela Cloudflare, que hospeda o site.'
 
 /* Mapa da navegação guiada (spec do mapa próprio, seções 10.1 e 10.2). O mapa é complemento: a voz e o texto continuam valendo. */
 
@@ -64,6 +74,7 @@ export const ANTES_DE_SAIR = [
   AVISO_CARROS,
   'Com a tela apagada ou o celular bloqueado, as instruções param.',
   AVISO_PRIVACIDADE,
+  AVISO_PRIVACIDADE_MAPA,
   'Rotas recalculadas não ficam salvas neste aparelho: ao recarregar a página, volta a rota original.',
 ]
 

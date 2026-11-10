@@ -159,9 +159,10 @@ export function MapaNavegacao({ estado, prefs, aoMudarPrefs }: Props) {
   return (
     <div ref={bloco} className="mapa-nav__bloco">
       <div className="mapa-nav__escolha">
-        {/* rótulo fixo, estado no aria-pressed: o botão não anuncia nada */}
-        <Placa ref={botaoMostrar} pictograma="enquadrar" aria-pressed={prefs.aberto} aria-describedby={dicaMostrar} onClick={alternarMapa}>
-          Mostrar o mapa
+        {/* ação com o rótulo do que faz agora, sem aria-pressed (WCAG 4.1.2): o estado não fica só no
+            fundo e na borda. É o mesmo botão: o foco fica nele ao trocar o rótulo */}
+        <Placa ref={botaoMostrar} pictograma="enquadrar" aria-describedby={dicaMostrar} onClick={alternarMapa}>
+          {prefs.aberto ? 'Esconder o mapa' : 'Mostrar o mapa'}
         </Placa>
         <p id={dicaMostrar} className="campo__dica">
           {DICA_MOSTRAR_MAPA}
@@ -170,8 +171,13 @@ export function MapaNavegacao({ estado, prefs, aoMudarPrefs }: Props) {
 
       {prefs.aberto && comTela && (
         <div className="mapa-nav__escolha">
+          {/* alternância: nome fixo e estado no aria-pressed. O "ligado"/"desligado" escrito é para
+              quem vê (WCAG 1.4.1) e fica fora do nome, que nunca troca junto com o aria-pressed */}
           <Placa aria-pressed={prefs.girar} aria-describedby={dicaGirar} onClick={() => aoMudarPrefs('girar', !prefs.girar)}>
             Girar o mapa com a rota
+            <span className="mapa-nav__ligado" aria-hidden="true">
+              {prefs.girar ? ': ligado' : ': desligado'}
+            </span>
           </Placa>
           <p id={dicaGirar} className="campo__dica">
             {DICA_GIRAR_MAPA}

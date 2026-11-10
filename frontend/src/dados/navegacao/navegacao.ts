@@ -262,7 +262,8 @@ function primeiraLeitura(e: EstadoNavegacao, t: Trajeto, l: LeituraPosicao): Res
   const { estado: acompanhamento, ocorrencias } = registrarLeitura(base, m)
   const passoAtual = Math.max(0, passoEm(t, acompanhamento.progressoMaxM - NAVEGACAO.MARGEM_AVANCO_M))
   const falados = new Set(e.falados)
-  for (let i = 0; i <= passoAtual; i++) falados.add(`entrada:${e.rota.passos[i].ordem}`)
+  // longe da rota, nenhum passo foi dito ainda: as entradas ficam para o "voltou" (com os alertas)
+  if (perto) for (let i = 0; i <= passoAtual; i++) falados.add(`entrada:${e.rota.passos[i].ordem}`)
   const estado: EstadoNavegacao = {
     ...e,
     fase: 'navegando',
@@ -290,7 +291,10 @@ function falaDaOcorrencia(o: Ocorrencia, e: EstadoNavegacao): FalaNavegacao | nu
     case 'saiu':
       return falaSaiu(e.lateralM)
     case 'voltou':
-      return falaVoltou(e.contexto, e.passoAtual, e.faltaM, sinalFraco(e))
+      // `e.falados` ainda é o de antes desta leitura: diz se a entrada do passo já foi dita
+      return falaVoltou(e.contexto, e.passoAtual, e.faltaM, sinalFraco(e), {
+        alertas: !e.falados.has(`entrada:${e.rota.passos[e.passoAtual].ordem}`),
+      })
     case 'sentido_contrario':
       return FALAS_FIXAS.contrario
     case 'chegou':
@@ -327,8 +331,16 @@ function novaLeitura(e: EstadoNavegacao, l: LeituraPosicao): Resultado {
   if (acompanhamento.fora) return { estado, efeitos }
 
   const falados = new Set(estado.falados)
+  const voltou = ocorrencias.includes('voltou')
   const reencaixou = estado.retomando && boa && m.progressoM !== null && m.lateralM <= limiarDesvio(l.precisaoM)
-  if (reencaixou) {
+  if (voltou) {
+    // o "voltou" já diz o passo, o que falta nele e a próxima manobra: a entrada do passo (que diria
+    // o comprimento inteiro) e os marcos já devidos ficam como ditos, para nada contradizer nem repetir
+    for (let i = passoAntes; i <= passoAtual; i++) falados.add(`entrada:${e.rota.passos[i].ordem}`)
+    estado.retomando = false
+    const devidos = marcoDevido(estado.contexto, { indicePasso: passoAtual, faltaM: estado.faltaM, foraDaRota: false }, falados)
+    devidos.marcar.forEach((id) => falados.add(id))
+  } else if (reencaixou) {
     estado.retomando = false
     // a situação já diz o passo: as entradas puladas ficam como ditas
     for (let i = passoAntes + 1; i <= passoAtual; i++) falados.add(`entrada:${e.rota.passos[i].ordem}`)

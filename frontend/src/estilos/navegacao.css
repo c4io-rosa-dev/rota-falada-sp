@@ -112,6 +112,11 @@
   border-radius: 0;
 }
 
+/* fora da rota: o caixilho engrossa junto com o texto em destaque (a cor nunca é o único sinal) */
+.painel--fora {
+  border: 2px solid var(--tinta);
+}
+
 .painel__titulo {
   margin: 0;
   font-size: var(--t-2);

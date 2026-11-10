@@ -169,6 +169,18 @@ export function situacao(c: Contexto, i: number, faltaM: number, sinalFraco: boo
   return `${cabecalho(c, i)} Faltam ${d}${fim}.`
 }
 
+/**
+ * A situação, a próxima manobra ("Depois, vire à esquerda…", nada no último passo) e, se pedido,
+ * os alertas do passo. "Faltam" é sempre o que falta no passo atual até essa manobra.
+ */
+function situacaoEManobra(c: Contexto, i: number, faltaM: number, sinalFraco: boolean, alertas: boolean): string {
+  const partes = [situacao(c, i, faltaM, sinalFraco)]
+  const prox = proximoUtil(c, i)
+  if (prox !== null) partes.push(`Depois, ${instr(c.passos[prox])}.`)
+  if (alertas) partes.push(...alertasFaladosDoPasso(c.passos[i], c.pedido))
+  return partes.join(' ')
+}
+
 export function falaRepetir(
   c: Contexto,
   i: number,
@@ -183,11 +195,7 @@ export function falaRepetir(
       true,
     )
   }
-  const partes = [situacao(c, i, faltaM, op.sinalFraco)]
-  const prox = proximoUtil(c, i)
-  if (prox !== null) partes.push(`Depois, ${instr(c.passos[prox])}.`)
-  partes.push(...alertasFaladosDoPasso(c.passos[i], c.pedido))
-  return instrucao('repetir', partes.join(' '), true)
+  return instrucao('repetir', situacaoEManobra(c, i, faltaM, op.sinalFraco, true), true)
 }
 
 export function falaLonge(lateralM: number): FalaNavegacao {
@@ -202,8 +210,20 @@ export function falaSaiu(lateralM: number): FalaNavegacao {
   )
 }
 
-export function falaVoltou(c: Contexto, i: number, faltaM: number, sinalFraco: boolean): FalaNavegacao {
-  return instrucao('voltou', `Você voltou para a rota. ${situacao(c, i, faltaM, sinalFraco)}`, false)
+/**
+ * Ao voltar para a rota: o que falta no passo atual e a próxima manobra, numa fala só. Quem volta
+ * num passo mais adiante (andou por uma paralela) não ouve a entrada dele ("Siga por" o passo
+ * inteiro, que contradiria o "Faltam"); por isso `alertas` traz os do passo quando a entrada dele
+ * não foi dita. No mesmo passo, os alertas já saíram na entrada e não se repetem.
+ */
+export function falaVoltou(
+  c: Contexto,
+  i: number,
+  faltaM: number,
+  sinalFraco: boolean,
+  op: { alertas?: boolean } = {},
+): FalaNavegacao {
+  return instrucao('voltou', `Você voltou para a rota. ${situacaoEManobra(c, i, faltaM, sinalFraco, op.alertas ?? false)}`, false)
 }
 
 export function falaNovaRota(rota: Pick<RotaOut, 'passos' | 'distancia_m'>, pedido: Exigencia): FalaNavegacao {

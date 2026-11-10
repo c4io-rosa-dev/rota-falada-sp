@@ -157,6 +157,59 @@ describe('começar e primeira leitura', () => {
   })
 })
 
+describe('voltar para a rota num passo mais adiante (andou por uma paralela)', () => {
+  /** Sai da rota no passo 1 (40 m ao norte) e volta para ela no ponto `voltaM` do trajeto. */
+  function saiEVoltaEm(voltaM: number, depois: EventoNavegacao[] = []): Rodada {
+    const fora = deslocar(REGUA_L, pontoAoLongo(TRAJETO, 30), 40, 0)
+    return rodar(comecado(), [
+      { tipo: 'leitura', leitura: leitura(pontoAoLongo(TRAJETO, 0), 1000) },
+      { tipo: 'leitura', leitura: leitura(pontoAoLongo(TRAJETO, 20), 2000) },
+      ...[0, 1, 2].map((i): EventoNavegacao => ({ tipo: 'leitura', leitura: leitura(deslocar(REGUA_L, fora, 0, i * 5), 3000 + i * 1000) })),
+      { tipo: 'leitura', leitura: leitura(pontoAoLongo(TRAJETO, voltaM), 6000) },
+      ...depois,
+    ])
+  }
+
+  it('fala só "voltou", com a distância que falta no passo e a próxima manobra; nunca "Siga por" o passo inteiro', () => {
+    const r = saiEVoltaEm(140)
+    const saiu = r.falas.indexOf('saiu')
+    expect(saiu).toBeGreaterThan(0)
+    expect(r.estado.passoAtual).toBe(1)
+    expect(r.falas.slice(saiu + 1)).toEqual(['voltou'])
+    expect(r.textos.at(-1)).toBe(
+      'Você voltou para a rota. Passo 2 de 5, Rua Augusta. Faltam 60 metros. Depois, vire à esquerda em direção a Rua Peixoto Gomide.',
+    )
+    expect(r.textos.slice(saiu + 1).join(' ')).not.toMatch(/Siga por/)
+  })
+
+  it('a entrada do passo não sai depois, e o marco de 50 m continua valendo', () => {
+    const r = saiEVoltaEm(140, [{ tipo: 'leitura', leitura: leitura(pontoAoLongo(TRAJETO, 150), 7000) }])
+    expect(r.falas.slice(r.falas.indexOf('voltou') + 1)).toEqual(['2:aprox'])
+  })
+
+  it('com o marco já devido na volta, ele não repete a distância logo depois do "voltou"', () => {
+    const r = saiEVoltaEm(150, [{ tipo: 'leitura', leitura: leitura(pontoAoLongo(TRAJETO, 155), 7000) }])
+    expect(r.falas.slice(r.falas.indexOf('saiu') + 1)).toEqual(['voltou'])
+    expect(r.textos.at(-1)).toMatch(/Faltam 50 metros\. Depois, vire à esquerda/)
+  })
+
+  it('voltando num passo com alertas que ainda não foram ditos, eles vêm junto', () => {
+    // passo 5 (degrau, guia sem rebaixamento): a entrada dele nunca foi dita
+    const r = saiEVoltaEm(250)
+    expect(r.falas.slice(r.falas.indexOf('saiu') + 1)).toEqual(['voltou'])
+    expect(r.textos.at(-1)).toBe(
+      'Você voltou para a rota. Passo 5 de 5, Alameda Santos. Faltam 60 metros para o destino. Atenção: degrau. Guia sem rebaixamento.',
+    )
+  })
+
+  it('voltando no mesmo passo, os alertas já ditos na entrada não se repetem', () => {
+    const r = saiEVoltaEm(40)
+    expect(r.textos.at(-1)).toBe(
+      'Você voltou para a rota. Passo 1 de 5, Alameda Jaú. Faltam 80 metros. Depois, vire à direita em direção a Rua Augusta.',
+    )
+  })
+})
+
 describe('cenários simulados contra o reducer (semente 1)', () => {
   it('reto: a sequência exata de falas, sensores parados e fase chegou', () => {
     const r = rodar(comecado(), eventosDoCenario('reto'))

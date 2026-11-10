@@ -232,7 +232,8 @@ describe('preparo', () => {
       'A posição pode errar alguns metros. Pare para olhar a tela antes de virar.',
       'O app não vê carros, semáforos nem obras.',
       'Com a tela apagada ou o celular bloqueado, as instruções param.',
-      'Sua localização fica só neste aparelho enquanto você navega. Se você tocar em Recalcular, a posição arredondada (cerca de 11 m) vai ao nosso servidor, que calcula a rota com um serviço de rotas, e a rota calculada fica guardada sem identificação por até 6 horas, como qualquer rota. O mapa é opcional e vem do próprio site, num arquivo só da área coberta. Para desenhar a região em volta de você, o aparelho pede ao site pedaços desse arquivo, e esses pedidos indicam a região. O site não registra esses pedidos e nenhum outro serviço recebe pedido de mapa. A Cloudflare, que hospeda o site, recebe esses pedidos para entregá-los, como qualquer acesso ao site. O mapa pede esses pedaços sem guardá-los no cache do navegador: o que foi visto some quando a aba fecha. As escolhas de mostrar e girar o mapa ficam só nesta aba.',
+      'Sua posição, a direção e o trajeto ficam só neste aparelho e não são guardados. A posição atual só sai do aparelho quando você toca em Recalcular: vai arredondada (cerca de 11 m) ao nosso servidor e ao serviço de rotas que ele usa, e a nova rota fica guardada sem identificação por até 6 horas.',
+      'Se você abrir o mapa, o aparelho pede ao site o desenho da região em volta. O site não registra esses pedidos, mas eles passam pela Cloudflare, que hospeda o site.',
       'Rotas recalculadas não ficam salvas neste aparelho: ao recarregar a página, volta a rota original.',
     ])
     const voz = screen.getByRole('button', { name: 'Voz do app' })
@@ -307,6 +308,41 @@ describe('começar e acompanhar', () => {
     expect(itens.map((li) => li.textContent)).toEqual(['Degrau', 'Guia sem rebaixamento'])
     expect(itens[0].querySelector('[data-pictograma="degrau"]')).not.toBeNull()
     expect(itens[1].querySelector('[data-pictograma="alerta"]')).not.toBeNull()
+  })
+
+  it('fora da rota, o painel diz isso em destaque e o que fazer, sem a manobra antiga; ao voltar, a manobra volta', async () => {
+    gravarRota()
+    const gps = instalarGps()
+    instalarTela()
+    const user = userEvent.setup()
+    renderizar()
+    await comecar(user)
+    await gps.enviar(PONTOS_L.A)
+    await gps.enviar(ao(20))
+    const painel = () => screen.getByRole('region', { name: /^Passo \d de 5$/ })
+    expect(within(painel()).getByText('Vire à direita')).toBeInTheDocument()
+
+    const fora = deslocar(REGUA_L, ao(30), 40, 0)
+    for (let i = 0; i < 3; i++) await gps.enviar(deslocar(REGUA_L, fora, 0, i * 5))
+    await waitFor(() => expect(regiao()).toHaveTextContent(/Você saiu da rota/))
+    // o lugar da manobra (a letra maior do painel) passa a dizer o estado; a manobra e a distância até ela somem
+    expect(painel().querySelector('.painel__acao')).toHaveTextContent(/^Fora da rota$/)
+    expect(within(painel()).getByText('Volte para a rota ou toque em Recalcular.')).toBeInTheDocument()
+    expect(within(painel()).getByText('a cerca de 40 m da rota')).toBeInTheDocument()
+    expect(within(painel()).queryByText('Vire à direita')).toBeNull()
+    expect(within(painel()).queryByText('Rua Augusta')).toBeNull()
+    expect(within(painel()).queryByText(/^em /)).toBeNull()
+    // o estado aparece uma vez só, e a linha de baixo não diz "Na rota"
+    expect(within(painel()).getAllByText('Fora da rota')).toHaveLength(1)
+    expect(within(painel()).queryByText('Na rota')).toBeNull()
+
+    await gps.enviar(ao(40))
+    await waitFor(() => expect(regiao()).toHaveTextContent(/Você voltou para a rota/))
+    expect(within(painel()).getByText('Vire à direita')).toBeInTheDocument()
+    expect(within(painel()).getByText('em 80 m')).toBeInTheDocument()
+    expect(within(painel()).getByText('Na rota')).toBeInTheDocument()
+    expect(within(painel()).queryByText('Fora da rota')).toBeNull()
+    expect(within(painel()).queryByText('Volte para a rota ou toque em Recalcular.')).toBeNull()
   })
 
   it('com sinal fraco, a distância diz "cerca de"', async () => {
@@ -1039,7 +1075,8 @@ describe('cada cenário simulado na página (?simular=, relógio falso, voz do a
 })
 
 describe('mapa da navegação na página (spec do mapa próprio, seção 10.4)', () => {
-  const botaoMapa = () => screen.queryByRole('button', { name: 'Mostrar o mapa' })
+  /** O mesmo botão: "Mostrar o mapa" fechado, "Esconder o mapa" aberto (ação, sem aria-pressed). */
+  const botaoMapa = () => screen.queryByRole('button', { name: /^(Mostrar|Esconder) o mapa$/ })
   /** a vem antes de b na ordem do documento (e, portanto, na leitura e no Tab). */
   const antes = (a: Element, b: Element) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
 
@@ -1058,7 +1095,7 @@ describe('mapa da navegação na página (spec do mapa próprio, seção 10.4)',
     await screen.findByRole('button', { name: 'Começar' })
     expect(botaoMapa()).toBeNull()
     await comecar(user)
-    expect(botaoMapa()).toHaveAttribute('aria-pressed', 'false')
+    expect(botaoMapa()).toHaveAccessibleName('Mostrar o mapa')
     expect(screen.queryByRole('img', { name: /^Mapa da rota a pé/ })).toBeNull()
     await gps.enviar(PONTOS_L.A)
     expect(botaoMapa()).toBeInTheDocument()
@@ -1119,7 +1156,7 @@ describe('mapa da navegação na página (spec do mapa próprio, seção 10.4)',
 
     await user.click(botaoMapa()!)
     expect(gravarPreferenciaMapa).toHaveBeenLastCalledWith('aberto', true)
-    expect(botaoMapa()).toHaveAttribute('aria-pressed', 'true')
+    expect(botaoMapa()).toHaveAccessibleName('Esconder o mapa')
     await waitFor(() => expect(mapa.motores).toHaveLength(1))
     // o foco fica no botão: abrir o mapa não leva a pessoa a lugar nenhum
     expect(botaoMapa()).toHaveFocus()
@@ -1148,7 +1185,7 @@ describe('mapa da navegação na página (spec do mapa próprio, seção 10.4)',
     renderizar()
     await comecar(user)
     await gps.enviar(PONTOS_L.A)
-    expect(botaoMapa()).toHaveAttribute('aria-pressed', 'true')
+    expect(botaoMapa()).toHaveAccessibleName('Esconder o mapa')
     expect(await screen.findByRole('button', { name: 'Girar o mapa com a rota' })).toHaveAttribute('aria-pressed', 'true')
     await waitFor(() => expect(mapa.motores).toHaveLength(1))
     // o motor recebe as leituras com a escolha de girar

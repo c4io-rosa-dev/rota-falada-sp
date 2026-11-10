@@ -27,7 +27,8 @@ const SIMULACAO = '/rota/navegar?simular=reto&ritmo=20'
 const COORDENADA = [/-2[34]\.\d{3,}/, /-46\.\d{3,}/]
 
 const regiao = (page: Page) => page.getByRole('status')
-const mostrar = (page: Page) => page.getByRole('button', { name: 'Mostrar o mapa' })
+/** O mesmo botão: "Mostrar o mapa" fechado, "Esconder o mapa" aberto (ação, sem aria-pressed). */
+const mostrar = (page: Page) => page.getByRole('button', { name: /^(Mostrar|Esconder) o mapa$/ })
 const girar = (page: Page) => page.getByRole('button', { name: 'Girar o mapa com a rota' })
 const figura = (page: Page) => page.locator('figure.mapa-nav')
 const tela = (page: Page) => page.locator('figure.mapa-nav [role=img]')
@@ -54,7 +55,7 @@ async function comecarSimulacao(page: Page) {
 /** Abre pelo botão e espera o motor existir (data-fase="pronto"). */
 async function abrirMapa(page: Page) {
   await mostrar(page).click()
-  await expect(mostrar(page)).toHaveAttribute('aria-pressed', 'true')
+  await expect(mostrar(page)).toHaveAccessibleName('Esconder o mapa')
   await expect(figura(page)).toHaveAttribute('data-fase', 'pronto', { timeout: 20_000 })
 }
 
@@ -88,7 +89,8 @@ test.describe('mapa da navegação guiada', () => {
     const { mapa, terceiros } = await prepararRede(context)
     await comecarSimulacao(page)
     await expect(mostrar(page)).toBeVisible()
-    await expect(mostrar(page)).toHaveAttribute('aria-pressed', 'false')
+    await expect(mostrar(page)).toHaveAccessibleName('Mostrar o mapa')
+    await expect(mostrar(page)).not.toHaveAttribute('aria-pressed')
     await expect(girar(page)).toHaveCount(0)
     await expect(figura(page)).toHaveCount(0)
     // algumas leituras da simulação passam com o mapa fechado
@@ -130,15 +132,18 @@ test.describe('mapa da navegação guiada', () => {
     await comecarSimulacao(page)
     await abrirMapa(page)
     await expect(girar(page)).toHaveAttribute('aria-pressed', 'false')
+    // o estado também escrito à vista, fora do nome (que não muda)
+    await expect(girar(page)).toHaveText('Girar o mapa com a rota: desligado')
     await girar(page).click()
     await expect(girar(page)).toHaveAttribute('aria-pressed', 'true')
+    await expect(girar(page)).toHaveText('Girar o mapa com a rota: ligado')
     await expect(tela(page)).toHaveAttribute('aria-label', ROTULO_MAPA_GIRADO + ROTULO_MAPA_FIM)
 
     // recarregar a mesma aba: as duas escolhas continuam; o mapa abre sozinho e o foco fica no h2
     await page.reload()
     await page.getByRole('button', { name: 'Começar' }).click()
     await expect(regiao(page)).toContainText('Passo 1 de 5.')
-    await expect(mostrar(page)).toHaveAttribute('aria-pressed', 'true')
+    await expect(mostrar(page)).toHaveAccessibleName('Esconder o mapa')
     await expect(girar(page)).toHaveAttribute('aria-pressed', 'true')
     await expect(tela(page)).toHaveAttribute('aria-label', ROTULO_MAPA_GIRADO + ROTULO_MAPA_FIM)
     await expect(figura(page)).toHaveAttribute('data-fase', 'pronto', { timeout: 20_000 })
@@ -150,7 +155,7 @@ test.describe('mapa da navegação guiada', () => {
       await prepararRede(outro)
       const nova = await outro.newPage()
       await comecarSimulacao(nova)
-      await expect(mostrar(nova)).toHaveAttribute('aria-pressed', 'false')
+      await expect(mostrar(nova)).toHaveAccessibleName('Mostrar o mapa')
       await expect(figura(nova)).toHaveCount(0)
       await mostrar(nova).click()
       await expect(girar(nova)).toHaveAttribute('aria-pressed', 'false')
@@ -265,12 +270,16 @@ test.describe('mapa da navegação guiada', () => {
     const topoDoMapa = (await page.locator('.mapa-nav__bloco').boundingBox())!.y
     expect(await fundo('Pausar')).toBeLessThanOrEqual(topoDoMapa)
     expect(await fundo('Recalcular')).toBeLessThanOrEqual(topoDoMapa)
-    // na ordem do documento (leitura e Tab), os controles vêm antes de "Mostrar o mapa"
+    // na ordem do documento (leitura e Tab), os controles vêm antes do botão do mapa (aberto, "Esconder o mapa")
     const ordem = await page.evaluate(() => {
       const botoes = [...document.querySelectorAll('button')].map((b) => b.textContent?.trim() ?? '')
-      return { pausar: botoes.indexOf('Pausar'), recalcular: botoes.indexOf('Recalcular'), mapa: botoes.indexOf('Mostrar o mapa') }
+      return {
+        pausar: botoes.indexOf('Pausar'),
+        recalcular: botoes.indexOf('Recalcular'),
+        mapa: botoes.findIndex((t) => /^(Mostrar|Esconder) o mapa$/.test(t)),
+      }
     })
-    expect(Math.min(ordem.recalcular, ordem.pausar)).toBeGreaterThanOrEqual(0)
+    expect(Math.min(ordem.recalcular, ordem.pausar, ordem.mapa)).toBeGreaterThanOrEqual(0)
     expect(ordem.recalcular).toBeLessThan(ordem.mapa)
     expect(ordem.pausar).toBeLessThan(ordem.mapa)
   })

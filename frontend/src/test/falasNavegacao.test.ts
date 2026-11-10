@@ -275,12 +275,18 @@ describe('falas da navegação', () => {
       urgente: true,
       tipo: 'instrucao',
     })
+    // a distância que falta até a próxima manobra, e qual é ela (como no Repetir)
     expect(anotar(falaVoltou(C, 1, 42, false))).toEqual({
       id: 'voltou',
-      texto: 'Você voltou para a rota. Passo 2 de 5, Rua Augusta. Faltam 40 metros.',
+      texto: 'Você voltou para a rota. Passo 2 de 5, Rua Augusta. Faltam 40 metros. Depois, vire à esquerda em direção a Rua Peixoto Gomide.',
       urgente: false,
       tipo: 'instrucao',
     })
+    // os alertas do passo só quando a entrada dele não foi dita (voltou num passo mais adiante)
+    expect(anotar(falaVoltou(C, 4, 42, false)).texto).toBe('Você voltou para a rota. Passo 5 de 5, Alameda Santos. Faltam 40 metros para o destino.')
+    expect(anotar(falaVoltou(C, 4, 42, false, { alertas: true })).texto).toBe(
+      'Você voltou para a rota. Passo 5 de 5, Alameda Santos. Faltam 40 metros para o destino. Atenção: degrau. Guia sem rebaixamento.',
+    )
   })
 
   it('falaNovaRota', () => {

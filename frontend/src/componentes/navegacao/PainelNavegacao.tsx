@@ -5,6 +5,7 @@ import { avisoDaProcura, type EstadoNavegacao } from '../../dados/navegacao/nave
 import { letreiroDoPasso, separarInstrucao, textoInstrucao } from '../../dados/passo'
 import { Pictograma } from '../Pictograma'
 import type { NomePictograma } from '../pictogramas'
+import { PAINEL_FORA, PAINEL_FORA_O_QUE_FAZER } from './textosNavegacao'
 
 type Props = {
   estado: EstadoNavegacao
@@ -29,8 +30,9 @@ function linhaDeEstado(e: EstadoNavegacao): string | null {
   if (e.fase !== 'navegando') return null
   if (e.recalculando) return 'Calculando nova rota'
   if (e.acompanhamento.sinal === 'sem_sinal') return 'Sem sinal de localização'
-  if (e.acompanhamento.fora) return 'Fora da rota'
   if (e.acompanhamento.sinal === 'fraco') return 'Sinal fraco, a posição pode errar'
+  // fora da rota, o estado já está em destaque no lugar da manobra: aqui não se repete
+  if (e.acompanhamento.fora) return null
   return 'Na rota'
 }
 
@@ -49,7 +51,10 @@ export function PainelNavegacao({ estado: e, telaPodeApagar, refTitulo }: Props)
   const passos = e.rota.passos
   const atual = passos[e.passoAtual]
   const passoAPasso = e.fase === 'passo_a_passo'
-  const comPasso = e.fase === 'navegando' || passoAPasso || (e.fase === 'pausada' && e.faseAntesDaPausa === 'navegando')
+  const acompanhando = e.fase === 'navegando' || (e.fase === 'pausada' && e.faseAntesDaPausa === 'navegando')
+  const comPasso = acompanhando || passoAPasso
+  // fora da rota a manobra adiante não vale mais (e induziria ao erro): o lugar dela diz o estado
+  const fora = acompanhando && e.acompanhamento.fora
 
   // a ação é a do próximo passo útil (a manobra adiante); no passo a passo, a do próprio passo
   const prox = passoAPasso ? e.passoAtual : proximoUtil(e.contexto, e.passoAtual)
@@ -66,7 +71,7 @@ export function PainelNavegacao({ estado: e, telaPodeApagar, refTitulo }: Props)
   const procura = avisoDaProcura(e)
 
   return (
-    <section className="painel" aria-labelledby="painel-titulo">
+    <section className={fora ? 'painel painel--fora' : 'painel'} aria-labelledby="painel-titulo">
       {/* na chegada o foco vem para cá e a região não anuncia: a ressalva vai junto, como descrição */}
       <h2
         id="painel-titulo"
@@ -81,7 +86,17 @@ export function PainelNavegacao({ estado: e, telaPodeApagar, refTitulo }: Props)
       {chegou && <p id="chegada-ressalva">A posição pode errar alguns metros; confira pelo entorno.</p>}
       {procura && <p className="painel__procura">{procura.texto}</p>}
 
-      {comPasso && (
+      {fora && (
+        <>
+          <p className="painel__acao letreiro">{PAINEL_FORA}</p>
+          <p className="painel__rua">{PAINEL_FORA_O_QUE_FAZER}</p>
+          {Number.isFinite(e.lateralM) && (
+            <p className="painel__distancia medida">{`a cerca de ${distanciaNaTela(e.lateralM)} da rota`}</p>
+          )}
+        </>
+      )}
+
+      {comPasso && !fora && (
         <>
           <p className="painel__acao letreiro">{acao}</p>
           <p className="painel__rua">{letreiroDoPasso(alvo)}</p>

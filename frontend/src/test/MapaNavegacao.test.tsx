@@ -103,7 +103,8 @@ function Tela({ e, inicial = FECHADO, aoMudar, anunciar }: { e: EstadoNavegacao;
   )
 }
 
-const mostrar = () => screen.getByRole('button', { name: 'Mostrar o mapa' })
+/** O mesmo botão, com o rótulo do que ele faz: "Mostrar o mapa" fechado, "Esconder o mapa" aberto. */
+const mostrar = () => screen.getByRole('button', { name: /^(Mostrar|Esconder) o mapa$/ })
 const girar = () => screen.queryByRole('button', { name: 'Girar o mapa com a rota' })
 const figura = () => document.querySelector<HTMLElement>('figure.mapa-nav')
 const rotuloNorte = ROTULO_MAPA_NORTE + ROTULO_MAPA_FIM
@@ -124,14 +125,15 @@ beforeEach(() => {
 
 describe('MapaNavegacao', () => {
   // ordem importa: o chunk só falha na primeira carga do arquivo
-  it('começa fechado: nada importado, nenhuma figura, botão com aria-pressed falso e a dica', () => {
+  it('começa fechado: nada importado, nenhuma figura, botão "Mostrar o mapa" (ação, sem aria-pressed) e a dica', () => {
     render(<Tela e={estado('navegando', 10)} />)
     expect(sim.cargas).toBe(0)
     expect(figura()).toBeNull()
     expect(screen.queryByRole('img')).toBeNull()
     expect(girar()).toBeNull()
     const botao = mostrar()
-    expect(botao).toHaveAttribute('aria-pressed', 'false')
+    expect(botao).toHaveAccessibleName('Mostrar o mapa')
+    expect(botao).not.toHaveAttribute('aria-pressed')
     expect(botao).toHaveAccessibleDescription(DICA_MOSTRAR_MAPA)
   })
 
@@ -171,12 +173,12 @@ describe('MapaNavegacao', () => {
     expect(figura()).toHaveAttribute('data-camera', 'seguir')
   })
 
-  it('carregando mostra o texto sem região viva; o botão fica pressionado', async () => {
+  it('carregando mostra o texto sem região viva; o botão já diz "Esconder o mapa"', async () => {
     sim.proximo = 'pendente'
     const anunciar = vi.fn()
     render(<Tela e={estado('navegando', 10)} anunciar={anunciar} />)
     await userEvent.click(mostrar())
-    expect(mostrar()).toHaveAttribute('aria-pressed', 'true')
+    expect(mostrar()).toHaveAccessibleName('Esconder o mapa')
     expect(await screen.findByText(MAPA_CARREGANDO)).toBeInTheDocument()
     expect(figura()).toHaveAttribute('data-fase', 'carregando')
     await act(async () => sim.liberar?.())
@@ -251,15 +253,24 @@ describe('MapaNavegacao', () => {
     expect(anunciar).not.toHaveBeenCalled()
   })
 
-  it('rótulos fixos: aria-pressed e aria-describedby nos dois botões; "Girar" só aberto e começa falso', async () => {
+  it('"Mostrar o mapa" vira "Esconder o mapa", sem aria-pressed; "Girar" tem nome fixo, aria-pressed e o estado escrito à vista', async () => {
+    // WCAG 1.4.1 e 4.1.2: o estado não fica só no fundo e na borda. Mostrar/esconder é ação com o
+    // rótulo do que faz; "Girar" é alternância: nome fixo + aria-pressed, e o "ligado"/"desligado"
+    // visível fica fora do nome (aria-hidden), para o nome nunca trocar junto com o aria-pressed
     render(<Tela e={estado('navegando', 10)} />)
     expect(girar()).toBeNull()
     await abrirPronto()
-    expect(mostrar()).toHaveAttribute('aria-pressed', 'true')
+    expect(mostrar()).toHaveAccessibleName('Esconder o mapa')
+    expect(mostrar()).not.toHaveAttribute('aria-pressed')
     expect(mostrar()).toHaveAccessibleDescription(DICA_MOSTRAR_MAPA)
     const g = girar()!
     expect(g).toHaveAttribute('aria-pressed', 'false')
     expect(g).toHaveAccessibleDescription(DICA_GIRAR_MAPA)
+    expect(g).toHaveTextContent(/^Girar o mapa com a rota: desligado$/)
+    await userEvent.click(g)
+    expect(girar()).toHaveAttribute('aria-pressed', 'true')
+    expect(girar()).toHaveAccessibleName('Girar o mapa com a rota')
+    expect(girar()).toHaveTextContent(/^Girar o mapa com a rota: ligado$/)
   })
 
   it('trocar "Girar" muda o aria-label, chama aoMudarPrefs e repassa ao motor; o indicador de norte segue o rumo real do mapa', async () => {
@@ -361,7 +372,7 @@ describe('MapaNavegacao', () => {
     expect(c.motor.destruir).toHaveBeenCalledTimes(1)
     expect(figura()).toBeNull()
     expect(girar()).toBeNull()
-    expect(mostrar()).toHaveAttribute('aria-pressed', 'false')
+    expect(mostrar()).toHaveAccessibleName('Mostrar o mapa')
   })
 
   it('desmontar destrói o motor', async () => {
