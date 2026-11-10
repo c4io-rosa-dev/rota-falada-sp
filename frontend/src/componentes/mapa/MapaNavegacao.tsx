@@ -7,6 +7,7 @@ import {
   ATRIBUICAO_MAPA,
   BUSSOLA_NEGADA,
   DICA_GIRAR_MAPA,
+  DICA_GIRAR_PELA_INCLINADA,
   DICA_INCLINAR_MAPA,
   DICA_MOSTRAR_MAPA,
   DICA_TELA_CHEIA,
@@ -120,6 +121,8 @@ export function MapaNavegacao({ estado, prefs, aoMudarPrefs, children }: Props) 
   const mudarPrefs = useRef(aoMudarPrefs)
 
   const inclinada = prefs.inclinada === true
+  // inclinado e com o norte fixo, quem anda para o sul vê o que ficou para trás: a vista inclinada sempre gira com a rota
+  const girar = prefs.girar || inclinada
   const cheia = prefs.aberto && prefs.cheia === true
 
   useEffect(() => {
@@ -227,16 +230,16 @@ export function MapaNavegacao({ estado, prefs, aoMudarPrefs, children }: Props) 
     const m = motor.current
     const a = apoio.current
     if (!prefs.aberto || fase !== 'pronto' || !m || !a) return
-    const cena = a.cenaDoMapa(estado, prefs, rumoAplicado.current)
+    const cena = a.cenaDoMapa(estado, { ...prefs, girar }, rumoAplicado.current)
     if (!cena) return
     rumoAplicado.current = cena.rumoAplicado
-    m.atualizar(cena, prefs.girar, inclinada)
+    m.atualizar(cena, girar, inclinada)
     // a mesma leitura confere a seta: a bússola que parou há mais de 3 s cai para a caminhada ou a rota
     ultimoEstado.current = estado
     aplicarSeta()
     // direto no DOM, sem novo render: atributo de apoio (E2E). O indicador de norte segue o motor.
     if (figura.current) figura.current.dataset.camera = cena.camera.modo
-  }, [estado, prefs, fase, inclinada, aplicarSeta])
+  }, [estado, prefs, fase, girar, inclinada, aplicarSeta])
 
   // Tela cheia: ao entrar, o foco vai para "Sair da tela cheia"; ao sair, fica na alternância.
   // Na montagem (preferência vinda da aba) o foco não é mexido.
@@ -283,7 +286,7 @@ export function MapaNavegacao({ estado, prefs, aoMudarPrefs, children }: Props) 
   }
 
   const comTela = fase === 'carregando' || fase === 'pronto'
-  const rotulo = (prefs.girar ? ROTULO_MAPA_GIRADO : ROTULO_MAPA_NORTE) + (inclinada ? ROTULO_MAPA_INCLINADO : '') + ROTULO_MAPA_FIM
+  const rotulo = (girar ? ROTULO_MAPA_GIRADO : ROTULO_MAPA_NORTE) + (inclinada ? ROTULO_MAPA_INCLINADO : '') + ROTULO_MAPA_FIM
   // a seta só existe quando há uma pessoa no mapa (no passo a passo e na procura sem leitura, não há)
   const comPessoa = estado.fase !== 'passo_a_passo' && !(estado.fase === 'procurando' && !estado.ultimaLeitura)
 
@@ -314,12 +317,21 @@ export function MapaNavegacao({ estado, prefs, aoMudarPrefs, children }: Props) 
               <div className="mapa-nav__escolha">
                 {/* alternância: nome fixo e estado no aria-pressed. O "ligado"/"desligado" escrito é para
                     quem vê (WCAG 1.4.1) e fica fora do nome, que nunca troca junto com o aria-pressed */}
-                <Placa aria-pressed={prefs.girar} aria-describedby={dicaGirar} onClick={() => aoMudarPrefs('girar', !prefs.girar)}>
+                {/* com a vista inclinada o giro é obrigatório: o botão mostra ligado e não desliga (aria-disabled
+                    mantém o foco nele, e a dica diz por quê) */}
+                <Placa
+                  aria-pressed={girar}
+                  aria-disabled={inclinada || undefined}
+                  aria-describedby={dicaGirar}
+                  onClick={() => {
+                    if (!inclinada) aoMudarPrefs('girar', !prefs.girar)
+                  }}
+                >
                   Girar o mapa com a rota
-                  <Ligado ligado={prefs.girar} />
+                  <Ligado ligado={girar} />
                 </Placa>
                 <p id={dicaGirar} className="campo__dica">
-                  {DICA_GIRAR_MAPA}
+                  {inclinada ? DICA_GIRAR_PELA_INCLINADA : DICA_GIRAR_MAPA}
                 </p>
               </div>
 

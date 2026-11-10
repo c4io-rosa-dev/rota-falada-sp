@@ -13,10 +13,13 @@ import FONTE_BUSSOLA from '../componentes/mapa/useBussola.ts?raw'
 import FONTE_TELA_CHEIA from '../componentes/navegacao/useTelaCheia.ts?raw'
 import {
   BUSSOLA_NEGADA,
+  DICA_GIRAR_MAPA,
+  DICA_GIRAR_PELA_INCLINADA,
   DICA_INCLINAR_MAPA,
   DICA_TELA_CHEIA,
   DICA_USAR_BUSSOLA,
   ROTULO_MAPA_FIM,
+  ROTULO_MAPA_GIRADO,
   ROTULO_MAPA_INCLINADO,
   ROTULO_MAPA_NORTE,
   SETA_PELA_BUSSOLA,
@@ -248,12 +251,28 @@ describe('nível 2: vista inclinada', () => {
     expect(botao('Vista inclinada')).toHaveTextContent(/^Vista inclinada: ligado$/)
     expect(botao('Vista inclinada')).toHaveFocus()
     expect(motor().atualizar.mock.calls.at(-1)![2]).toBe(true)
-    expect(screen.getByRole('img')).toHaveAttribute('aria-label', ROTULO_MAPA_NORTE + ROTULO_MAPA_INCLINADO + ROTULO_MAPA_FIM)
+    // inclinada, o mapa sempre gira com a rota: com o norte fixo, quem anda para o sul veria o que ficou para trás
+    expect(motor().atualizar.mock.calls.at(-1)![1]).toBe(true)
+    expect(screen.getByRole('img')).toHaveAttribute('aria-label', ROTULO_MAPA_GIRADO + ROTULO_MAPA_INCLINADO + ROTULO_MAPA_FIM)
     expect(sessionStorage.getItem(CHAVE_INCLINADA)).toBe('1')
     expect(localStorage.length).toBe(0)
 
+    // o "Girar" mostra ligado, não desliga e diz por quê; a escolha guardada dele não muda
+    const girar = botao('Girar o mapa com a rota')
+    expect(girar).toHaveAttribute('aria-pressed', 'true')
+    expect(girar).toHaveAttribute('aria-disabled', 'true')
+    expect(girar).toHaveTextContent(/: ligado$/)
+    expect(girar).toHaveAccessibleDescription(DICA_GIRAR_PELA_INCLINADA)
+    await user.click(girar)
+    expect(botao('Girar o mapa com a rota')).toHaveAttribute('aria-pressed', 'true')
+    expect(motor().atualizar.mock.calls.at(-1)![1]).toBe(true)
+
     await user.click(botao('Vista inclinada'))
     expect(motor().atualizar.mock.calls.at(-1)![2]).toBe(false)
+    expect(motor().atualizar.mock.calls.at(-1)![1]).toBe(false)
+    expect(botao('Girar o mapa com a rota')).toHaveAttribute('aria-pressed', 'false')
+    expect(botao('Girar o mapa com a rota')).not.toHaveAttribute('aria-disabled')
+    expect(botao('Girar o mapa com a rota')).toHaveAccessibleDescription(DICA_GIRAR_MAPA)
     expect(sessionStorage.getItem(CHAVE_INCLINADA)).toBe('0')
   })
 

@@ -309,7 +309,7 @@ html.com-tela-cheia {
   z-index: 1100;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(8rem, 1fr) auto;
+  grid-template-rows: auto minmax(12rem, 1fr) auto;
   overflow-y: auto;
   overscroll-behavior: contain;
   background-color: var(--concreto);
@@ -325,6 +325,36 @@ html.com-tela-cheia {
 /* no cartão a ação usa o tamanho de título de seção: sobra tela para o mapa */
 .nav-tela--cheia .painel__acao {
   font-size: var(--t-3);
+}
+
+.nav-tela--cheia .painel__distancia {
+  font-size: var(--t-2);
+}
+
+/* Tela larga (notebook, celular deitado): a manobra à esquerda e os avisos do trecho e o estado à
+   direita. O cartão fica mais baixo e o mapa ganha a altura. Nada some: só muda de lugar. */
+@media (min-width: 40rem) {
+  .nav-tela--cheia > .painel {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--e-4);
+    align-content: start;
+  }
+
+  .nav-tela--cheia > .painel > * {
+    grid-column: 1;
+  }
+
+  .nav-tela--cheia > .painel > .painel__trecho {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    margin-top: 0;
+  }
+
+  .nav-tela--cheia > .painel > .painel__estado {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: start;
+  }
 }
 
 .nav-tela--cheia > .mapa-nav {
@@ -355,8 +385,8 @@ html.com-tela-cheia {
   display: grid;
   gap: var(--e-2);
   align-content: start;
-  max-height: 34vh;
-  max-height: 34dvh;
+  max-height: 30vh;
+  max-height: 30dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
   /* o que recebe foco não fica escondido atrás do botão de sair, que é fixo no topo da faixa */
@@ -374,10 +404,18 @@ html.com-tela-cheia {
   min-height: 48px;
 }
 
-/* controles lado a lado quando cabem; empilhados em tela estreita ou com texto ampliado */
+/* Controles lado a lado quando cabem; empilhados em tela estreita ou com texto ampliado. Flex, não
+   grid auto-fit: o Encerrar em linha própria ocupava todas as colunas e impedia as vazias de se
+   recolherem, e os botões ficavam estreitos a ponto de quebrar "Recalcular" no meio. */
 .nav-tela--cheia .controles {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
-  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.nav-tela--cheia .controles__item {
+  flex: 1 1 13rem;
+  min-width: min(100%, 13rem);
 }
 
 .nav-tela--cheia .controles .placa {
@@ -385,8 +423,13 @@ html.com-tela-cheia {
 }
 
 .nav-tela--cheia .controles__encerrar {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
   margin-top: 0;
+}
+
+/* o texto extra depois do Encerrar (aviso de tela) também ocupa a linha inteira */
+.nav-tela--cheia .controles > :not(.controles__item, .controles__encerrar) {
+  flex: 1 1 100%;
 }
 
 .nav-tela--cheia .mapa-nav__bloco {

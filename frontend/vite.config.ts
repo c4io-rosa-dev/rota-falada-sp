@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), avisosTerceiros()],
     test: {
       globals: true,
+      // com um processo por núcleo, o jsdom disputa a CPU e testes de foco perdem a corrida
+      // (falhava um diferente a cada rodada); com metade, a suíte passa estável e mais rápida
+      maxWorkers: '50%',
       // dois projetos: o setup do app usa sessionStorage/localStorage, que não existem no ambiente node do Worker
       projects: [
         {

@@ -328,13 +328,15 @@ test.describe('vista inclinada com prédios', () => {
     await expect(inclinar(page)).toHaveText('Vista inclinada: ligado')
     await expect(motor(page)).toHaveAttribute('data-inclinacao', '45', { timeout: 15_000 })
     await expect(motor(page)).toHaveAttribute('data-predios', 'sim')
-    await expect(tela(page)).toHaveAttribute('aria-label', ROTULO_MAPA_NORTE + ROTULO_MAPA_INCLINADO + ROTULO_MAPA_FIM)
+    // inclinada, o mapa sempre gira com a rota (o norte fixo esconderia o que vem pela frente)
+    await expect(tela(page)).toHaveAttribute('aria-label', ROTULO_MAPA_GIRADO + ROTULO_MAPA_INCLINADO + ROTULO_MAPA_FIM)
     // o estilo com a camada de volume desenha sem nenhum erro do MapLibre
     await estiloCarregado(page)
     await conferir(page, 'vista inclinada')
 
-    // junto com o giro
-    await girar(page).click()
+    // o giro vem junto: o "Girar" mostra ligado, fica indisponível (aria-disabled) e o mapa segue a rota
+    await expect(girar(page)).toHaveAttribute('aria-pressed', 'true')
+    await expect(girar(page)).toHaveAttribute('aria-disabled', 'true')
     await expect(motor(page)).not.toHaveAttribute('data-rumo', '0', { timeout: 15_000 })
     await expect(motor(page)).toHaveAttribute('data-inclinacao', '45')
     await estiloCarregado(page)

@@ -57,7 +57,10 @@ export const DICA_GIRAR_MAPA =
 
 /** Dica da alternância "Vista inclinada". */
 export const DICA_INCLINAR_MAPA =
-  'Desligada, o mapa é visto de cima. Ligada, ele inclina e mostra os prédios em volume; a troca não é animada. Vale só nesta aba.'
+  'Desligada, o mapa é visto de cima. Ligada, ele inclina, gira com a rota e mostra os prédios em volume; a troca não é animada. Vale só nesta aba.'
+/** Dica do "Girar" enquanto a vista inclinada está ligada: o giro fica preso em ligado. */
+export const DICA_GIRAR_PELA_INCLINADA =
+  'Com a vista inclinada, o mapa sempre gira com a rota, para mostrar o que vem pela frente. Para o norte ficar para cima, desligue a vista inclinada.'
 /** Dica da alternância "Mapa em tela cheia". */
 export const DICA_TELA_CHEIA =
   'O mapa ocupa a tela, com a instrução em cima e os controles embaixo. Para sair, use o botão Sair da tela cheia ou a tecla Esc. Vale só nesta aba.'
