@@ -50,6 +50,17 @@ describe('página /fontes', () => {
     expect(await axe(container)).toHaveNoViolations()
   })
 
+  it('liga para os avisos de licença do código de terceiros e diz de onde vem o mapa da navegação', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json([])))
+    renderizarFontes()
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.getByRole('link', { name: 'Avisos de licença do código de terceiros' })).toHaveAttribute(
+      'href',
+      '/licencas-terceiros.txt',
+    )
+    expect(screen.getByText(/mapa da navegação guiada/)).toHaveTextContent('ODbL')
+  })
+
   it('chama a API no endereço configurado', async () => {
     const fetchMock = vi.fn(async () => Response.json([]))
     vi.stubGlobal('fetch', fetchMock)

@@ -99,3 +99,122 @@
   color: var(--tinta);
   pointer-events: none;
 }
+
+/* ---------- Mapa da navegação guiada (spec 10; DESIGN.md "Mapa da navegação") ----------
+   Complemento do painel: escolhas com placa de 44 px, figura com junta de 1 px, canto vivo,
+   sem sombra. O canvas é do MapLibre; aqui só o mínimo do CSS dele, sem importar o pacote. */
+
+.mapa-nav__bloco {
+  display: grid;
+  gap: var(--e-2);
+  min-width: 0;
+  margin-block: var(--e-3);
+}
+
+.mapa-nav__escolha {
+  display: grid;
+  gap: var(--e-1);
+  justify-items: start;
+  min-width: 0;
+}
+
+.mapa-nav {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--junta);
+  background: var(--vao);
+}
+
+/* cada parte da figura separada por uma junta, nunca por caixa */
+.mapa-nav > * + * {
+  border-top: 1px solid var(--junta);
+}
+
+.mapa-nav__tela {
+  position: relative;
+  height: clamp(200px, 40vh, 360px);
+  overflow: hidden;
+  background: var(--vao);
+}
+
+.mapa-nav__motor {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* o essencial do maplibre-gl.css: o canvas preso ao contêiner */
+.mapa-nav__motor .maplibregl-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* indicador de norte: a placa fica parada, só a agulha gira (e só com o mapa girado) */
+.mapa-nav__norte {
+  position: absolute;
+  top: var(--e-1);
+  right: var(--e-1);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--tinta);
+  background: var(--placa);
+  border: 1px solid var(--junta);
+  pointer-events: none;
+}
+
+.mapa-nav__norte[hidden] {
+  display: none;
+}
+
+/* sem transition: a agulha segue o rumo real do mapa quadro a quadro (o giro do mapa já é a animação) */
+
+.mapa-nav__estado {
+  display: grid;
+  gap: var(--e-1);
+  justify-items: start;
+  margin: 0;
+  padding: var(--e-1) var(--e-2);
+  overflow-wrap: anywhere;
+}
+
+.mapa-nav__estado p {
+  margin: 0;
+}
+
+.mapa-nav__atribuicao {
+  padding: var(--e-1) var(--e-2);
+  background: var(--placa);
+  font-size: var(--t-1);
+  overflow-wrap: anywhere;
+}
+
+/* alvo de 44 px, como o resto da página (o texto em linha seria dispensado pela WCAG 2.5.8) */
+.mapa-nav__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* o canvas não obedece ao alto contraste (o motor troca o estilo); a moldura usa as cores do sistema */
+@media (forced-colors: active) {
+  .mapa-nav,
+  .mapa-nav__tela,
+  .mapa-nav__atribuicao {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+  }
+
+  .mapa-nav > * + * {
+    border-top-color: CanvasText;
+  }
+
+  .mapa-nav__norte {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+  }
+}

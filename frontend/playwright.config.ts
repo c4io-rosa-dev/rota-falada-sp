@@ -13,6 +13,8 @@ export default defineConfig({
   },
   webServer: {
     command: 'npm run build:e2e && npm run preview -- --port 4173 --strictPort',
+    // o ambiente do processo vence os arquivos .env: o build de E2E sempre fala com a API simulada em localhost
+    env: { VITE_API_URL: 'http://localhost:8000' },
     url: 'http://localhost:4173',
     reuseExistingServer: false,
     timeout: 120_000,

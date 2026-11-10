@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { usePaginaAcessivel } from '../a11y/usePaginaAcessivel'
 import type { RotaOut } from '../api/client'
+import { MapaNavegacao } from '../componentes/mapa/MapaNavegacao'
 import { ControlesNavegacao } from '../componentes/navegacao/ControlesNavegacao'
 import { DetalhesTrecho } from '../componentes/navegacao/DetalhesTrecho'
 import { FaixaSimulacao } from '../componentes/navegacao/FaixaSimulacao'
@@ -16,7 +17,10 @@ import {
 } from '../componentes/navegacao/textosNavegacao'
 import { useNavegacao, type Vigia } from '../componentes/navegacao/useNavegacao'
 import { Placa } from '../componentes/Placa'
+import type { PrefsMapa } from '../dados/navegacao/mapaNavegacao'
+import type { Fase } from '../dados/navegacao/navegacao'
 import { montarTrajeto } from '../dados/navegacao/trajeto'
+import { gravarPreferenciaMapa, lerPreferenciasMapa, type QualPreferenciaMapa } from '../dados/preferenciaMapa'
 import { lerSessaoRota, type BuscaFeita } from '../dados/sessaoRota'
 import '../estilos/navegacao.css'
 import { resumoDaRota } from './rotaEstado'
@@ -73,10 +77,20 @@ export function Navegar() {
   )
 }
 
+/** Fases em que o mapa da navegação pode aparecer (spec do mapa próprio, 10.4). */
+const FASES_COM_MAPA: readonly Fase[] = ['procurando', 'navegando', 'pausada', 'passo_a_passo']
+
 function NavegacaoGuiada({ rota, busca, vigia }: { rota: RotaOut; busca: BuscaFeita; vigia: Vigia | null }) {
   const nav = useNavegacao(rota, busca.pedido, vigia)
   const navegar = useNavigate()
   const e = nav.estado
+  // mapa opcional: fechado e sem giro por padrão; a escolha vale só nesta aba (spec do mapa, 6 e 10.4)
+  const [prefsMapa, setPrefsMapa] = useState<PrefsMapa>(lerPreferenciasMapa)
+
+  function mudarPrefsMapa(qual: QualPreferenciaMapa, valor: boolean) {
+    setPrefsMapa((p) => ({ ...p, [qual]: valor }))
+    gravarPreferenciaMapa(qual, valor)
+  }
 
   function encerrar() {
     nav.encerrar()
@@ -146,6 +160,8 @@ function NavegacaoGuiada({ rota, busca, vigia }: { rota: RotaOut; busca: BuscaFe
   const fora = e.fase === 'navegando' && e.acompanhamento.fora
   const procuraDemorada = e.fase === 'procurando' && e.procuraDemorada
   // aria-disabled sozinho só diz "indisponível": a dica diz por quê
+  // o mapa é complemento do painel: some na chegada (o motor é destruído) e o foco segue para o h2
+  const mostrarMapa = FASES_COM_MAPA.includes(e.fase) && e.trajeto !== null
   const dicaRecalcular = e.fase === 'pausada' ? 'Disponível depois de retomar.' : e.recalculando ? 'Calculando nova rota.' : undefined
 
   return (
@@ -185,6 +201,9 @@ function NavegacaoGuiada({ rota, busca, vigia }: { rota: RotaOut; busca: BuscaFe
           />
         </>
       )}
+      {/* o mapa é complemento: depois dos controles, para não empurrá-los para baixo da dobra no
+          celular nem pôr "Mostrar o mapa" e "Girar" no caminho do Tab até Repetir, Recalcular e Pausar */}
+      {mostrarMapa && <MapaNavegacao estado={e} prefs={prefsMapa} aoMudarPrefs={mudarPrefsMapa} />}
     </>
   )
 }

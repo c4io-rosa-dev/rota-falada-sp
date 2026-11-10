@@ -12,11 +12,28 @@ import { falaDoPasso, falasDaRota } from '../dados/narrador'
 import { FALAS_FIXAS } from '../dados/navegacao/falasNavegacao'
 import { deslocar } from '../dados/navegacao/regua'
 import { montarTrajeto, pontoAoLongo } from '../dados/navegacao/trajeto'
+import { CHAVE_ABERTO, CHAVE_GIRAR, gravarPreferenciaMapa, lerPreferenciasMapa } from '../dados/preferenciaMapa'
 import type { PontoLatLng } from '../dados/rotaGeo'
 import { gravarSessaoRota, PERFIL_FORM_PADRAO } from '../dados/sessaoRota'
 import { Navegar } from '../pages/Navegar'
 import { apiFalsa, erroApi } from './apiFalsa'
 import { PONTOS_L, REGUA_L, ROTA_L, ROTA_SEM_GEOMETRIA } from './fixturasNavegacao'
+
+/* o motor do mapa (MapLibre) não roda no jsdom: um falso registra cada motor criado */
+const mapa = vi.hoisted(() => ({ motores: [] as { atualizar: ReturnType<typeof vi.fn>; destruir: ReturnType<typeof vi.fn> }[] }))
+vi.mock('../componentes/mapa/MotorMapaNavegacao', () => ({
+  ErroMotorMapa: class extends Error {},
+  criarMotor: () => {
+    const motor = { atualizar: vi.fn(), trocarTema: vi.fn(), destruir: vi.fn() }
+    mapa.motores.push(motor)
+    return Promise.resolve(motor)
+  },
+}))
+/* as preferências de verdade, com espiões em volta (a página lê e grava por elas) */
+vi.mock('../dados/preferenciaMapa', async (original) => {
+  const m = await original<typeof import('../dados/preferenciaMapa')>()
+  return { ...m, lerPreferenciasMapa: vi.fn(m.lerPreferenciasMapa), gravarPreferenciaMapa: vi.fn(m.gravarPreferenciaMapa) }
+})
 
 const PEDIDO: RotaIn = {
   origem: { lat: -23.5617, lng: -46.656 },
@@ -215,7 +232,7 @@ describe('preparo', () => {
       'A posição pode errar alguns metros. Pare para olhar a tela antes de virar.',
       'O app não vê carros, semáforos nem obras.',
       'Com a tela apagada ou o celular bloqueado, as instruções param.',
-      'Sua localização fica só neste aparelho enquanto você navega. Se você tocar em Recalcular, a posição arredondada (cerca de 11 m) vai ao nosso servidor, que calcula a rota com um serviço de rotas, e a rota calculada fica guardada sem identificação por até 6 horas, como qualquer rota.',
+      'Sua localização fica só neste aparelho enquanto você navega. Se você tocar em Recalcular, a posição arredondada (cerca de 11 m) vai ao nosso servidor, que calcula a rota com um serviço de rotas, e a rota calculada fica guardada sem identificação por até 6 horas, como qualquer rota. O mapa é opcional e vem do próprio site, num arquivo só da área coberta. Para desenhar a região em volta de você, o aparelho pede ao site pedaços desse arquivo, e esses pedidos indicam a região. O site não registra esses pedidos e nenhum outro serviço recebe pedido de mapa. A Cloudflare, que hospeda o site, recebe esses pedidos para entregá-los, como qualquer acesso ao site. O mapa pede esses pedaços sem guardá-los no cache do navegador: o que foi visto some quando a aba fecha. As escolhas de mostrar e girar o mapa ficam só nesta aba.',
       'Rotas recalculadas não ficam salvas neste aparelho: ao recarregar a página, volta a rota original.',
     ])
     const voz = screen.getByRole('button', { name: 'Voz do app' })
@@ -1019,4 +1036,144 @@ describe('cada cenário simulado na página (?simular=, relógio falso, voz do a
     expect(faladas.indexOf(FALAS_FIXAS.sinal_voltou.texto)).toBeGreaterThan(semSinal)
     expect(faladas.at(-1)).toBe(CHEGADA)
   }, 60_000)
+})
+
+describe('mapa da navegação na página (spec do mapa próprio, seção 10.4)', () => {
+  const botaoMapa = () => screen.queryByRole('button', { name: 'Mostrar o mapa' })
+  /** a vem antes de b na ordem do documento (e, portanto, na leitura e no Tab). */
+  const antes = (a: Element, b: Element) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+
+  beforeEach(() => {
+    mapa.motores.length = 0
+    vi.mocked(lerPreferenciasMapa).mockClear()
+    vi.mocked(gravarPreferenciaMapa).mockClear()
+  })
+
+  it('aparece em procurando, navegando e pausada; não no preparo nem na chegada; fechado por padrão', async () => {
+    gravarRota()
+    const gps = instalarGps()
+    instalarTela()
+    const user = userEvent.setup()
+    renderizar()
+    await screen.findByRole('button', { name: 'Começar' })
+    expect(botaoMapa()).toBeNull()
+    await comecar(user)
+    expect(botaoMapa()).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByRole('img', { name: /^Mapa da rota a pé/ })).toBeNull()
+    await gps.enviar(PONTOS_L.A)
+    expect(botaoMapa()).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Pausar' }))
+    expect(botaoMapa()).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Pausar' }))
+    await andarAteOFim(gps.enviar)
+    await screen.findByRole('heading', { level: 2, name: 'Você chegou ao destino' })
+    expect(botaoMapa()).toBeNull()
+    // fechado, nada do motor foi carregado
+    expect(mapa.motores).toHaveLength(0)
+  })
+
+  // o mapa é complemento: aberto, não empurra para baixo da dobra (nem para depois no Tab) os controles
+  it('aparece no passo a passo, depois de "Detalhes do trecho" e dos controles', async () => {
+    gravarRota()
+    instalarGps()
+    const user = userEvent.setup()
+    renderizar()
+    await user.click(await screen.findByRole('button', { name: 'Seguir passo a passo, sem localização' }))
+    const h2 = await screen.findByRole('heading', { level: 2, name: 'Passo 1 de 5' })
+    const botao = botaoMapa()!
+    expect(antes(h2, botao)).toBe(true)
+    expect(antes(screen.getByRole('button', { name: 'Detalhes do trecho' }), botao)).toBe(true)
+    expect(antes(screen.getByRole('button', { name: 'Próximo passo' }), botao)).toBe(true)
+  })
+
+  it('navegando: depois do painel, de "Detalhes do trecho" e dos controles; aberto, a figura também', async () => {
+    gravarRota()
+    const gps = instalarGps()
+    instalarTela()
+    const user = userEvent.setup()
+    renderizar()
+    await comecar(user)
+    await gps.enviar(PONTOS_L.A)
+    const h2 = screen.getByRole('heading', { level: 2 })
+    const detalhes = screen.getByRole('button', { name: 'Detalhes do trecho' })
+    const controles = screen.getByRole('group', { name: 'Controles da navegação' })
+    await user.click(botaoMapa()!)
+    const figura = await screen.findByRole('img', { name: /^Mapa da rota a pé/ })
+    for (const el of [botaoMapa()!, figura]) {
+      expect(antes(h2, el)).toBe(true)
+      expect(antes(detalhes, el)).toBe(true)
+      expect(antes(controles, el)).toBe(true)
+    }
+  })
+
+  it('as preferências são lidas da aba e gravadas por gravarPreferenciaMapa, só com "0" e "1"', async () => {
+    gravarRota()
+    const gps = instalarGps()
+    instalarTela()
+    const user = userEvent.setup()
+    renderizar()
+    await comecar(user)
+    await gps.enviar(PONTOS_L.A)
+    expect(lerPreferenciasMapa).toHaveBeenCalled()
+    expect(gravarPreferenciaMapa).not.toHaveBeenCalled()
+
+    await user.click(botaoMapa()!)
+    expect(gravarPreferenciaMapa).toHaveBeenLastCalledWith('aberto', true)
+    expect(botaoMapa()).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(mapa.motores).toHaveLength(1))
+    // o foco fica no botão: abrir o mapa não leva a pessoa a lugar nenhum
+    expect(botaoMapa()).toHaveFocus()
+
+    const girar = await screen.findByRole('button', { name: 'Girar o mapa com a rota' })
+    expect(girar).toHaveAttribute('aria-pressed', 'false')
+    await user.click(girar)
+    expect(gravarPreferenciaMapa).toHaveBeenLastCalledWith('girar', true)
+    expect(screen.getByRole('button', { name: 'Girar o mapa com a rota' })).toHaveAttribute('aria-pressed', 'true')
+    expect(sessionStorage.getItem(CHAVE_ABERTO)).toBe('1')
+    expect(sessionStorage.getItem(CHAVE_GIRAR)).toBe('1')
+
+    await user.click(screen.getByRole('button', { name: 'Girar o mapa com a rota' }))
+    expect(gravarPreferenciaMapa).toHaveBeenLastCalledWith('girar', false)
+    expect(sessionStorage.getItem(CHAVE_GIRAR)).toBe('0')
+  })
+
+  it('a escolha da aba vale ao voltar: com o mapa aberto na aba, ele abre sozinho ao começar', async () => {
+    gravarRota()
+    gravarPreferenciaMapa('aberto', true)
+    gravarPreferenciaMapa('girar', true)
+    vi.mocked(gravarPreferenciaMapa).mockClear()
+    const gps = instalarGps()
+    instalarTela()
+    const user = userEvent.setup()
+    renderizar()
+    await comecar(user)
+    await gps.enviar(PONTOS_L.A)
+    expect(botaoMapa()).toHaveAttribute('aria-pressed', 'true')
+    expect(await screen.findByRole('button', { name: 'Girar o mapa com a rota' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(mapa.motores).toHaveLength(1))
+    // o motor recebe as leituras com a escolha de girar
+    await waitFor(() => expect(mapa.motores[0].atualizar).toHaveBeenCalled())
+    expect(mapa.motores[0].atualizar.mock.calls.at(-1)?.[1]).toBe(true)
+    expect(gravarPreferenciaMapa).not.toHaveBeenCalled()
+  })
+
+  it('na chegada, o mapa aberto some, o motor é destruído e o foco vai ao h2', async () => {
+    gravarRota()
+    const gps = instalarGps()
+    instalarTela()
+    const user = userEvent.setup()
+    renderizar()
+    await comecar(user)
+    await gps.enviar(PONTOS_L.A)
+    await user.click(botaoMapa()!)
+    await waitFor(() => expect(mapa.motores).toHaveLength(1))
+    await screen.findByRole('img', { name: /^Mapa da rota a pé/ })
+    await andarAteOFim(gps.enviar)
+    const h2 = screen.getByRole('heading', { level: 2, name: 'Você chegou ao destino' })
+    await waitFor(() => expect(h2).toHaveFocus())
+    expect(botaoMapa()).toBeNull()
+    expect(screen.queryByRole('img', { name: /^Mapa da rota a pé/ })).toBeNull()
+    expect(document.querySelector('figure.mapa-nav')).toBeNull()
+    expect(mapa.motores[0].destruir).toHaveBeenCalledTimes(1)
+  })
 })

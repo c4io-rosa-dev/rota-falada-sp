@@ -1,4 +1,5 @@
 import { usePaginaAcessivel } from '../a11y/usePaginaAcessivel'
+import { TEXTO_MAPA_PRIVACIDADE } from '../componentes/navegacao/textosNavegacao'
 
 export function Acessibilidade() {
   const h1 = usePaginaAcessivel('Declaração de acessibilidade')
@@ -33,6 +34,7 @@ export function Acessibilidade() {
           um serviço de rotas, e a rota calculada fica guardada sem identificação por até 6 horas, como qualquer
           rota.
         </li>
+        <li>Mapa da navegação guiada: {TEXTO_MAPA_PRIVACIDADE}</li>
         <li>Login por código enviado por e-mail, sem senha, em campo único.</li>
         <li>Cadastro e votação de barreiras, com a foto sempre opcional.</li>
         <li>Navegação completa por teclado, com link para pular ao conteúdo e foco visível.</li>

@@ -2,9 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "rota-falada-sp",
   "compatibility_date": "2026-09-11",
-  "observability": { "enabled": true },
+  "main": "./worker/index.ts",
+  // o código só roda em /mapa/*; logs desligados porque o cabeçalho Range indica a região (spec do mapa, seção 7)
+  "observability": { "enabled": false },
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/mapa/*"]
+  },
+  "r2_buckets": [{ "binding": "MAPAS", "bucket_name": "rota-falada-mapas" }]
 }

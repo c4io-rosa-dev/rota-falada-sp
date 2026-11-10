@@ -38,6 +38,16 @@ export function Fontes() {
           ))}
         </ul>
       )}
+      {/* fixos, fora da tabela fonte_dados: não são linhas de dados do banco (DATA-LICENSES.md) */}
+      <p>
+        O mapa da navegação guiada é um recorte do OpenStreetMap só da área coberta, no esquema do
+        Protomaps, servido pelo próprio site e distribuído sob a ODbL 1.0, como a base de origem (© colaboradores
+        do OpenStreetMap).
+      </p>
+      <p>
+        <a href="/licencas-terceiros.txt">Avisos de licença do código de terceiros</a> (bibliotecas e a
+        letra Archivo usadas pelo site).
+      </p>
     </>
   )
 }

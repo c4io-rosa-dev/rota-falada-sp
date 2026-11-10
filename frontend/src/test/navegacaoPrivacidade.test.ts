@@ -4,11 +4,19 @@
  */
 import CABECALHOS from '../../public/_headers?raw'
 
-const CRUS = import.meta.glob(['../dados/navegacao/*.ts', '../componentes/navegacao/*.{ts,tsx}', '../pages/Navegar.tsx'], {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>
+const CRUS = import.meta.glob(
+  [
+    '../dados/navegacao/*.ts',
+    '../componentes/navegacao/*.{ts,tsx}',
+    '../pages/Navegar.tsx',
+    // o mapa da navegação (spec do mapa próprio, seção 11): as mesmas regras valem para ele
+    '../componentes/mapa/MapaNavegacao.tsx',
+    '../componentes/mapa/MotorMapaNavegacao.ts',
+    '../componentes/mapa/estiloMapaNavegacao.ts',
+    '../componentes/mapa/arquivoMapa.ts',
+  ],
+  { query: '?raw', import: 'default', eager: true },
+) as Record<string, string>
 
 // sem test/: um temporário criado ou apagado por outro fluxo durante a rodada derrubaria a suíte (ENOENT)
 const TODOS = import.meta.glob(['../**/*.{ts,tsx}', '!../test/**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
@@ -21,6 +29,10 @@ describe('o código da navegação não grava nem registra posição', () => {
     expect(caminhos).toContain('dados/navegacao/navegacao.ts')
     expect(caminhos).toContain('componentes/navegacao/useNavegacao.ts')
     expect(caminhos).toContain('pages/Navegar.tsx')
+    for (const mapa of ['MapaNavegacao.tsx', 'MotorMapaNavegacao.ts', 'estiloMapaNavegacao.ts', 'arquivoMapa.ts']) {
+      expect(caminhos).toContain(`componentes/mapa/${mapa}`)
+    }
+    expect(caminhos).toContain('dados/navegacao/mapaNavegacao.ts')
   })
 
   it('nenhum localStorage, sessionStorage, indexedDB ou console', () => {
@@ -71,14 +83,54 @@ describe('o código da navegação não grava nem registra posição', () => {
   })
 })
 
+describe('o mapa da navegação só chega quando a pessoa abre (spec do mapa próprio, seções 10.4 e 11)', () => {
+  /** import estático (não import type) de uma biblioteca de mapa. */
+  const BIBLIOTECA_ESTATICA = /^import\s+(?!type\b)[^'"]*?from\s+['"](maplibre-gl|pmtiles|@protomaps\/basemaps)(\/[^'"]*)?['"]/m
+  /** import estático do motor: só o tipo pode ser importado pela casca. */
+  const MOTOR_ESTATICO = /^import\s+(?!type\b)[^'"]*?from\s+['"][^'"]*MotorMapaNavegacao['"]/m
+
+  it('a guarda pega cada forma proibida e deixa passar o import type', () => {
+    for (const amostra of [
+      "import maplibregl from 'maplibre-gl'",
+      "import { Map } from 'maplibre-gl'",
+      "import { PMTiles, Protocol } from 'pmtiles'",
+      "import { layers } from '@protomaps/basemaps'",
+      "import url from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'",
+      "import {\n  Map,\n} from 'maplibre-gl'",
+    ]) {
+      expect(amostra).toMatch(BIBLIOTECA_ESTATICA)
+    }
+    expect("import type { Map } from 'maplibre-gl'").not.toMatch(BIBLIOTECA_ESTATICA)
+    expect("import { criarMotor } from './MotorMapaNavegacao'").toMatch(MOTOR_ESTATICO)
+    expect("import type { MotorMapa } from './MotorMapaNavegacao'").not.toMatch(MOTOR_ESTATICO)
+    // sem ponto e vírgula no projeto: a guarda não pode atravessar um import anterior
+    expect("import { Placa } from '../Placa'\nimport type { MotorMapa } from './MotorMapaNavegacao'").not.toMatch(MOTOR_ESTATICO)
+  })
+
+  it.each(['../pages/Navegar.tsx', '../componentes/mapa/MapaNavegacao.tsx'])('%s não importa maplibre-gl, pmtiles nem @protomaps/basemaps', (caminho) => {
+    const texto = CRUS[caminho]
+    expect(texto).toBeTruthy()
+    expect(texto).not.toMatch(BIBLIOTECA_ESTATICA)
+    expect(texto).not.toMatch(MOTOR_ESTATICO)
+  })
+
+  it('a página usa a casca do mapa e a casca carrega o motor por import() à mão', () => {
+    expect(CRUS['../pages/Navegar.tsx']).toMatch(/^import \{ MapaNavegacao \} from '\.\.\/componentes\/mapa\/MapaNavegacao'$/m)
+    expect(CRUS['../componentes/mapa/MapaNavegacao.tsx']).toContain("import('./MotorMapaNavegacao')")
+  })
+})
+
 describe('cabeçalhos do site (public/_headers)', () => {
   const linha = (nome: string) =>
     CABECALHOS.split(/\r?\n/)
       .map((l) => l.trim())
       .find((l) => l.startsWith(`${nome}:`))
 
-  it('Permissions-Policy libera só para o próprio site a localização e a tela ligada', () => {
-    expect(linha('Permissions-Policy')).toBe('Permissions-Policy: geolocation=(self), screen-wake-lock=(self)')
+  it('Permissions-Policy libera só para o próprio site a localização e a tela ligada, e nega os sensores de movimento', () => {
+    // o rumo do mapa vem da corda da rota, nunca da bússola: os sensores ficam negados para todos
+    expect(linha('Permissions-Policy')).toBe(
+      'Permissions-Policy: geolocation=(self), screen-wake-lock=(self), accelerometer=(), gyroscope=(), magnetometer=()',
+    )
   })
 
   it('a CSP não muda: nada novo na rede', () => {
