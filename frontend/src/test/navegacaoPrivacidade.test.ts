@@ -1,6 +1,6 @@
 /**
  * Guardas da LGPD na navegação guiada (spec 8). A parte estática lê o código-fonte, como o
- * regiaoUnica.test.ts; a parte dinâmica está em navegacaoPrivacidade.test.tsx.
+ * regiaoUnica.test.ts; a parte dinâmica está em navegacaoPrivacidadeTela.test.tsx.
  */
 import CABECALHOS from '../../public/_headers?raw'
 

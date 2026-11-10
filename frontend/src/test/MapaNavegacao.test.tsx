@@ -22,6 +22,7 @@ import {
 import { RegiaoViva } from '../componentes/RegiaoViva'
 import { ContextoAnuncio, type Anunciar } from '../componentes/useAnuncio'
 import type { PrefsMapa } from '../dados/navegacao/mapaNavegacao'
+import type { QualPreferenciaMapa } from '../dados/preferenciaMapa'
 import { estadoNavegacao, type EstadoNavegacao, type Fase } from '../dados/navegacao/navegacao'
 import { ROTA_L } from './fixturasNavegacao'
 // o apoio do mapa aberto chega por import() junto com o motor: já carregado aqui, o import() do teste não espera a transformação
@@ -85,7 +86,7 @@ function estado(fase: Fase, progressoMaxM = 0): EstadoNavegacao {
 
 const FECHADO: PrefsMapa = { aberto: false, girar: false }
 
-function Tela({ e, inicial = FECHADO, aoMudar, anunciar }: { e: EstadoNavegacao; inicial?: PrefsMapa; aoMudar?: (q: 'aberto' | 'girar', v: boolean) => void; anunciar?: Anunciar }) {
+function Tela({ e, inicial = FECHADO, aoMudar, anunciar }: { e: EstadoNavegacao; inicial?: PrefsMapa; aoMudar?: (q: QualPreferenciaMapa, v: boolean) => void; anunciar?: Anunciar }) {
   const [prefs, setPrefs] = useState(inicial)
   const mapa = (
     <MapaNavegacao
