@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { INCLINACAO_NORMA_PCT, LARGURA_MINIMA_M, type Exigencia } from '../dados/narrador'
 import {
   formatarDistancia,
   textoDataPasso,
@@ -12,6 +13,7 @@ import {
 } from '../dados/passo'
 import { linhaDoGeoJson, meioDaLinha } from '../dados/rotaGeo'
 import { BarreirasDoPasso } from './BarreirasDoPasso'
+import { guardarPassoDeRetorno } from '../dados/retornoPasso'
 import { Placa } from './Placa'
 
 const CAMPOS = ['Distância', 'Largura', 'Declividade', 'Guia', 'Degrau', 'Fonte', 'Data']
@@ -25,10 +27,13 @@ type Props = {
   passoNoMapa?: number | null
   /** Em /rota cada passo leva às barreiras perto dele. */
   comBarreiras?: boolean
+  /** Inclinação pedida: o passo que passa dela ganha destaque em texto, não só em cor. */
+  pedido?: Exigencia
 }
 
 /** A lista canônica de passos (`id="lista-passos"`). Tudo o que o mapa mostra está aqui. */
-export function TabelaPassos({ passos, passoAtivo, rotulo, aoVerNoMapa, passoNoMapa, comBarreiras = false }: Props) {
+export function TabelaPassos({ passos, passoAtivo, rotulo, aoVerNoMapa, passoNoMapa, comBarreiras = false, pedido = 'any' }: Props) {
+  const limite = pedido === 'any' ? INCLINACAO_NORMA_PCT : pedido
   return (
     <div className="tabela-passos">
       {/* cabeçalho só visual, alinhado pelo subgrid; cada linha mantém seus <dt> para o leitor de tela */}
@@ -42,6 +47,8 @@ export function TabelaPassos({ passos, passoAtivo, rotulo, aoVerNoMapa, passoNoM
         {passos.map((p) => {
           const ativo = p.ordem === passoAtivo
           const linha = comBarreiras ? linhaDoGeoJson(p.geometria) : null
+          const ingreme = p.declividade_pct !== null && p.declividade_pct > limite
+          const estreita = p.largura_medida && p.largura_m !== null && p.largura_m < LARGURA_MINIMA_M
           return (
             <li
               key={p.ordem}
@@ -59,11 +66,17 @@ export function TabelaPassos({ passos, passoAtivo, rotulo, aoVerNoMapa, passoNoM
                 </div>
                 <div>
                   <dt className="rotulo-campo">Largura</dt>
-                  <dd className="medida">{textoLargura(p)}</dd>
+                  <dd className={estreita ? 'medida alerta' : 'medida'}>
+                    {textoLargura(p)}
+                    {estreita && <span className="marca-alerta"> · estreita</span>}
+                  </dd>
                 </div>
                 <div>
                   <dt className="rotulo-campo">Declividade</dt>
-                  <dd className="medida">{textoDeclividade(p)}</dd>
+                  <dd className={ingreme ? 'medida alerta' : 'medida'}>
+                    {textoDeclividade(p)}
+                    {ingreme && <span className="marca-alerta"> · {pedido === 'any' ? 'acima da norma' : 'acima do pedido'}</span>}
+                  </dd>
                 </div>
                 <div>
                   <dt className="rotulo-campo">Guia</dt>
@@ -94,6 +107,7 @@ export function TabelaPassos({ passos, passoAtivo, rotulo, aoVerNoMapa, passoNoM
                     <Link
                       className="alvo"
                       to="/barreiras"
+                      onClick={() => guardarPassoDeRetorno(p.ordem)}
                       state={{ ponto: meioDaLinha(linha), rotuloPonto: `Meio do passo ${p.ordem}: ${textoInstrucao(p)}` }}
                     >
                       Barreiras perto do passo {p.ordem}

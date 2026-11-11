@@ -38,6 +38,7 @@ from app.services.barreira_geom import PROJ_4326_31983, BarreiraCandidata
 from app.services.enriquecimento import (
     _distancia_m,
     _pct_da_classe_steepness,
+    _piso_da_classe_steepness,
     _vias_mais_proximas,
     enriquecer_passos,
 )
@@ -347,3 +348,10 @@ def test_extras_steepness_none_usa_geosampa(db, via_com_conflacao_medida):
 )
 def test_pct_da_classe_steepness_segue_o_mapa_oficial_do_ors(classe, esperado):
     assert _pct_da_classe_steepness(classe) == esperado
+
+
+@pytest.mark.parametrize(
+    ("classe", "piso"), [(0, 0.0), (1, 1.0), (-2, 4.0), (3, 7.0), (4, 10.0), (-5, 16.0)]
+)
+def test_piso_da_classe_segue_a_faixa_do_ors(classe, piso):
+    assert _piso_da_classe_steepness(classe) == piso

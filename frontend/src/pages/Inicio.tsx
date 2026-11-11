@@ -8,10 +8,14 @@ import { Placa } from '../componentes/Placa'
 import { Janela } from '../componentes/Torre'
 import { FichaRota } from '../componentes/FichaRota'
 import { TabelaPassos } from '../componentes/TabelaPassos'
-import { formatarData, formatarDistancia, nomeFonte, textoExigencia, textoFalado, textosDeAviso } from '../dados/passo'
+import { alertasDaRota, falaDoPasso, falasDaRota } from '../dados/narrador'
+import { formatarData, formatarDistancia, nomeFonte, textoExigencia } from '../dados/passo'
 import { ROTA_EXEMPLO, ROTA_EXEMPLO_META } from '../dados/rotaExemplo'
 
 const PASSOS = ROTA_EXEMPLO.passos
+/** A rota de exemplo foi pedida com o limite padrão do formulário. */
+const PEDIDO = 6
+const FALAS = falasDaRota(ROTA_EXEMPLO, PEDIDO)
 const DISTANCIA = formatarDistancia(ROTA_EXEMPLO.distancia_m)
 const MINUTOS = Math.round(ROTA_EXEMPLO.duracao_s / 60)
 const PROVENIENCIA = `${ROTA_EXEMPLO_META.rotulo} · ${ROTA_EXEMPLO_META.bairro} · fontes: ${ROTA_EXEMPLO_META.fontes.join(', ')}`
@@ -45,7 +49,7 @@ export function Inicio() {
                 <Placa para="/rota" variante="acao" pictograma="siga">
                   Planejar rota
                 </Placa>
-                <BotaoOuvir passos={PASSOS} aoMudarPasso={setPassoAtivo} />
+                <BotaoOuvir falas={FALAS} aoMudarPasso={setPassoAtivo} />
               </Janela>
             </>
           }
@@ -114,7 +118,7 @@ export function Inicio() {
             </p>
             <figure className="fala">
               <blockquote>
-                <p>{textoFalado(PASSOS[3])}</p>
+                <p>{falaDoPasso(PASSOS[3], PASSOS.length, PEDIDO)}</p>
               </blockquote>
               <figcaption>O que a voz diz no passo 4 da rota de exemplo.</figcaption>
             </figure>
@@ -176,11 +180,11 @@ export function Inicio() {
               { rotulo: 'Fontes', valor: ROTA_EXEMPLO.fontes.map(nomeFonte).join(', ') },
               { rotulo: 'Gravada em', valor: formatarData('2026-10-12') },
             ]}
-            avisos={textosDeAviso(ROTA_EXEMPLO)}
+            avisos={alertasDaRota(ROTA_EXEMPLO, PEDIDO).map((a) => ({ conteudo: a.texto, grave: a.grave }))}
           >
-            <BotaoOuvir passos={PASSOS} aoMudarPasso={setPassoAtivo} />
+            <BotaoOuvir falas={FALAS} aoMudarPasso={setPassoAtivo} />
           </FichaRota>
-          <TabelaPassos passos={PASSOS} passoAtivo={passoAtivo} rotulo="Os 11 passos da rota de exemplo" />
+          <TabelaPassos passos={PASSOS} passoAtivo={passoAtivo} rotulo="Os 11 passos da rota de exemplo" pedido={PEDIDO} />
         </div>
       </section>
     </>

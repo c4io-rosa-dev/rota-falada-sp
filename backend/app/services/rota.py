@@ -56,8 +56,8 @@ NIVEIS_ORDENADOS: tuple[int | str, ...] = (3, 6, 10, "any")
 _MENSAGEM_ROTA_NAO_ENCONTRADA = "Não encontramos rota acessível entre esses pontos na área piloto."
 
 _MENSAGEM_MOTOR_FALLBACK = (
-    "O OpenRouteService não encontrou rota acessível (ou a cota do dia/minuto foi "
-    "excedida); usamos o roteamento local (pgRouting) como alternativa determinística."
+    "O serviço de rotas principal não respondeu com uma rota; usamos o roteamento de "
+    "reserva, que não mede a inclinação. Confira cada passo."
 )
 
 # tipos de instrução do ORS (GraphHopper/ORS `step.type`) que viram virada à
@@ -348,12 +348,14 @@ def calcular(db: Session, entrada: RotaIn, cliente: OrsClient, agora: datetime) 
     # o nível do ORS vale pela estimativa dele: um passo acima dele tira a garantia
     if isinstance(nivel_atendido, int) and _passos_acima(passos, nivel_atendido):
         nivel_atendido = "any"
-    if isinstance(pedido, int) and (acima := _passos_acima(passos, pedido)):
+    acima = _passos_acima(passos, pedido) if isinstance(pedido, int) else []
+    if acima:
         avisos.append(
             Aviso(tipo="trecho_ingreme", mensagem=_mensagem_trecho_ingreme(pedido, acima))
         )
 
-    if nivel_atendido != pedido:
+    # com passo acima do pedido, o aviso de inclinação já explica; "não encontramos" seria falso
+    if nivel_atendido != pedido and not acima:
         avisos.append(
             Aviso(
                 tipo="exigencia_relaxada",

@@ -1,9 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { axe } from 'vitest-axe'
 import App from '../App'
-import { textoFalado } from '../dados/passo'
+import { falaDoPasso } from '../dados/narrador'
 import { ROTA_EXEMPLO } from '../dados/rotaExemplo'
 
 function renderizar() {
@@ -46,7 +46,7 @@ describe('página inicial', () => {
       'Rua Helen Keller até Rua Ouvidor Peleja, até 6%, evitar degraus',
     )
     const laje3 = screen.getByRole('heading', { level: 3, name: 'Leia ou ouça' }).closest('li')!
-    expect(laje3.querySelector('blockquote')).toHaveTextContent(textoFalado(ROTA_EXEMPLO.passos[3]))
+    expect(laje3.querySelector('blockquote')).toHaveTextContent(falaDoPasso(ROTA_EXEMPLO.passos[3], ROTA_EXEMPLO.passos.length, 6))
     // nada de cartão de ícone: o pictograma só aparece dentro de um artefato, nunca como cabeçalho da laje
     expect(laje1.querySelector(':scope > svg')).toBeNull()
     expect(laje3.querySelector(':scope > svg')).toBeNull()
@@ -96,7 +96,7 @@ describe('página inicial', () => {
     expect(itens[3]).toHaveTextContent('1,67 m')
     expect(itens[3]).toHaveTextContent('não rebaixada')
     expect(itens[1]).toHaveTextContent('sem dado')
-    expect(screen.getByText(/largura e declividade ficam sem dado nesses trechos/)).toBeInTheDocument()
+    expect(screen.getByText(/Guia sem rebaixamento no passo 4\./)).toBeInTheDocument()
   })
 
   it('sem síntese de voz, explica em texto em vez de mostrar o botão', () => {
@@ -120,6 +120,9 @@ describe('página inicial', () => {
     vi.stubGlobal('speechSynthesis', { speak: vi.fn(), cancel: vi.fn(), getVoices: () => [] })
     renderizar()
     await userEvent.click(screen.getAllByRole('button', { name: 'Ouvir o exemplo' })[0])
+    // o resumo vem primeiro; ao terminar, a leitura passa ao passo 1
+    const falada = (globalThis.speechSynthesis.speak as ReturnType<typeof vi.fn>).mock.calls[0][0] as Fala
+    act(() => falada.onend?.())
     const elevacao = screen.getByRole('list', { name: 'Passos da rota de exemplo, em elevação' })
     const lista = screen.getByRole('list', { name: 'Os 11 passos da rota de exemplo' })
     expect(within(elevacao).getAllByRole('listitem')[0]).toHaveAttribute('aria-current', 'step')

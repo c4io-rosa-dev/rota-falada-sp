@@ -86,8 +86,10 @@ describe('reduzirRota', () => {
   })
 
   it('resume a rota', () => {
-    expect(resumoDaRota(ROTA)).toBe('200,0 m em 2 passos, cerca de 4 minutos a pé, sem avisos')
-    expect(resumoDaRota({ ...ROTA, passos: [passo(1)], avisos: [{ tipo: 'motor_fallback', mensagem: 'm' }] })).toContain('em 1 passo,')
+    expect(resumoDaRota(ROTA, 6)).toBe('200 m em 2 passos, cerca de 4 minutos a pé, sem avisos')
+    expect(resumoDaRota({ ...ROTA, passos: [passo(1)] }, 6)).toContain('em 1 passo,')
+    // conta os avisos que a ficha mostra, não os do backend
+    expect(resumoDaRota({ ...ROTA, passos: [passo(1, { is_degrau: true })], motor: 'pgrouting' }, 6)).toContain('2 avisos')
   })
 
   it('o foco só vai ao resultado se a pessoa não saiu de onde enviou', () => {

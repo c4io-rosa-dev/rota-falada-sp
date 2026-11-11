@@ -113,3 +113,24 @@ export function textoDaLista(opcoes: Endereco[], rotulo: string, primeiraVez: bo
         : `${opcoes.length} endereços`
   return `${inicio} para ${rotulo}.${primeiraVez ? ' Seta para baixo para escolher.' : ''}`
 }
+
+/** Sugestões com o mesmo nome a menos disto são a mesma coisa para quem escolhe. */
+const MESMO_LUGAR_M = 150
+
+/**
+ * Tira sugestões repetidas: mesmo rótulo e quase o mesmo ponto. No leitor de tela, duas opções
+ * que soam iguais obrigam a adivinhar (WCAG 2.4.6). A primeira, mais relevante, fica.
+ */
+export function semRepetidas<T extends { rotulo: string; lat: number; lon: number }>(opcoes: T[]): T[] {
+  const ficam: T[] = []
+  for (const op of opcoes) {
+    const nome = op.rotulo.trim().toLocaleLowerCase('pt-BR')
+    const repetida = ficam.some(
+      (f) =>
+        f.rotulo.trim().toLocaleLowerCase('pt-BR') === nome &&
+        Math.hypot((f.lat - op.lat) * 111_000, (f.lon - op.lon) * 102_000) < MESMO_LUGAR_M,
+    )
+    if (!repetida) ficam.push(op)
+  }
+  return ficam
+}

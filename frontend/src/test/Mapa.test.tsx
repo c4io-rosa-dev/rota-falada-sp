@@ -87,7 +87,7 @@ describe('MapaRota', () => {
     const botao = screen.getByRole('button', { name: 'Mostrar mapa' })
     expect(botao).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(botao)
-    const mapa = await screen.findByRole('img', { name: /Mapa ilustrativo da rota de Rua A até Rua B, 200,0 m em 2 passos/ })
+    const mapa = await screen.findByRole('img', { name: /Mapa ilustrativo da rota de Rua A até Rua B, 200 m em 2 passos/ })
     expect(botao).toHaveAttribute('aria-pressed', 'true')
     const link = screen.getByRole('link', { name: 'OpenStreetMap' })
     expect(mapa).not.toContainElement(link)

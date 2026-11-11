@@ -1,5 +1,6 @@
 import type { Endereco, RotaIn, RotaOut } from '../api/client'
 import type { BuscaFeita, PerfilForm } from '../dados/sessaoRota'
+import { alertasDaRota, type Exigencia } from '../dados/narrador'
 import { formatarDistancia, textoDuracao } from '../dados/passo'
 
 export type EstadoRota =
@@ -62,9 +63,13 @@ export function mesmoPonto(a: Endereco, b: Endereco): boolean {
   return a.lat.toFixed(5) === b.lat.toFixed(5) && a.lon.toFixed(5) === b.lon.toFixed(5)
 }
 
-export function resumoDaRota(rota: Pick<RotaOut, 'distancia_m' | 'duracao_s' | 'passos' | 'avisos'>): string {
+/** Conta os mesmos avisos que a ficha mostra (dados/narrador.ts). */
+export function resumoDaRota(
+  rota: Pick<RotaOut, 'distancia_m' | 'duracao_s' | 'passos' | 'motor' | 'nivel_exigencia_atendido'>,
+  pedido: Exigencia,
+): string {
   const n = rota.passos.length
-  const avisos = rota.avisos.length
+  const avisos = alertasDaRota(rota, pedido).length
   const textoAvisos = avisos === 0 ? 'sem avisos' : avisos === 1 ? '1 aviso' : `${avisos} avisos`
   return `${formatarDistancia(rota.distancia_m)} em ${n} ${n === 1 ? 'passo' : 'passos'}, ${textoDuracao(rota.duracao_s)}, ${textoAvisos}`
 }

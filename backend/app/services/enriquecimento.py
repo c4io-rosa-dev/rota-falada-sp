@@ -27,7 +27,7 @@ regra.
 
 **`declividade_medida` só é verdadeira para valor medido no GeoSampa.** A classe
 de steepness do ORS é uma faixa calculada sobre elevação de baixa resolução:
-entra como estimativa e só vence se for maior que o valor medido.
+entra como estimativa e só vence quando a faixa inteira fica acima do valor medido.
 
 **Regra inegociável do projeto** (zeros do GeoSampa são ausência de
 medição, nunca "calçada de largura/declividade zero"): a coluna gerada
@@ -92,6 +92,15 @@ _PCT_POR_CLASSE_STEEPNESS: dict[int, float] = {
     4: 15.0,
     5: 20.0,
 }
+
+
+# Menor inclinação de cada classe do ORS (início da faixa). A estimativa só desmente uma medida
+# do GeoSampa quando nem o começo da faixa cabe nela: a classe 1 (1% a 4%) não desmente 1,9%.
+_PISO_POR_CLASSE_STEEPNESS: dict[int, float] = {0: 0.0, 1: 1.0, 2: 4.0, 3: 7.0, 4: 10.0, 5: 16.0}
+
+
+def _piso_da_classe_steepness(classe: int) -> float | None:
+    return _PISO_POR_CLASSE_STEEPNESS.get(abs(classe))
 
 
 def _pct_da_classe_steepness(classe: int) -> float | None:
@@ -206,7 +215,7 @@ def enriquecer_passos(
     ORS (`rota.py`, Tarefa 6) para o passo `i`, cruzando `way_points` com
     `properties.extras.steepness.values`. Quando o item existe (não é
     `None`), ele entra como estimativa: vence a declividade do GeoSampa só se
-    for maior (ver a regra no docstring do módulo).
+    o começo da faixa da classe já passar dela (ver `_PISO_POR_CLASSE_STEEPNESS`).
 
     `duracao_s` de cada `Passo` sai como `0.0`: nenhum dos dois motores dá a
     duração "certa" para o perfil pedido (a do ORS é para outra velocidade;
@@ -253,8 +262,8 @@ def enriquecer_passos(
                     Aviso(
                         tipo="trecho_sem_dados",
                         mensagem=(
-                            "Um ou mais trechos da rota não têm calçada conflada do "
-                            "GeoSampa: largura e declividade ficam sem dado nesses trechos."
+                            "Em alguns trechos não temos medida da calçada: largura e "
+                            "inclinação ficam sem dado nesses trechos."
                         ),
                     )
                 )
@@ -268,8 +277,12 @@ def enriquecer_passos(
         estimativa_ors = (
             _pct_da_classe_steepness(classe_steepness) if classe_steepness is not None else None
         )
+        piso_ors = (
+            _piso_da_classe_steepness(classe_steepness) if classe_steepness is not None else None
+        )
         if estimativa_ors is not None and (
-            declividade_pct_geosampa is None or estimativa_ors > declividade_pct_geosampa
+            declividade_pct_geosampa is None
+            or (piso_ors is not None and piso_ors > declividade_pct_geosampa)
         ):
             declividade_pct = estimativa_ors
             declividade_medida = False

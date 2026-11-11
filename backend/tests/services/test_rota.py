@@ -656,6 +656,8 @@ def test_passo_acima_do_nivel_derruba_a_exigencia_atendida_e_avisa(db):
     assert len(ingreme) == 1
     assert "passo 1" in ingreme[0].mensagem
     assert "15" in ingreme[0].mensagem
+    # a rota foi encontrada: "não encontramos" seria falso, e o aviso de inclinação já explica
+    assert not any(a.tipo == "exigencia_relaxada" for a in saida.avisos)
 
 
 def test_passo_dentro_do_nivel_nao_avisa_de_trecho_ingreme(db):

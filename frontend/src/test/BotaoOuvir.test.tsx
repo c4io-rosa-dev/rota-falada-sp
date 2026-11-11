@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import { BotaoOuvir } from '../componentes/BotaoOuvir'
 import { RegiaoViva } from '../componentes/RegiaoViva'
+import { falasDaRota } from '../dados/narrador'
 import { ROTA_EXEMPLO } from '../dados/rotaExemplo'
 
 class FalaFalsa {
@@ -36,7 +37,7 @@ function instalarVoz() {
 function renderizar(aoMudarPasso = vi.fn()) {
   const r = render(
     <RegiaoViva>
-      <BotaoOuvir passos={ROTA_EXEMPLO.passos} aoMudarPasso={aoMudarPasso} />
+      <BotaoOuvir falas={falasDaRota(ROTA_EXEMPLO, 6)} aoMudarPasso={aoMudarPasso} />
     </RegiaoViva>,
   )
   return { ...r, aoMudarPasso }
@@ -62,8 +63,9 @@ describe('BotaoOuvir', () => {
     await userEvent.click(botao)
     expect(faladas).toHaveLength(1)
     expect(faladas[0].lang).toBe('pt-BR')
-    expect(faladas[0].text).toMatch(/^Passo 1\. Siga para oeste\./)
-    expect(aoMudarPasso).toHaveBeenLastCalledWith(1)
+    // primeiro o resumo com os avisos, que não marca passo nenhum
+    expect(faladas[0].text).toMatch(/^Rota de .* Agora, os passos\.$/)
+    expect(aoMudarPasso).toHaveBeenLastCalledWith(null)
     // rótulo fixo (padrão APG de botão de alternância): só o estado e o pictograma mudam
     expect(screen.queryByRole('button', { name: /Parar/ })).toBeNull()
     const lendo = screen.getByRole('button', { name: 'Ouvir o exemplo' })
@@ -73,8 +75,8 @@ describe('BotaoOuvir', () => {
 
     act(() => faladas[0].onend?.())
     expect(faladas).toHaveLength(2)
-    expect(faladas[1].text).toMatch(/^Passo 2\./)
-    expect(aoMudarPasso).toHaveBeenLastCalledWith(2)
+    expect(faladas[1].text).toMatch(/^Passo 1 de 11\. Siga para oeste\./)
+    expect(aoMudarPasso).toHaveBeenLastCalledWith(1)
     // a região viva anuncia o estado, nunca o texto do passo (a voz já o diz)
     expect(screen.getByRole('status')).not.toHaveTextContent('Passo')
     expect(await axe(container)).toHaveNoViolations()
@@ -100,10 +102,35 @@ describe('BotaoOuvir', () => {
     const { faladas } = instalarVoz()
     const { aoMudarPasso } = renderizar()
     await userEvent.click(screen.getByRole('button', { name: 'Ouvir o exemplo' }))
-    for (let i = 0; i < 11; i++) act(() => faladas[i].onend?.())
-    expect(faladas).toHaveLength(11)
+    for (let i = 0; i < 12; i++) act(() => faladas[i].onend?.())
+    expect(faladas).toHaveLength(12)
+    expect(faladas[11].text).toMatch(/Você chegou ao destino\.$/)
     expect(aoMudarPasso).toHaveBeenLastCalledWith(null)
     expect(screen.getByRole('button', { name: 'Ouvir o exemplo' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('durante a leitura, próximo e anterior pulam a fala sem recomeçar', async () => {
+    const { sintese, faladas } = instalarVoz()
+    const { aoMudarPasso } = renderizar()
+    await userEvent.click(screen.getByRole('button', { name: 'Ouvir o exemplo' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Próximo passo' }))
+    expect(sintese.cancel).toHaveBeenCalled()
+    expect(faladas.at(-1)?.text).toMatch(/^Passo 1 de 11\./)
+    await userEvent.click(screen.getByRole('button', { name: 'Próximo passo' }))
+    expect(faladas.at(-1)?.text).toMatch(/^Passo 2 de 11\./)
+    await userEvent.click(screen.getByRole('button', { name: 'Passo anterior' }))
+    expect(faladas.at(-1)?.text).toMatch(/^Passo 1 de 11\./)
+    expect(aoMudarPasso).toHaveBeenLastCalledWith(1)
+    // a fala cancelada não avança a leitura
+    const total = faladas.length
+    act(() => faladas[0].onend?.())
+    expect(faladas).toHaveLength(total)
+  })
+
+  it('parado, não há controles de pular', () => {
+    instalarVoz()
+    renderizar()
+    expect(screen.queryByRole('button', { name: 'Próximo passo' })).toBeNull()
   })
 
   it('cancela a fala ao desmontar', async () => {
