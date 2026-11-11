@@ -249,3 +249,8 @@ h2.resultado__titulo.letreiro {
     grid-column: 2 / -1;
   }
 }
+
+/* a entrada da navegação guiada fecha a ficha, separada do "Ouvir a rota" */
+.resultado__navegar {
+  margin-top: var(--e-2);
+}

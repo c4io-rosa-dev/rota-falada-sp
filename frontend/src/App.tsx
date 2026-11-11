@@ -11,6 +11,8 @@ import { Inicio } from './pages/Inicio'
 
 // a landing fica na entrada (é a primeira dobra); o resto vem sob demanda
 const Rota = lazy(() => import('./pages/Rota').then((m) => ({ default: m.Rota })))
+// chunk próprio, sem Leaflet: a navegação guiada não tem mapa (spec 9)
+const Navegar = lazy(() => import('./pages/Navegar').then((m) => ({ default: m.Navegar })))
 const Fontes = lazy(() => import('./pages/Fontes').then((m) => ({ default: m.Fontes })))
 const Acessibilidade = lazy(() => import('./pages/Acessibilidade').then((m) => ({ default: m.Acessibilidade })))
 const NaoEncontrada = lazy(() => import('./pages/NaoEncontrada').then((m) => ({ default: m.NaoEncontrada })))
@@ -72,6 +74,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Inicio />} />
                 <Route path="/rota" element={<Rota />} />
+                <Route path="/rota/navegar" element={<Navegar />} />
                 <Route
                   path="/fontes"
                   element={

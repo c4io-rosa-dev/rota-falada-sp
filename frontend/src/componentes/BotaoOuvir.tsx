@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Fala } from '../dados/narrador'
+import { assumirLeitura } from '../dados/navegacao/voz'
 import { Placa } from './Placa'
 import { useAnuncio } from './useAnuncio'
-
-/** Só uma leitura por vez na página: quem começa para a anterior, sem anunciar. */
-let pararLeituraAtual: (() => void) | null = null
 
 function sintese(): SpeechSynthesis | undefined {
   const g = globalThis as { speechSynthesis?: SpeechSynthesis; SpeechSynthesisUtterance?: unknown }
@@ -42,6 +40,8 @@ export function BotaoOuvir({ falas, aoMudarPasso, rotulo = 'Ouvir o exemplo', va
   const falasRef = useRef(falas)
   const indiceAtual = useRef(0)
   const aoMudarRef = useRef(aoMudarPasso)
+  /** Só uma leitura por vez na página (trinco de voz.ts, o mesmo da navegação guiada): quem começa para a anterior, sem anunciar. */
+  const soltarLeitura = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     falasRef.current = falas
@@ -49,20 +49,23 @@ export function BotaoOuvir({ falas, aoMudarPasso, rotulo = 'Ouvir o exemplo', va
   })
 
   // encerra a leitura desta instância; o contador invalida eventos atrasados da fala cancelada.
-  // Identidade estável: é ela que fica registrada em pararLeituraAtual.
+  // Identidade estável: é ela que fica registrada no trinco.
   const [parar] = useState<() => void>(() => function pararEsta() {
     sessao.current++
     sintese()?.cancel()
-    if (pararLeituraAtual === pararEsta) pararLeituraAtual = null
+    // soltar só solta se esta ainda for a dona do trinco
+    soltarLeitura.current?.()
+    soltarLeitura.current = null
     setLendo(false)
     aoMudarRef.current?.(null)
   })
 
   useEffect(
     () => () => {
-      if (pararLeituraAtual === parar) {
+      if (soltarLeitura.current) {
         sessao.current++
-        pararLeituraAtual = null
+        soltarLeitura.current()
+        soltarLeitura.current = null
         sintese()?.cancel()
       }
     },
@@ -103,10 +106,9 @@ export function BotaoOuvir({ falas, aoMudarPasso, rotulo = 'Ouvir o exemplo', va
       anunciar('Leitura interrompida.')
       return
     }
-    pararLeituraAtual?.()
+    soltarLeitura.current = assumirLeitura(parar)
     sintese()?.cancel()
     const id = ++sessao.current
-    pararLeituraAtual = parar
     setLendo(true)
     anunciar('Lendo a rota em voz alta.')
     falar(0, id)

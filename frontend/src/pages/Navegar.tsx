@@ -1,0 +1,237 @@
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
+import { usePaginaAcessivel } from '../a11y/usePaginaAcessivel'
+import type { RotaOut } from '../api/client'
+import { MapaNavegacao } from '../componentes/mapa/MapaNavegacao'
+import { ControlesNavegacao } from '../componentes/navegacao/ControlesNavegacao'
+import { DetalhesTrecho } from '../componentes/navegacao/DetalhesTrecho'
+import { FaixaSimulacao } from '../componentes/navegacao/FaixaSimulacao'
+import { PainelNavegacao } from '../componentes/navegacao/PainelNavegacao'
+import { PreparoNavegacao } from '../componentes/navegacao/PreparoNavegacao'
+import {
+  ANTES_DE_SAIR_SEM_GPS,
+  COMO_LIBERAR,
+  MSG_SEM_DESENHO,
+  MSG_SEM_LOCALIZACAO,
+  MSG_SEM_PERMISSAO,
+} from '../componentes/navegacao/textosNavegacao'
+import { useNavegacao, type Vigia } from '../componentes/navegacao/useNavegacao'
+import { useTelaCheia } from '../componentes/navegacao/useTelaCheia'
+import { Placa } from '../componentes/Placa'
+import type { PrefsMapa } from '../dados/navegacao/mapaNavegacao'
+import type { Fase } from '../dados/navegacao/navegacao'
+import { resumoDoCaminho } from '../dados/navegacao/resumoCaminho'
+import { montarTrajeto } from '../dados/navegacao/trajeto'
+import { gravarPreferenciaMapa, lerPreferenciasMapa, type QualPreferenciaMapa } from '../dados/preferenciaMapa'
+import { lerSessaoRota, type BuscaFeita } from '../dados/sessaoRota'
+import '../estilos/navegacao.css'
+import { resumoDaRota } from './rotaEstado'
+
+/**
+ * /rota/navegar: acompanha a rota da sessão pelo GPS, tudo no aparelho (spec da navegação guiada).
+ * A rota recalculada vive só na memória desta página: nunca vai para a sessão.
+ */
+export function Navegar() {
+  const h1 = usePaginaAcessivel('Navegação guiada')
+  const { search } = useLocation()
+  const [sessao] = useState(() => lerSessaoRota())
+  const rota = sessao?.rota ?? null
+  const busca = sessao?.rotaDe ?? null
+  const [simulacao, setSimulacao] = useState<Vigia | null | 'carregando'>((): 'carregando' | null =>
+    import.meta.env.VITE_PERMITIR_SIMULACAO === 'true' && rota && new URLSearchParams(search).has('simular') ? 'carregando' : null,
+  )
+
+  // a simulação só existe no build de teste ou de demonstração; em produção este bloco some
+  useEffect(() => {
+    if (import.meta.env.VITE_PERMITIR_SIMULACAO === 'true') {
+      if (simulacao !== 'carregando' || !rota) return
+      const pontos = montarTrajeto(rota)?.pontos
+      let vivo = true
+      void import('../dados/navegacao/posicaoSimulada').then((m) => {
+        if (vivo) setSimulacao(() => (pontos ? m.simulacaoDaBusca(search, pontos) : null))
+      })
+      return () => {
+        vivo = false
+      }
+    }
+  }, [simulacao, rota, search])
+
+  const simulando = typeof simulacao === 'function'
+  return (
+    <div className="navegar">
+      {simulando && <FaixaSimulacao />}
+      <h1 ref={h1} tabIndex={-1} className="navegar__titulo">
+        Navegação guiada
+      </h1>
+      {!rota || !busca ? (
+        <>
+          <p>Nenhuma rota para navegar. Calcule uma rota primeiro.</p>
+          <p>
+            <Link className="alvo navegar__link" to="/rota">
+              Calcular uma rota
+            </Link>
+          </p>
+        </>
+      ) : (
+        simulacao !== 'carregando' && <NavegacaoGuiada rota={rota} busca={busca} vigia={simulando ? simulacao : null} />
+      )}
+    </div>
+  )
+}
+
+/** Fases em que o mapa da navegação pode aparecer (spec do mapa próprio, 10.4). */
+const FASES_COM_MAPA: readonly Fase[] = ['procurando', 'navegando', 'pausada', 'passo_a_passo']
+
+function NavegacaoGuiada({ rota, busca, vigia }: { rota: RotaOut; busca: BuscaFeita; vigia: Vigia | null }) {
+  const nav = useNavegacao(rota, busca.pedido, vigia)
+  const navegar = useNavigate()
+  const e = nav.estado
+  // mapa opcional: fechado, sem giro, visto de cima e fora da tela cheia por padrão; as escolhas
+  // valem só nesta aba (spec do mapa, 6, 10.4 e emenda 19)
+  const [prefsMapa, setPrefsMapa] = useState<PrefsMapa>(lerPreferenciasMapa)
+  const tela = useRef<HTMLDivElement>(null)
+  // o mapa só aparece (e a tela cheia só vale) nas fases com mapa: na chegada a página volta ao normal
+  const comMapa = FASES_COM_MAPA.includes(e.fase) && e.trajeto !== null
+  const telaCheia = comMapa && prefsMapa.aberto && prefsMapa.cheia === true
+  useTelaCheia(tela, telaCheia, () => mudarPrefsMapa('cheia', false))
+
+  function mudarPrefsMapa(qual: QualPreferenciaMapa, valor: boolean) {
+    setPrefsMapa((p) => ({ ...p, [qual]: valor }))
+    gravarPreferenciaMapa(qual, valor)
+  }
+
+  function encerrar() {
+    nav.encerrar()
+    // sem gravar nada e sem passo de retorno: /rota volta com a rota original e o foco no h1
+    navegar('/rota')
+  }
+
+  if (e.fase === 'preparo') {
+    return (
+      <PreparoNavegacao
+        resumo={resumoDaRota(rota, busca.pedido.perfil.inclinacao_max)}
+        vozDisponivel={nav.vozDisponivel}
+        vozLigada={nav.vozLigada}
+        aoAlternarVoz={nav.alternarVoz}
+        aoComecar={nav.comecar}
+        aoPassoAPasso={nav.passoAPasso}
+      />
+    )
+  }
+
+  if (e.fase === 'sem_permissao') {
+    return (
+      <div className="navegar__aviso">
+        {/* recebe o foco quando a permissão é negada: o foco lê a mensagem, sem anúncio */}
+        <p ref={nav.refAviso} tabIndex={-1}>
+          {MSG_SEM_PERMISSAO}
+        </p>
+        <p id="como-liberar">Para liberar a localização:</p>
+        <ul className="navegar__lista" aria-labelledby="como-liberar">
+          {COMO_LIBERAR.map((texto) => (
+            <li key={texto}>{texto}</li>
+          ))}
+        </ul>
+        {/* o toque é um gesto: pode pedir a localização de novo */}
+        <Placa variante="acao" pictograma="siga" onClick={nav.tentarDeNovo}>
+          Tentar de novo
+        </Placa>
+        <Placa onClick={nav.passoAPasso}>Seguir passo a passo</Placa>
+      </div>
+    )
+  }
+
+  if (e.fase === 'indisponivel') {
+    return (
+      <div className="navegar__aviso">
+        {/* recebe o foco quando o navegador não tem localização (erro 0 ao começar) */}
+        <p ref={nav.refAviso} tabIndex={-1}>
+          {e.motivoIndisponivel === 'sem_desenho' ? MSG_SEM_DESENHO : MSG_SEM_LOCALIZACAO}
+        </p>
+        {/* o passo a passo também é usado andando na rua: os avisos de rua valem sem GPS */}
+        <h2 id="antes-de-sair" className="letreiro navegar__subtitulo">
+          Antes de sair
+        </h2>
+        <ul className="navegar__lista" aria-labelledby="antes-de-sair">
+          {ANTES_DE_SAIR_SEM_GPS.map((texto) => (
+            <li key={texto}>{texto}</li>
+          ))}
+        </ul>
+        <Placa onClick={nav.passoAPasso}>Seguir passo a passo</Placa>
+      </div>
+    )
+  }
+
+  const passoAPasso = e.fase === 'passo_a_passo'
+  const ultimo = e.passoAtual === e.rota.passos.length - 1
+  const comDetalhes = passoAPasso || e.fase === 'navegando' || (e.fase === 'pausada' && e.faseAntesDaPausa === 'navegando')
+  const fora = e.fase === 'navegando' && e.acompanhamento.fora
+  const procuraDemorada = e.fase === 'procurando' && e.procuraDemorada
+  // o mapa é complemento do painel: some na chegada (o motor é destruído) e o foco segue para o h2
+  const mostrarMapa = comMapa
+  const resumo = resumoDoCaminho(e)
+  // aria-disabled sozinho só diz "indisponível": a dica diz por quê
+  const dicaRecalcular = e.fase === 'pausada' ? 'Disponível depois de retomar.' : e.recalculando ? 'Calculando nova rota.' : undefined
+
+  const controles =
+    e.fase === 'chegou' ? (
+      <Placa para="/rota" className="navegar__voltar">
+        Voltar para a rota
+      </Placa>
+    ) : (
+      <>
+        {procuraDemorada && <Placa onClick={nav.passoAPasso}>Seguir passo a passo</Placa>}
+        {comDetalhes && <DetalhesTrecho passo={e.rota.passos[e.passoAtual]} />}
+        {/* quanto falta e em que passo: texto parado junto dos controles, nunca anunciado; sem tempo */}
+        {resumo && (
+          <p className="navegar__falta medida">
+            {resumo.falta && <span>{resumo.falta} </span>}
+            <span>{resumo.passo}</span>
+          </p>
+        )}
+        <ControlesNavegacao
+          aoEncerrar={encerrar}
+          controles={
+            passoAPasso
+              ? [
+                  { rotulo: 'Passo anterior', aoTocar: nav.passoAnterior, inativo: e.passoAtual === 0 },
+                  { rotulo: 'Próximo passo', aoTocar: nav.proximoPasso, inativo: ultimo },
+                  { rotulo: 'Repetir', pictograma: 'ouvir', aoTocar: nav.repetir },
+                ]
+              : [
+                  { rotulo: 'Repetir', pictograma: 'ouvir', aoTocar: nav.repetir },
+                  // fora da rota vira a ação principal, sem mudar de lugar
+                  {
+                    rotulo: 'Recalcular',
+                    pictograma: 'siga',
+                    aoTocar: nav.recalcular,
+                    acao: fora,
+                    inativo: dicaRecalcular !== undefined,
+                    dica: dicaRecalcular,
+                  },
+                  { rotulo: 'Pausar', pictograma: 'parar', aoTocar: nav.alternarPausa, pressionado: e.fase === 'pausada' },
+                ]
+          }
+        />
+      </>
+    )
+
+  return (
+    // Um contêiner só, com a mesma ordem no DOM nos dois modos: painel, controles, opções do mapa e
+    // figura. Fora da tela cheia ele não tem caixa (display: contents) e tudo flui como antes; em
+    // tela cheia vira três faixas por CSS (painel em cima, mapa no meio, o resto embaixo).
+    <div ref={tela} className={telaCheia ? 'nav-tela nav-tela--cheia' : 'nav-tela'}>
+      <PainelNavegacao estado={e} telaPodeApagar={nav.telaPodeApagar} refTitulo={nav.refPainel} />
+      {/* o mapa é complemento: as opções dele vêm depois dos controles, para não empurrá-los para baixo
+          da dobra no celular nem pôr "Mostrar o mapa" e "Girar" no caminho do Tab até Repetir,
+          Recalcular e Pausar */}
+      {mostrarMapa ? (
+        <MapaNavegacao estado={e} prefs={prefsMapa} aoMudarPrefs={mudarPrefsMapa}>
+          {controles}
+        </MapaNavegacao>
+      ) : (
+        <div className="nav-tela__base">{controles}</div>
+      )}
+    </div>
+  )
+}

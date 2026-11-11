@@ -32,6 +32,13 @@ describe('layout acessível', () => {
     expect(document.body).toHaveFocus()
   })
 
+  it('/rota/navegar carrega a navegação guiada sob demanda', async () => {
+    renderizar('/rota/navegar')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Navegação guiada' })).toBeInTheDocument()
+    expect(screen.getByText('Nenhuma rota para navegar. Calcule uma rota primeiro.')).toBeInTheDocument()
+    expect(document.title).toBe('Navegação guiada · Rota Falada SP')
+  })
+
   it('navegar para outra página foca o h1 dela', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json([])))
     renderizar('/')

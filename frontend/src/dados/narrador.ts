@@ -52,7 +52,8 @@ export function numeroFalado(valor: number): string {
   return virgula.format(arredondado)
 }
 
-function metrosFalados(metros: number): string {
+/** Distância para a voz: metro inteiro abaixo de 10 m, de 5 em 5 m até 1 km, depois quilômetro com uma casa. */
+export function metrosFalados(metros: number): string {
   if (metros >= 1000) {
     const km = Math.round(metros / 100) / 10
     return `${virgula.format(km)} ${km < 2 ? 'quilômetro' : 'quilômetros'}`
@@ -227,21 +228,48 @@ export function textoExigenciaDaRota(rota: Pick<RotaOut, 'passos' | 'nivel_exige
   return `Pedido: até ${pedido}%. Não conseguimos confirmar a inclinação de todos os trechos.`
 }
 
-/** Um passo para a voz: ação, distância e só o que importa, do mais grave ao menos grave. */
-export function falaDoPasso(p: Passo, total: number, pedido: Exigencia): string {
-  const partes = [`Passo ${p.ordem} de ${total}.`, `${textoInstrucao(p)}.`, `${metrosFalados(p.distancia_m)}.`]
+/** Os avisos de um passo para a voz, na ordem em que `falaDoPasso` os diz depois da distância. */
+export function alertasFaladosDoPasso(p: Passo, pedido: Exigencia): string[] {
+  const partes: string[] = []
   if (p.is_degrau) partes.push('Atenção: degrau.')
   if (p.guia === 'nao_transponivel') partes.push('Guia sem rebaixamento.')
   if (acimaDoLimite(p, pedido) && p.declividade_pct !== null) {
     const valor = numeroFalado(p.declividade_pct)
-    const qual = pedido === 'any' ? 'acima da norma para rampas' : 'acima do pedido'
+    const qual = qualLimite(pedido)
     partes.push(p.declividade_medida ? `Inclinação de ${valor} por cento, ${qual}.` : `Inclinação estimada de ${valor} por cento, ${qual}.`)
   }
   if (estreita(p) && p.largura_m !== null) partes.push(`Calçada estreita, ${numeroFalado(p.largura_m)} metro.`)
   for (const b of p.barreiras_proximas) partes.push(`${rotuloCategoria(b.categoria)} a ${metrosFalados(b.distancia_m)}.`)
   const falta = faltaFalada(p)
   if (falta) partes.push(falta)
-  return partes.join(' ')
+  return partes
+}
+
+/**
+ * Só os avisos graves de um passo, em forma curta e minúscula, para caber numa frase da navegação
+ * ("No próximo trecho: degrau, guia sem rebaixamento."). A falta de medida fica de fora: ela é dita
+ * na entrada do próprio passo.
+ */
+export function gravesFaladosDoPasso(p: Passo, pedido: Exigencia): string[] {
+  const graves: string[] = []
+  if (p.is_degrau) graves.push('degrau')
+  if (p.guia === 'nao_transponivel') graves.push('guia sem rebaixamento')
+  if (acimaDoLimite(p, pedido) && p.declividade_pct !== null) {
+    graves.push(`inclinação de ${numeroFalado(p.declividade_pct)} por cento, ${qualLimite(pedido)}`)
+  }
+  if (estreita(p) && p.largura_m !== null) graves.push(`calçada estreita, ${numeroFalado(p.largura_m)} metro`)
+  for (const b of p.barreiras_proximas) graves.push(`${minuscula(rotuloCategoria(b.categoria))} a ${metrosFalados(b.distancia_m)}`)
+  return graves
+}
+
+function qualLimite(pedido: Exigencia): string {
+  return pedido === 'any' ? 'acima da norma para rampas' : 'acima do pedido'
+}
+
+/** Um passo para a voz: ação, distância e só o que importa, do mais grave ao menos grave. */
+export function falaDoPasso(p: Passo, total: number, pedido: Exigencia): string {
+  const partes = [`Passo ${p.ordem} de ${total}.`, `${textoInstrucao(p)}.`, `${metrosFalados(p.distancia_m)}.`]
+  return [...partes, ...alertasFaladosDoPasso(p, pedido)].join(' ')
 }
 
 /** A rota inteira para a voz: o resumo com os avisos, cada passo, e a chegada. */

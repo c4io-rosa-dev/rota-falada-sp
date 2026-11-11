@@ -79,6 +79,39 @@ describe('resultado da rota', () => {
     expect(sessionStorage.getItem('rf-voltar-passo')).toBeNull()
   })
 
+  it('oferece a navegação guiada logo depois da ficha, como placa de ação', () => {
+    const { container } = renderizar()
+    const iniciar = screen.getByRole('link', { name: 'Iniciar navegação guiada' })
+    expect(iniciar).toHaveAttribute('href', '/rota/navegar')
+    expect(iniciar).toHaveClass('placa', 'placa--acao')
+    expect(iniciar.querySelector('[data-pictograma="siga"]')).not.toBeNull()
+    // no fim da ficha (depois dos dados e do "Ouvir a rota") e antes do mapa
+    const ficha = container.querySelector('.ficha')!
+    expect(ficha).toContainElement(iniciar)
+    expect(ficha.lastElementChild).toContainElement(iniciar)
+    const mapa = screen.getByRole('button', { name: 'Mostrar mapa' })
+    expect(iniciar.compareDocumentPosition(mapa) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('rota desatualizada não oferece a navegação guiada', () => {
+    render(
+      <MemoryRouter>
+        <RegiaoViva>
+          <ResultadoRota
+            rota={ROTA_COM_PROBLEMAS}
+            origem="Rua A"
+            destino="Rua B"
+            exigenciaPedida={6}
+            calculadaEm="2026-11-09T12:00:00Z"
+            desatualizada
+            tituloRef={createRef()}
+          />
+        </RegiaoViva>
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('link', { name: 'Iniciar navegação guiada' })).toBeNull()
+  })
+
   it('sem violações de acessibilidade', async () => {
     const { container } = renderizar()
     expect(await axe(container)).toHaveNoViolations()

@@ -182,9 +182,12 @@ describe('guarda de chave no build', () => {
 })
 
 describe('import.meta.env', () => {
-  const CRUS = import.meta.glob('../**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+  // sem test/: um temporário criado ou apagado por outro fluxo durante a rodada derrubaria a suíte (ENOENT)
+  const CRUS = import.meta.glob(['../**/*.{ts,tsx}', '!../test/**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 
   it('nenhum código de produção usa o objeto inteiro: o Vite publicaria toda variável VITE_', () => {
+    expect(Object.keys(CRUS)).toContain('../api/base.ts')
+    expect(Object.keys(CRUS).filter((c) => c.startsWith('./') || c.includes('/test/'))).toEqual([])
     const achados = Object.entries(CRUS)
       .filter(([caminho]) => !caminho.includes('/test/'))
       .filter(([, texto]) => /import\.meta\.env(?![.\w])/.test(texto))

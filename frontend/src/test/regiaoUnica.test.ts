@@ -1,12 +1,14 @@
-const CRUS = import.meta.glob('../**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+// sem test/: um temporário criado ou apagado por outro fluxo durante a rodada derrubaria a suíte (ENOENT)
+const CRUS = import.meta.glob(['../**/*.{ts,tsx}', '!../test/**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 
 describe('restrições verificadas no código-fonte', () => {
   const fontes = Object.entries(CRUS)
     .map(([caminho, texto]) => ({ caminho: caminho.replace('../', ''), texto }))
     .filter((f) => !f.caminho.startsWith('./'))
 
-  it('lê o código de verdade', () => {
+  it('lê o código de verdade, e não os testes', () => {
     expect(fontes.map((f) => f.caminho)).toContain('componentes/RegiaoViva.tsx')
+    expect(Object.keys(CRUS).filter((c) => c.startsWith('./') || c.includes('/test/'))).toEqual([])
   })
 
   it('só RegiaoViva.tsx cria região viva', () => {

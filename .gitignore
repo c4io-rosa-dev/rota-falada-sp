@@ -22,6 +22,9 @@ frontend/coverage/
 # dados brutos (nunca versionar)
 *.pbf
 *.zip
+# mapa da navegação: o arquivo de tiles vai para o R2, nunca para o git (scripts/mapa/LEIAME.md)
+*.pmtiles
+scripts/mapa/area.geojson
 etl/dados/*
 !etl/dados/.gitkeep
 
